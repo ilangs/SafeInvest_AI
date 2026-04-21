@@ -14,16 +14,11 @@ api.interceptors.request.use(async (config) => {
   return config
 })
 
-// 응답 인터셉터: 401 시 로그아웃 후 로그인 페이지 이동
+// 응답 인터셉터: 에러를 컴포넌트로 전달 (자동 signOut 제거)
+// 401이 와도 즉시 로그아웃하지 않음 — 각 위젯이 에러 처리
 api.interceptors.response.use(
   (res) => res,
-  async (err) => {
-    if (err.response?.status === 401) {
-      await supabase.auth.signOut()
-      window.location.href = '/'
-    }
-    return Promise.reject(err)
-  }
+  (err) => Promise.reject(err)
 )
 
 export default api

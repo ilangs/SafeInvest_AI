@@ -6,7 +6,23 @@ import TradePage from './pages/TradePage'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
-  if (loading) return <div className="loading-screen">로딩 중...</div>
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        background: '#0f1729',
+        color: '#22c55e',
+        fontSize: '18px'
+      }}>
+        Loading...
+      </div>
+    )
+  }
+
   return user ? children : <Navigate to="/" replace />
 }
 

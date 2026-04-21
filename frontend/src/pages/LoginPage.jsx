@@ -1,25 +1,33 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../services/supabase'
+import { useAuth } from '../hooks/useAuth'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState('login') // 'login' | 'signup'
+  const { user, loading: authLoading } = useAuth()
+
+  // 이미 로그인된 상태면 대시보드로
+  useEffect(() => {
+    if (!authLoading && user) navigate('/dashboard', { replace: true })
+  }, [user, authLoading, navigate])
+
+  const [email, setEmail]         = useState('')
+  const [password, setPassword]   = useState('')
+  const [error, setError]         = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [mode, setMode]           = useState('login')
   const [signupDone, setSignupDone] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
+    setSubmitting(true)
     try {
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-        navigate('/dashboard')
+        // onAuthStateChange + LoginPage useEffect가 /dashboard로 이동시킴
       } else {
         const { error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
@@ -28,9 +36,11 @@ export default function LoginPage() {
     } catch (e) {
       setError(e.message)
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
+
+  if (authLoading) return null
 
   return (
     <div className="login-bg">
@@ -64,13 +74,13 @@ export default function LoginPage() {
             <div className="form-group">
               <label>비밀번호</label>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="6자리 이상" required />
+                placeholder="6자리 이상" required autoComplete="current-password" />
             </div>
 
             {error && <div className="error-msg">{error}</div>}
 
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? '처리 중...' : mode === 'login' ? '로그인' : '회원가입'}
+            <button type="submit" className="btn-primary" disabled={submitting}>
+              {submitting ? '처리 중...' : mode === 'login' ? '로그인' : '회원가입'}
             </button>
           </form>
         )}
