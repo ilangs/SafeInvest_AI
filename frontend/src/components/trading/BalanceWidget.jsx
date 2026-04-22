@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../services/api'
 
-export default function BalanceWidget({ refreshKey }) {
+export default function BalanceWidget({ refreshKey, onBalanceLoad }) {
   const [balance, setBalance] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -10,12 +10,13 @@ export default function BalanceWidget({ refreshKey }) {
     try {
       const { data } = await api.get('/api/v1/account/balance')
       setBalance(data)
+      onBalanceLoad?.(data.available ?? 0)   // 매수가능금액을 부모로 전달
     } catch {
       setBalance(null)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [onBalanceLoad])
 
   useEffect(() => { load() }, [load, refreshKey])
 

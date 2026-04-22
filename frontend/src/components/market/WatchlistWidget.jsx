@@ -1,5 +1,29 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../services/api'
+import { useStockName } from '../../hooks/useStockName'
+
+/** 개별 항목 컴포넌트 — hook을 루프 밖에서 호출하기 위해 분리 */
+function WatchlistItem({ item, onSelect, onDelete }) {
+  const resolved = useStockName(item.stock_code)
+  const displayName = item.stock_name || resolved  // DB에 저장된 이름 우선, 없으면 API 조회
+
+  return (
+    <li className="watchlist-item" onClick={() => onSelect?.(item.stock_code)}>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+        <span className="wl-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {displayName || item.stock_code}
+        </span>
+        <span className="wl-code" style={{ fontSize: '11px', color: '#64748b' }}>
+          {item.stock_code}
+        </span>
+      </div>
+      <button
+        className="btn-delete"
+        onClick={e => { e.stopPropagation(); onDelete(item.stock_code) }}
+      >✕</button>
+    </li>
+  )
+}
 
 export default function WatchlistWidget({ onSelect }) {
   const [list, setList] = useState([])
@@ -41,14 +65,12 @@ export default function WatchlistWidget({ onSelect }) {
       ) : (
         <ul className="watchlist">
           {list.map(item => (
-            <li key={item.stock_code} className="watchlist-item" onClick={() => onSelect?.(item.stock_code)}>
-              <span className="wl-name">{item.stock_name || item.stock_code}</span>
-              <span className="wl-code">{item.stock_code}</span>
-              <button
-                className="btn-delete"
-                onClick={e => { e.stopPropagation(); handleDelete(item.stock_code) }}
-              >✕</button>
-            </li>
+            <WatchlistItem
+              key={item.stock_code}
+              item={item}
+              onSelect={onSelect}
+              onDelete={handleDelete}
+            />
           ))}
         </ul>
       )}

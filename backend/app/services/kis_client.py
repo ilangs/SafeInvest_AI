@@ -206,6 +206,139 @@ async def get_holdings() -> list[dict]:
         return []
 
 
+async def get_orderbook(symbol: str) -> dict:
+    """
+    호가 데이터 조회.
+    모의투자 TR: FHKST01010200 (주식 호가)
+    실거래  TR: FHKST01010200 (동일)
+
+    KIS API 미연결 시 현실적인 mock 데이터 반환.
+    mock 데이터는 현재가 기준 +-0.5% 범위로 자동 생성.
+    """
+    token = await get_access_token()
+    url = f"{settings.kis_base_url}/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn"
+    headers = {
+        "authorization": f"Bearer {token}",
+        "appkey": settings.kis_app_key,
+        "appsecret": settings.kis_app_secret,
+        "tr_id": "FHKST01010200",
+    }
+    params = {
+        "FID_COND_MRKT_DIV_CODE": "J",
+        "FID_INPUT_ISCD": symbol,
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers=headers, params=params, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            output1 = data.get("output1", {})
+            asks = []
+            bids = []
+            for i in range(1, 6):
+                asks.append({
+                    "price": int(output1.get(f"askp{i}", 0)),
+                    "volume": int(output1.get(f"askp_rsqn{i}", 0)),
+                })
+                bids.append({
+                    "price": int(output1.get(f"bidp{i}", 0)),
+                    "volume": int(output1.get(f"bidp_rsqn{i}", 0)),
+                })
+            return {"asks": asks, "bids": bids, "symbol": symbol}
+    except Exception:
+        # Fallback mock 데이터
+        import random
+        base = 219000  # 삼성전자 기준
+        asks = [{"price": base + (i * 500), "volume": random.randint(50000, 300000)} for i in range(1, 6)]
+        bids = [{"price": base - (i * 500), "volume": random.randint(50000, 300000)} for i in range(1, 6)]
+        return {"asks": asks, "bids": bids, "symbol": symbol, "is_mock": True}
+
+
+async def get_chart_data(symbol: str, period: str = "D") -> dict:
+    """
+    차트 OHLCV 데이터 조회.
+    period: D=일봉, W=주봉, M=월봉, Y=년봉(월봉 3년치)
+    TR: FHKST03010100 (국내 주식 기간별 시세)
+
+    KIS API 미연결 시 현실적인 mock 데이터 반환.
+    """
+    from datetime import datetime as dt, timedelta
+    import random
+    token = await get_access_token()
+
+    # Y(년) → KIS는 월봉(M)으로 3년치 조회
+    kis_period = "M" if period == "Y" else period
+
+    end_date = dt.now().strftime("%Y%m%d")
+    if period == "D":
+        start_date = (dt.now() - timedelta(days=90)).strftime("%Y%m%d")    # 약 60 거래일
+    elif period == "W":
+        start_date = (dt.now() - timedelta(weeks=52)).strftime("%Y%m%d")   # 1년치 주봉
+    elif period == "M":
+        start_date = (dt.now() - timedelta(days=365 * 2)).strftime("%Y%m%d")  # 2년치 월봉
+    else:  # Y
+        start_date = (dt.now() - timedelta(days=365 * 5)).strftime("%Y%m%d")  # 5년치 월봉
+
+    url = f"{settings.kis_base_url}/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
+    headers = {
+        "authorization": f"Bearer {token}",
+        "appkey": settings.kis_app_key,
+        "appsecret": settings.kis_app_secret,
+        "tr_id": "FHKST03010100",
+    }
+    params = {
+        "FID_COND_MRKT_DIV_CODE": "J",
+        "FID_INPUT_ISCD": symbol,
+        "FID_INPUT_DATE_1": start_date,
+        "FID_INPUT_DATE_2": end_date,
+        "FID_PERIOD_DIV_CODE": kis_period,
+        "FID_ORG_ADJ_PRC": "0",
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers=headers, params=params, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            candles = []
+            for item in data.get("output2", []):
+                candles.append({
+                    "date":   item.get("stck_bsop_date", ""),
+                    "open":   int(item.get("stck_oprc", 0)),
+                    "high":   int(item.get("stck_hgpr", 0)),
+                    "low":    int(item.get("stck_lwpr", 0)),
+                    "close":  int(item.get("stck_clpr", 0)),
+                    "volume": int(item.get("acml_vol", 0)),
+                })
+            return {"symbol": symbol, "period": period, "candles": candles}
+    except Exception:
+        # Fallback mock 데이터 — 봉 수: D=60, W=52, M=24, Y=60
+        n_candles = {"D": 60, "W": 52, "M": 24, "Y": 60}.get(period, 60)
+        candles = []
+        base_price = 219000
+        price = base_price
+        for i in range(n_candles, 0, -1):
+            if period == "D":
+                d = (dt.now() - timedelta(days=i)).strftime("%Y%m%d")
+            elif period == "W":
+                d = (dt.now() - timedelta(weeks=i)).strftime("%Y%m%d")
+            elif period == "M":
+                d = (dt.now() - timedelta(days=i * 30)).strftime("%Y%m%d")
+            else:  # Y → 월봉 5년치
+                d = (dt.now() - timedelta(days=i * 30)).strftime("%Y%m%d")
+            change = random.uniform(-0.03, 0.03)
+            open_p  = int(price)
+            close_p = int(price * (1 + change))
+            high_p  = int(max(open_p, close_p) * random.uniform(1.001, 1.015))
+            low_p   = int(min(open_p, close_p) * random.uniform(0.985, 0.999))
+            vol     = random.randint(8_000_000, 25_000_000)
+            candles.append({
+                "date": d, "open": open_p, "high": high_p,
+                "low": low_p, "close": close_p, "volume": vol,
+            })
+            price = close_p
+        return {"symbol": symbol, "period": period, "candles": candles, "is_mock": True}
+
+
 async def place_order(
     symbol: str,
     order_type: str,   # "buy" | "sell"

@@ -2,38 +2,42 @@ import { useState } from 'react'
 import Navbar from '../components/layout/Navbar'
 import QuoteWidget from '../components/market/QuoteWidget'
 import WatchlistWidget from '../components/market/WatchlistWidget'
-import BalanceWidget from '../components/trading/BalanceWidget'
 import ChatWidget from '../components/ai/ChatWidget'
+import AnalysisDashboard from '../components/analysis/AnalysisDashboard'
 
 export default function DashboardPage() {
   const [selectedSymbol, setSelectedSymbol] = useState('005930')
-  const [balanceRefresh, setBalanceRefresh] = useState(0)
+  const [analysisCode, setAnalysisCode] = useState(null)
+
+  const handleAnalyse = (code) => {
+    setAnalysisCode(prev => (prev === code ? null : code))
+  }
 
   return (
     <div className="app-layout">
       <Navbar />
-      <div className="dashboard-grid">
-        {/* 좌측: 관심종목 */}
-        <div className="col-left">
-          <WatchlistWidget onSelect={setSelectedSymbol} />
+      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+        {/* 상단: 관심종목(좌) + 현재가(우) — 가로 배치 */}
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+          <div style={{ flexShrink: 0, width: '200px' }}>
+            <WatchlistWidget onSelect={setSelectedSymbol} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <QuoteWidget
+              onSymbolChange={setSelectedSymbol}
+              onAnalyse={handleAnalyse}
+            />
+          </div>
         </div>
 
-        {/* 중앙: 현재가 */}
-        <div className="col-center">
-          <QuoteWidget
-            onSymbolChange={setSelectedSymbol}
-          />
-        </div>
+        {/* 기업 분석 대시보드 */}
+        {analysisCode && (
+          <AnalysisDashboard stockCode={analysisCode} />
+        )}
 
-        {/* 우측: 잔고 */}
-        <div className="col-right">
-          <BalanceWidget refreshKey={balanceRefresh} />
-        </div>
-
-        {/* 하단 전체: AI 튜터 */}
-        <div className="col-full">
-          <ChatWidget />
-        </div>
+        {/* AI 튜터 */}
+        <ChatWidget />
       </div>
     </div>
   )

@@ -34,3 +34,30 @@ async def get_quote(
         **data,
         fetched_at=datetime.now(tz=timezone.utc),
     )
+
+
+@router.get("/orderbook", summary="호가 조회")
+async def get_orderbook(
+    symbol: str = Query(..., min_length=6, max_length=6, description="종목코드 (예: 005930)"),
+    _: TokenData = Depends(get_current_user),
+):
+    """
+    KIS API 를 통해 매도/매수 호가 5단계를 조회합니다.
+    KIS 미연결 시 mock 데이터를 반환합니다.
+    """
+    data = await kis_client.get_orderbook(symbol)
+    return data
+
+
+@router.get("/chart", summary="차트 데이터 (OHLCV)")
+async def get_chart(
+    symbol: str = Query(..., min_length=6, max_length=6, description="종목코드 (예: 005930)"),
+    period: str = Query("D", description="D=일봉 W=주봉 M=월봉"),
+    _: TokenData = Depends(get_current_user),
+):
+    """
+    KIS API 를 통해 기간별 주가 OHLCV 데이터를 조회합니다.
+    KIS 미연결 시 mock 데이터를 반환합니다.
+    """
+    data = await kis_client.get_chart_data(symbol, period)
+    return data

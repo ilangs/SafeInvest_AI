@@ -114,6 +114,92 @@ class HoldingItem(BaseModel):
     profit_loss_rate: float   # 수익률 (%)
 
 
+# ── Education (교육 튜터) ──────────────────────────────────────────────────────
+
+class UnitSummary(BaseModel):
+    id: str
+    stage: int
+    unit_number: int
+    title: str
+    description: str | None
+
+
+class UnitDetail(BaseModel):
+    id: str
+    stage: int
+    unit_number: int
+    title: str
+    description: str | None
+    content: str
+    quiz_question: str | None
+    quiz_options: list[str] | None
+    source_url: str | None
+    source_label: str | None
+
+
+class QuizSubmitRequest(BaseModel):
+    selected_index: int
+
+
+class QuizSubmitResponse(BaseModel):
+    correct: bool
+    explanation: str | None
+
+
+class ProgressRequest(BaseModel):
+    unit_id: str
+    completed: bool
+    quiz_passed: bool
+
+
+class ProgressResponse(BaseModel):
+    unit_id: str
+    completed: bool
+    quiz_passed: bool
+    completed_at: datetime | None
+
+
+# ── Stock Analysis (종목 기초분석) ────────────────────────────────────────────
+
+class StockOverview(BaseModel):
+    stock_code: str
+    stock_name: str
+    market: str | None
+    sector: str | None
+    business_summary: str | None
+    per: float | None
+    pbr: float | None
+    div_yield: float | None
+    market_cap: int | None
+    risk_count: int = 0
+
+
+class FinancialSummary(BaseModel):
+    fiscal_year: int
+    report_type: str
+    revenue: int | None
+    operating_profit: int | None
+    net_income: int | None
+    debt_ratio: float | None
+    roe: float | None
+    operating_margin: float | None
+
+
+class PeerCompany(BaseModel):
+    stock_code: str
+    stock_name: str
+    per: float | None
+    pbr: float | None
+    market_cap: int | None
+    is_selected: bool = False
+
+
+class RiskFlag(BaseModel):
+    flag_type: str
+    severity: str
+    flag_detail: str | None
+
+
 # ── Portfolio ─────────────────────────────────────────────────────────────────
 
 class PortfolioAnalysisResponse(BaseModel):
