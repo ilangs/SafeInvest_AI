@@ -11,7 +11,6 @@ export default function Navbar() {
         <span className="nav-logo">📈</span>
         <span className="nav-title">SafeInvest AI</span>
         <div className="nav-links">
-          <Link to="/education" className={`nav-link ${location.pathname.startsWith('/education') ? 'active' : ''}`}>교육</Link>
           <Link to="/dashboard" className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>기업개요</Link>
           <Link to="/trade" className={`nav-link ${location.pathname === '/trade' ? 'active' : ''}`}>주식거래</Link>
         </div>

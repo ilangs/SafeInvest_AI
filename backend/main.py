@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.routers import auth, market, order, ai, portfolio, watchlist, account, education, stock
+from app.routers import auth, market, order, ai, watchlist, account, stock
 
 
 # ── Lifespan (시작/종료 훅) ────────────────────────────────────────────────────
@@ -62,10 +62,8 @@ app.include_router(auth.router)
 app.include_router(market.router)
 app.include_router(order.router)
 app.include_router(ai.router)
-app.include_router(portfolio.router)
 app.include_router(watchlist.router)
 app.include_router(account.router)
-app.include_router(education.router)
 app.include_router(stock.router)
 
 

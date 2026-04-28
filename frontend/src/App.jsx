@@ -3,8 +3,6 @@ import { useAuth } from './hooks/useAuth'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import TradePage from './pages/TradePage'
-import EducationPage from './pages/EducationPage'
-import UnitPage from './pages/UnitPage'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -34,8 +32,6 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-        <Route path="/education" element={<PrivateRoute><EducationPage /></PrivateRoute>} />
-        <Route path="/education/:id" element={<PrivateRoute><UnitPage /></PrivateRoute>} />
         <Route path="/trade" element={<PrivateRoute><TradePage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
