@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../services/api'
 
-export default function BalanceWidget({ refreshKey, onBalanceLoad }) {
+export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoad, isMock = true }) {
+  refreshKey = refreshKey ?? refreshTrigger  // 두 prop 모두 지원
   const [balance, setBalance] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const { data } = await api.get('/api/v1/account/balance')
+      const { data } = await api.get(`/api/v1/account/balance?is_mock=${isMock}`)
       setBalance(data)
       onBalanceLoad?.(data.available ?? 0)   // 매수가능금액을 부모로 전달
     } catch {
@@ -16,9 +17,9 @@ export default function BalanceWidget({ refreshKey, onBalanceLoad }) {
     } finally {
       setLoading(false)
     }
-  }, [onBalanceLoad])
+  }, [onBalanceLoad, isMock])
 
-  useEffect(() => { load() }, [load, refreshKey])
+  useEffect(() => { load() }, [load, refreshKey, isMock])
 
   const plColor = balance
     ? balance.total_profit_loss > 0 ? '#ef4444' : balance.total_profit_loss < 0 ? '#3b82f6' : '#9ca3af'

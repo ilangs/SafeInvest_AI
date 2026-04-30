@@ -1,23 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../services/api'
 
-export default function HoldingsWidget({ refreshKey }) {
+export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = true }) {
+  refreshKey = refreshKey ?? refreshTrigger  // 두 prop 모두 지원
   const [holdings, setHoldings] = useState([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const { data } = await api.get('/api/v1/account/holdings')
+      const { data } = await api.get(`/api/v1/account/holdings?is_mock=${isMock}`)
       setHoldings(data)
     } catch {
       setHoldings([])
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [isMock])
 
-  useEffect(() => { load() }, [load, refreshKey])
+  useEffect(() => { load() }, [load, refreshKey, isMock])
 
   return (
     <div className="card">

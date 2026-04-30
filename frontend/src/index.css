@@ -6,6 +6,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  /* ── 기존 변수 ── */
   --bg:        #f4f7fb;
   --bg-card:   #ffffff;
   --bg-card2:  #eef3fb;
@@ -17,6 +18,19 @@
   --muted:     #64748b;
   --border:    #d7e1ee;
   --radius:    10px;
+
+  /* ── Module C v2 시멘틱 변수 (라이트 모드) ── */
+  --color-background-primary:   #ffffff;
+  --color-background-secondary: #f4f7fb;
+  --color-background-tertiary:  #eef3fb;
+  --color-background-warning:   #E1F5EE;
+  --color-text-primary:         #0f172a;
+  --color-text-secondary:       #64748b;
+  --color-text-warning:         #0F6E56;
+  --color-border-secondary:     #d7e1ee;
+  --color-border-tertiary:      #e2e8f0;
+  --border-radius-md:           8px;
+  --color-brand:                #0F6E56;
 }
 
 body {

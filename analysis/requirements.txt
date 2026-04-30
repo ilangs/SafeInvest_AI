@@ -1,0 +1,9 @@
+# 데이터 수집에 필요한 패키지 목록
+finance-datareader     # 전 종목 목록 + 가격 데이터 수집
+pykrx                  # KRX 시세·펀더멘털 수집 (보조)
+opendartreader         # DART 재무제표 수집
+supabase               # Supabase DB 연결
+python-dotenv          # .env 파일에서 API Key 읽기
+pandas                 # 표 형태 데이터 처리
+requests               # 웹 API 호출
+schedule               # 일별 자동 수집 스케줄러

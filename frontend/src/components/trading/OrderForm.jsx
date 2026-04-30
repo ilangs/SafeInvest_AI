@@ -1,140 +1,236 @@
-﻿import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import api from '../../services/api'
-import { useStockName } from '../../hooks/useStockName'
+import { formatKRW } from '../../utils/format'
 
-function formatKRW(v) {
-  if (!v || Number.isNaN(v)) return '-'
-  if (v >= 1e12) return `${(v / 1e12).toFixed(1)}조원`
-  if (v >= 1e8) return `${Math.round(v / 1e8).toLocaleString()}억원`
-  return `${Math.round(v).toLocaleString()}원`
-}
+export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderComplete, isMock = true }) {
+  const [tab,       setTab]       = useState('buy')
+  const [orderType, setOrderType] = useState('limit')
+  const [price,     setPrice]     = useState('')
+  const [quantity,  setQuantity]  = useState('')
+  const [balance,   setBalance]   = useState(0)
+  const [loading,   setLoading]   = useState(false)
+  const [message,   setMessage]   = useState('')
 
-export default function OrderForm({ defaultSymbol = '', defaultPrice = null, currentPrice = 0, availableBalance = 0, onOrderDone }) {
-  const [tab, setTab] = useState('buy')
-  const [symbol, setSymbol] = useState(defaultSymbol)
-  const [quantity, setQuantity] = useState('')
-  const [priceType, setPriceType] = useState('market')
-  const [price, setPrice] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState('')
-
-  const companyName = useStockName(symbol)
-
+  // 호가 클릭 시 가격 자동 입력
   useEffect(() => {
-    setSymbol(defaultSymbol)
-  }, [defaultSymbol])
-
-  useEffect(() => {
-    if (defaultPrice && defaultPrice > 0) {
-      setPriceType('limit')
-      setPrice(String(defaultPrice))
+    if (defaultPrice) {
+      setPrice(defaultPrice.toString())
+      setOrderType('limit')
     }
   }, [defaultPrice])
 
-  const effectivePrice = priceType === 'limit' ? Number(price) || 0 : currentPrice || 0
-  const estimatedTotal = effectivePrice > 0 && quantity > 0 ? effectivePrice * Number(quantity) : 0
+  // 잔고 로드
+  useEffect(() => {
+    api.get(`/api/v1/account/balance?is_mock=${isMock}`)
+      .then(res => setBalance(res.data.available || 0))
+      .catch(() => {})
+  }, [isMock])
 
-  const calcQty = (ratio) => {
-    if (!effectivePrice) return
-    const qty = Math.floor((availableBalance * ratio) / effectivePrice)
-    setQuantity(qty > 0 ? String(qty) : '0')
+  // 수량 비율 버튼
+  const calcQty = (pct) => {
+    const p = parseInt(price) || currentPrice || 1
+    const qty = Math.floor((balance * pct) / p)
+    setQuantity(qty > 0 ? qty.toString() : '0')
   }
 
-  const handleOrder = async (e) => {
-    e.preventDefault()
-    setError('')
-    setResult(null)
-    setLoading(true)
+  // 예상 체결금액
+  const estimated = (() => {
+    const p = orderType === 'market' ? (currentPrice || 0) : (parseInt(price) || 0)
+    const q = parseInt(quantity) || 0
+    return p * q
+  })()
 
+  const handleSubmit = async () => {
+    if (!symbol || !quantity || parseInt(quantity) <= 0) {
+      setMessage('종목코드와 수량을 확인해 주세요.')
+      return
+    }
+    if (orderType === 'limit' && (!price || parseInt(price) <= 0)) {
+      setMessage('지정가를 입력해 주세요.')
+      return
+    }
+    setLoading(true)
+    setMessage('')
     try {
       const body = {
-        symbol: symbol.padStart(6, '0'),
+        symbol,
         order_type: tab,
-        quantity: Number(quantity),
-        price: priceType === 'limit' ? Number(price) : null,
+        quantity:   parseInt(quantity),
+        price:      orderType === 'market' ? null : parseInt(price),
+        is_mock:    isMock,
       }
-      const { data } = await api.post('/api/v1/order', body)
-      setResult(data)
+      const res = await api.post('/api/v1/order', body)
+      setMessage(`✅ ${res.data.message || '주문이 접수되었습니다.'}`)
       setQuantity('')
-      onOrderDone?.()
-    } catch (e2) {
-      setError(e2.response?.data?.detail ?? '주문에 실패했습니다.')
+      onOrderComplete?.()
+    } catch (e) {
+      setMessage(`❌ ${e.response?.data?.detail || '주문 실패. 다시 시도해 주세요.'}`)
     } finally {
       setLoading(false)
     }
   }
 
+  const inputStyle = {
+    width: '100%',
+    background: 'var(--color-background-secondary)',
+    border: '0.5px solid var(--color-border-secondary)',
+    borderRadius: 'var(--border-radius-md)',
+    padding: '6px 10px',
+    fontSize: 13,
+    color: 'var(--color-text-primary)',
+    outline: 'none',
+  }
+
   return (
-    <div className="card">
-      <div className="mock-warning">현재 모의투자 모드입니다. 실제 주문은 체결되지 않습니다.</div>
-
-      <div className="card-header"><span>주문</span></div>
-
-      <div className="tab-row">
-        <button type="button" className={`tab-btn buy ${tab === 'buy' ? 'active' : ''}`} onClick={() => setTab('buy')}>매수</button>
-        <button type="button" className={`tab-btn sell ${tab === 'sell' ? 'active' : ''}`} onClick={() => setTab('sell')}>매도</button>
+    <div style={{
+      background: 'var(--color-background-primary)',
+      borderRadius: 'var(--border-radius-md)',
+      padding: '12px',
+      border: '0.5px solid var(--color-border-tertiary)',
+    }}>
+      {/* 모의투자 배너 */}
+      <div style={{
+        background: '#E1F5EE', borderRadius: 4,
+        padding: '4px 8px', fontSize: 11, color: '#0F6E56',
+        marginBottom: 10,
+      }}>
+        ⚠️ 모의투자 모드 — 실제 돈이 사용되지 않습니다
       </div>
 
-      <form onSubmit={handleOrder} className="order-form">
-        <div className="form-group">
-          <label>종목코드</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input value={symbol} onChange={(e) => setSymbol(e.target.value)} placeholder="005930" maxLength={6} required />
-            {companyName && <span style={{ fontSize: '13px', color: '#334155', whiteSpace: 'nowrap' }}>{companyName}</span>}
-          </div>
+      {/* 매수/매도 탭 */}
+      <div style={{
+        display: 'flex', borderRadius: 'var(--border-radius-md)',
+        overflow: 'hidden', border: '0.5px solid var(--color-border-secondary)',
+        marginBottom: 12,
+      }}>
+        <button
+          onClick={() => setTab('buy')}
+          style={{
+            flex: 1, padding: '7px', fontSize: 13, fontWeight: 500,
+            cursor: 'pointer', border: 'none',
+            background: tab === 'buy' ? '#ef4444' : 'transparent',
+            color: tab === 'buy' ? '#fff' : 'var(--color-text-secondary)',
+          }}
+        >매수</button>
+        <button
+          onClick={() => setTab('sell')}
+          style={{
+            flex: 1, padding: '7px', fontSize: 13, fontWeight: 500,
+            cursor: 'pointer', border: 'none',
+            borderLeft: '0.5px solid var(--color-border-secondary)',
+            background: tab === 'sell' ? '#3b82f6' : 'transparent',
+            color: tab === 'sell' ? '#fff' : 'var(--color-text-secondary)',
+          }}
+        >매도</button>
+      </div>
+
+      {/* 종목 (읽기 전용) */}
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 3 }}>종목코드</div>
+        <div style={{ ...inputStyle, color: 'var(--color-text-secondary)' }}>
+          {symbol || '종목을 선택하세요'}
         </div>
+      </div>
 
-        <div className="form-group">
-          <label>주문유형</label>
-          <select value={priceType} onChange={(e) => { setPriceType(e.target.value); setPrice('') }}>
-            <option value="market">시장가</option>
-            <option value="limit">지정가</option>
-          </select>
-        </div>
+      {/* 주문유형 */}
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 3 }}>주문유형</div>
+        <select
+          value={orderType}
+          onChange={e => setOrderType(e.target.value)}
+          style={inputStyle}
+        >
+          <option value="limit">지정가</option>
+          <option value="market">시장가</option>
+        </select>
+      </div>
 
-        {priceType === 'limit' && (
-          <div className="form-group">
-            <label>가격(원)</label>
-            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={currentPrice ? currentPrice.toLocaleString() : '0'} min="1" required />
+      {/* 가격 (지정가만) */}
+      {orderType === 'limit' && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 3 }}>
+            주문가격
+            {defaultPrice && (
+              <span style={{ color: '#0F6E56', marginLeft: 4, fontSize: 10 }}>호가 반영됨</span>
+            )}
           </div>
-        )}
-
-        <div className="form-group">
-          <label>수량</label>
-          <input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="1" min="1" required />
-          <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-            {[['10%', 0.1], ['25%', 0.25], ['50%', 0.5], ['최대', 1]].map(([label, ratio]) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => calcQty(ratio)}
-                style={{ flex: 1, padding: '3px 0', fontSize: '11px', border: '1px solid #d7e1ee', borderRadius: '4px', background: '#f8fafc', color: '#334155', cursor: 'pointer' }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <input
+            type="number"
+            value={price}
+            onChange={e => setPrice(e.target.value)}
+            placeholder="가격 입력"
+            style={inputStyle}
+          />
         </div>
+      )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderTop: '1px solid #e2e8f0', marginTop: '4px' }}>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>예상 체결금액</span>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: estimatedTotal > 0 ? '#0f172a' : '#94a3b8' }}>{estimatedTotal > 0 ? formatKRW(estimatedTotal) : '-'}</span>
+      {/* 수량 + 비율 버튼 */}
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 3 }}>수량</div>
+        <input
+          type="number"
+          value={quantity}
+          onChange={e => setQuantity(e.target.value)}
+          placeholder="수량 입력"
+          style={inputStyle}
+          min="1"
+        />
+        <div style={{ display: 'flex', gap: 4, marginTop: 5 }}>
+          {[0.1, 0.25, 0.5, 1].map(pct => (
+            <button
+              key={pct}
+              onClick={() => calcQty(pct)}
+              style={{
+                flex: 1, padding: '4px', fontSize: 11, cursor: 'pointer',
+                background: pct === 1 ? '#E1F5EE' : 'var(--color-background-secondary)',
+                color:      pct === 1 ? '#0F6E56' : 'var(--color-text-secondary)',
+                border:     `0.5px solid ${pct === 1 ? '#9FE1CB' : 'var(--color-border-secondary)'}`,
+                borderRadius: 4,
+              }}
+            >
+              {pct === 1 ? '최대' : `${pct * 100}%`}
+            </button>
+          ))}
         </div>
+      </div>
 
-        {error && <div className="error-msg">{error}</div>}
+      {/* 예상 체결금액 */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        fontSize: 12, marginBottom: 10,
+        padding: '6px 0', borderTop: '0.5px solid var(--color-border-tertiary)',
+      }}>
+        <span style={{ color: 'var(--color-text-secondary)' }}>예상 체결금액</span>
+        <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
+          {formatKRW(estimated)}
+        </span>
+      </div>
 
-        {result && (
-          <div className="order-result">
-            <p>{result.message}</p>
-            <p className="muted">주문번호: {result.order_id}</p>
-          </div>
-        )}
+      {/* 주문 버튼 */}
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        style={{
+          width: '100%', padding: '9px', fontSize: 14, fontWeight: 500,
+          background: tab === 'buy' ? '#ef4444' : '#3b82f6',
+          color: '#fff', border: 'none',
+          borderRadius: 'var(--border-radius-md)',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.7 : 1,
+        }}
+      >
+        {loading ? '처리 중...' : `${tab === 'buy' ? '매수' : '매도'} 주문`}
+      </button>
 
-        <button type="submit" className={`btn-order ${tab}`} disabled={loading}>
-          {loading ? '처리 중...' : tab === 'buy' ? '매수 주문' : '매도 주문'}
-        </button>
-      </form>
+      {/* 결과 메시지 */}
+      {message && (
+        <div style={{
+          marginTop: 8, fontSize: 12, textAlign: 'center',
+          color: message.startsWith('✅') ? '#0F6E56' : '#ef4444',
+        }}>
+          {message}
+        </div>
+      )}
     </div>
   )
 }

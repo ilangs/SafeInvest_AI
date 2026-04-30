@@ -13,13 +13,18 @@ Render.com 배포 시 Start Command:
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.routers import auth, market, order, ai, watchlist, account, stock
+from app.routers import auth, market, order, orders, ai, watchlist, account, stock, credentials
+from app.education.router import router as education_router, self_router
+from app.education.curriculum import router as curriculum_router
+from app.education.fss_proxy import router as fss_proxy_router
 
 
 # ── Lifespan (시작/종료 훅) ────────────────────────────────────────────────────
@@ -28,7 +33,7 @@ from app.routers import auth, market, order, ai, watchlist, account, stock
 async def lifespan(app: FastAPI):
     """앱 시작 시 초기화 로직, 종료 시 정리 로직을 여기에 작성합니다."""
     print(f"[SafeInvest AI] 서버 시작 | env={settings.fastapi_env}")
-    print(f"[SafeInvest AI] KIS 모드: {'모의투자' if settings.kis_is_mock else '실거래'}")
+    print(f"[SafeInvest AI] KIS: 사용자별 키 관리 모드 (user_kis_credentials)")
     yield
     print("[SafeInvest AI] 서버 종료")
 
@@ -65,6 +70,19 @@ app.include_router(ai.router)
 app.include_router(watchlist.router)
 app.include_router(account.router)
 app.include_router(stock.router)
+app.include_router(credentials.router)
+app.include_router(orders.router)
+
+# ── 교육 모듈 라우터 ───────────────────────────────────────────────────────────
+app.include_router(education_router)
+app.include_router(self_router)
+app.include_router(curriculum_router)
+app.include_router(fss_proxy_router)
+
+# ── 정적 파일 (교육 영상) ──────────────────────────────────────────────────────
+_static_dir = Path(__file__).parent / "static"
+if _static_dir.exists():
+    app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 
 
 # ── 헬스체크 (UptimeRobot 대상) ───────────────────────────────────────────────
@@ -79,7 +97,7 @@ async def health_check():
     return JSONResponse({
         "status":    "ok",
         "env":       settings.fastapi_env,
-        "kis_mode":  "mock" if settings.kis_is_mock else "live",
+        "kis_mode":  "user-managed",
         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
     })
 

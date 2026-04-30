@@ -9,7 +9,7 @@ export default function LoginPage() {
 
   // 이미 로그인된 상태면 대시보드로
   useEffect(() => {
-    if (!authLoading && user) navigate('/dashboard', { replace: true })
+    if (!authLoading && user) navigate('/education', { replace: true })
   }, [user, authLoading, navigate])
 
   const [email, setEmail]         = useState('')

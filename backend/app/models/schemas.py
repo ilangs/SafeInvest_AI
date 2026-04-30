@@ -38,12 +38,12 @@ class AuthVerifyResponse(BaseModel):
 
 class QuoteResponse(BaseModel):
     symbol: str               # 종목코드 (예: 005930)
-    name: str                 # 종목명
+    name: str = ""            # 종목명
     current_price: int        # 현재가 (원)
-    change: int               # 전일 대비 (원)
-    change_rate: float        # 등락률 (%)
-    volume: int               # 거래량
-    market_cap: int | None    # 시가총액 (원)
+    change: int = 0           # 전일 대비 (원)
+    change_rate: float = 0.0  # 등락률 (%)
+    volume: int = 0           # 거래량
+    market_cap: int | None = None  # 시가총액 (원)
     fetched_at: datetime
 
 
@@ -54,6 +54,7 @@ class OrderRequest(BaseModel):
     order_type: str       = Field(..., description="buy | sell")
     quantity: int         = Field(..., gt=0, description="주문 수량")
     price: int | None     = Field(None, description="지정가 (None=시장가)")
+    is_mock: bool         = Field(True, description="True=모의투자, False=실거래")
 
 
 class OrderResponse(BaseModel):
@@ -98,10 +99,11 @@ class WatchlistRequest(BaseModel):
 # ── Account (계좌) ────────────────────────────────────────────────────────────
 
 class AccountBalanceResponse(BaseModel):
-    deposit:           int   # 예수금 (원)
-    available:         int   # 매수가능금액 (원)
-    total_eval:        int   # 보유종목 평가금액 (원)
-    total_profit_loss: int   # 총손익 (원)
+    deposit:             int         # 예수금 (원)
+    available:           int         # 매수가능금액 (원)
+    total_eval:          int         # 보유종목 평가금액 (원)
+    total_profit_loss:   int         # 총손익 (원)
+    account_no_masked:   str | None = None   # 마스킹된 계좌번호
 
 
 class HoldingItem(BaseModel):

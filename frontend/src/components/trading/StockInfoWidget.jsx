@@ -1,85 +1,125 @@
-﻿import { useEffect, useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import api from '../../services/api'
 
-function formatCap(v) {
-  if (!v) return '-'
-  if (v >= 1e12) return `${(v / 1e12).toFixed(1)}조원`
-  return `${Math.round(v / 1e8).toLocaleString()}억원`
-}
+export default function StockInfoWidget({ symbol, currentPrice, isMock = true }) {
+  const [info, setInfo]       = useState(null)
+  const [loading, setLoading] = useState(true)
 
-function InfoRow({ label, value, highlight }) {
+  const load = useCallback(async () => {
+    if (!symbol) return
+    setLoading(true)
+    try {
+      const { data } = await api.get(`/api/v1/market/info?symbol=${symbol}&is_mock=${isMock}`)
+      setInfo(data)
+    } catch {
+      setInfo(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [symbol, isMock])
+
+  useEffect(() => { load() }, [load])
+
+  // 52주 범위 내 현재가 위치 (0~100%)
+  const rangePos = () => {
+    if (!info || !info.w52_high || !info.w52_low) return 50
+    const price = currentPrice ?? info.current_price ?? 0
+    const range = info.w52_high - info.w52_low
+    if (range === 0) return 50
+    return Math.min(100, Math.max(0, Math.round(((price - info.w52_low) / range) * 100)))
+  }
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid #e2e8f0' }}>
-      <span style={{ fontSize: '12px', color: '#475569' }}>{label}</span>
-      <span style={{ fontSize: '12px', fontWeight: 600, color: highlight ? '#16a34a' : '#0f172a' }}>{value}</span>
+    <div className="card" style={{ minWidth: 0 }}>
+      <div className="card-header">
+        <span>📊 투자정보</span>
+        <button className="btn-sm" onClick={load}>새로고침</button>
+      </div>
+
+      {loading ? (
+        <p className="muted">불러오는 중...</p>
+      ) : !info ? (
+        <p className="muted">정보를 불러올 수 없습니다.</p>
+      ) : (
+        <div style={{ fontSize: 12, color: 'var(--color-text-primary)' }}>
+
+          {/* 주요 지표 */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', lineHeight: 1.95 }}>
+            <tbody>
+              <InfoRow label="시가총액" value={info.market_cap || '-'} />
+              <InfoRow
+                label="상한가"
+                value={info.upper_limit ? info.upper_limit.toLocaleString() : '-'}
+                valueStyle={{ color: '#ef4444', fontWeight: 600 }}
+              />
+              <InfoRow
+                label="하한가"
+                value={info.lower_limit ? info.lower_limit.toLocaleString() : '-'}
+                valueStyle={{ color: '#3b82f6', fontWeight: 600 }}
+              />
+              <InfoRow
+                label="PER"
+                value={info.per ? `${Number(info.per).toFixed(2)}배` : '-'}
+              />
+              <InfoRow
+                label="배당수익률"
+                value={info.dividend_yield ? `${Number(info.dividend_yield).toFixed(2)}%` : '-'}
+              />
+            </tbody>
+          </table>
+
+          {/* 52주 범위 슬라이더 */}
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 6 }}>
+              52주 범위
+            </div>
+            <div style={{ position: 'relative', height: 6, borderRadius: 3 }}>
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(to right, #3b82f6, #10b981, #ef4444)',
+                borderRadius: 3,
+              }} />
+              {/* 현재가 마커 */}
+              <div style={{
+                position: 'absolute',
+                left: `${rangePos()}%`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 10, height: 10,
+                borderRadius: '50%',
+                background: '#fff',
+                border: '2px solid #0A3D62',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+                zIndex: 2,
+              }} />
+            </div>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between',
+              marginTop: 5, fontSize: 11, color: 'var(--color-text-secondary)',
+            }}>
+              <span>{info.w52_low  ? info.w52_low.toLocaleString()  : '-'}</span>
+              <span style={{ color: '#0A3D62', fontWeight: 600 }}>
+                {(currentPrice ?? info.current_price ?? 0).toLocaleString()}
+              </span>
+              <span>{info.w52_high ? info.w52_high.toLocaleString() : '-'}</span>
+            </div>
+          </div>
+
+        </div>
+      )}
     </div>
   )
 }
 
-export default function StockInfoWidget({ symbol, currentPrice }) {
-  const [overview, setOverview] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (!symbol) return
-    setLoading(true)
-    setError('')
-
-    api
-      .get(`/api/v1/stock/${symbol}/overview`)
-      .then((r) => {
-        setOverview(r.data)
-        setLoading(false)
-      })
-      .catch(() => {
-        setError('데이터 조회 실패')
-        setLoading(false)
-      })
-  }, [symbol])
-
-  const high52 = overview?.week52_high ?? null
-  const low52 = overview?.week52_low ?? null
-  const show52 = high52 && low52 && high52 > low52
-  const pct52 = show52 ? Math.max(0, Math.min(100, ((currentPrice - low52) / (high52 - low52)) * 100)) : null
-
+function InfoRow({ label, value, valueStyle = {} }) {
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="card-header" style={{ marginBottom: '6px', fontSize: '13px' }}>
-        <span>투자 정보</span>
-      </div>
-
-      {loading && <div style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', padding: '12px 0' }}>로딩 중...</div>}
-      {error && <div style={{ fontSize: '12px', color: '#ef4444' }}>{error}</div>}
-
-      {overview && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-          <InfoRow label="시가총액" value={formatCap(overview.market_cap)} />
-          <InfoRow label="PER" value={overview.per != null ? `${overview.per.toFixed(2)}배` : '-'} />
-          <InfoRow label="PBR" value={overview.pbr != null ? `${overview.pbr.toFixed(2)}배` : '-'} />
-          <InfoRow label="배당수익률" value={overview.div_yield != null ? `${overview.div_yield.toFixed(2)}%` : '-'} highlight={overview.div_yield > 0} />
-          <InfoRow label="업종" value={overview.sector ?? '-'} />
-          <InfoRow label="시장" value={overview.market ?? '-'} />
-
-          {show52 ? (
-            <div style={{ marginTop: '8px' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>52주 범위</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#475569', marginBottom: '4px' }}>
-                <span>{low52.toLocaleString()}</span>
-                <span style={{ color: '#0f172a', fontWeight: 700 }}>{currentPrice ? currentPrice.toLocaleString() : '-'}</span>
-                <span>{high52.toLocaleString()}</span>
-              </div>
-              <div style={{ position: 'relative', height: '6px', background: '#e2e8f0', borderRadius: '3px' }}>
-                <div style={{ position: 'absolute', left: `${pct52}%`, transform: 'translateX(-50%)', width: '10px', height: '10px', background: '#f59e0b', borderRadius: '50%', top: '-2px' }} />
-                <div style={{ width: `${pct52}%`, height: '100%', background: 'linear-gradient(90deg, #3b82f6, #f59e0b)', borderRadius: '3px' }} />
-              </div>
-              <div style={{ fontSize: '10px', color: '#64748b', textAlign: 'right', marginTop: '2px' }}>{pct52?.toFixed(0)}% 위치</div>
-            </div>
-          ) : (
-            <div style={{ marginTop: '8px', fontSize: '11px', color: '#64748b', textAlign: 'center' }}>52주 데이터 준비 중</div>
-          )}
-        </div>
-      )}
-    </div>
+    <tr>
+      <td style={{ color: 'var(--color-text-secondary)', paddingRight: 8, whiteSpace: 'nowrap' }}>
+        {label}
+      </td>
+      <td style={{ textAlign: 'right', fontWeight: 500, ...valueStyle }}>
+        {value}
+      </td>
+    </tr>
   )
 }

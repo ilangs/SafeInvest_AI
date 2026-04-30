@@ -3,8 +3,7 @@ app/routers/order.py
 ─────────────────────
 주문 엔드포인트.
 
-POST /api/v1/order       주문 요청
-GET  /api/v1/order/{id}  주문 상태 조회 (Phase 2)
+POST /api/v1/order   주문 요청 (body.is_mock 으로 모의/실거래 분기)
 """
 
 from datetime import datetime, timezone
@@ -28,14 +27,16 @@ async def place_order(
 ):
     """
     모의/실거래 주문을 KIS API 로 전송합니다.
-    - kis_is_mock=True  : 모의투자 환경
-    - kis_is_mock=False : 실거래 (Phase 2 에서 활성화)
+    - body.is_mock=True  : 모의투자 환경
+    - body.is_mock=False : 실거래
     """
     data = await kis_client.place_order(
+        user_id=current_user.user_id,
         symbol=body.symbol,
         order_type=body.order_type,
         quantity=body.quantity,
         price=body.price,
+        is_mock=body.is_mock,
     )
     return OrderResponse(
         **data,

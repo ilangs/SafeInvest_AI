@@ -26,25 +26,10 @@ class Settings(BaseSettings):
     # ── OpenAI ───────────────────────────────────────────────
     openai_api_key: str
 
-    # ── KIS API (한국투자증권) ──────────────────────────────
-    kis_app_key: str
-    kis_app_secret: str
-    kis_account: str                   # .env: KIS_ACCOUNT
-    kis_mock: bool = True              # .env: KIS_MOCK  (True=모의투자, False=실거래)
-
-    @property
-    def kis_account_no(self) -> str:   # 하위 호환 alias
-        return self.kis_account
-
-    @property
-    def kis_is_mock(self) -> bool:     # 하위 호환 alias
-        return self.kis_mock
-
-    @property
-    def kis_base_url(self) -> str:
-        if self.kis_mock:
-            return "https://openapivts.koreainvestment.com:29443"
-        return "https://openapi.koreainvestment.com:9443"
+    # ── 암호화 (Fernet AES-256) ──────────────────────────────
+    # 사용자별 KIS API 키를 Supabase DB에 저장할 때 사용
+    # KIS 서버 단일 키는 삭제 → user_kis_credentials 테이블로 이동
+    encryption_key: str = ""
 
     # ── FastAPI ───────────────────────────────────────────────
     fastapi_env: str = "development"
