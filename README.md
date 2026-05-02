@@ -21,6 +21,7 @@ npm run dev
 ### 3. 테스트 계정
 
 ```bash
+https://safeinvest-ai.vercel.app/
 e-mail: test@safeinvest.dev
 password: Test1234!
 ```

@@ -90,9 +90,10 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
         <span style={{ fontSize: 10, color: 'var(--color-text-secondary)', textAlign: 'right' }}>수량</span>
       </div>
 
-      {/* 스크롤 영역: 상한가 → 매도10~1 → 현재가 → 매수1~10 → 하한가
-          flex:1 로 카드 전체 채움, overflowY:auto 로 스크롤 활성화 */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+      {/* 스크롤 영역
+          maxHeight = 5행(asks)×21px + 현재가행 32px + 5행(bids)×21px = 242px → 260px 고정
+          → 초기에 5+5만 보이고, 스크롤하면 10+10 + 상한가/하한가까지 노출           */}
+      <div ref={scrollRef} style={{ maxHeight: 260, overflowY: 'auto' }}>
 
         {/* 상한가 */}
         {upper > 0 && (
@@ -186,7 +187,30 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
         )}
       </div>
 
-      <div style={{ flexShrink: 0, fontSize: 10, color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: 4 }}>
+      {/* 매도/매수 총 잔량 비율 바 */}
+      {asks.length > 0 && bids.length > 0 && (() => {
+        const totalAsk = asks.reduce((s, a) => s + a.volume, 0)
+        const totalBid = bids.reduce((s, b) => s + b.volume, 0)
+        const total    = totalAsk + totalBid || 1
+        const askPct   = Math.round(totalAsk / total * 100)
+        const bidPct   = 100 - askPct
+        return (
+          <div style={{ flexShrink: 0, marginTop: 8 }}>
+            {/* 비율 수치 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 3 }}>
+              <span style={{ color: '#ef4444', fontWeight: 600 }}>매도 {askPct}%</span>
+              <span style={{ color: '#3b82f6', fontWeight: 600 }}>매수 {bidPct}%</span>
+            </div>
+            {/* 비율 바 */}
+            <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ width: `${askPct}%`, background: '#ef4444', opacity: 0.7 }} />
+              <div style={{ width: `${bidPct}%`, background: '#3b82f6', opacity: 0.7 }} />
+            </div>
+          </div>
+        )
+      })()}
+
+      <div style={{ flexShrink: 0, fontSize: 10, color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: 6 }}>
         클릭하면 주문가에 자동 입력됩니다
       </div>
     </div>
