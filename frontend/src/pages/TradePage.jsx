@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Navbar            from '../components/layout/Navbar'
 import CandleChart       from '../components/trading/CandleChart'
 import Orderbook         from '../components/trading/Orderbook'
@@ -9,9 +9,17 @@ import StockInfoWidget   from '../components/trading/StockInfoWidget'
 import TodayOrdersWidget from '../components/trading/TodayOrdersWidget'
 import api from '../services/api'
 
+function isMarketOpen() {
+  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  const day = kst.getUTCDay() // 0=Sun, 6=Sat
+  if (day === 0 || day === 6) return false
+  const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes()
+  return minutes >= 9 * 60 && minutes < 15 * 60 + 30
+}
+
 export default function TradePage() {
   const [symbol,        setSymbol]        = useState('005930')
-  const [inputSymbol,   setInputSymbol]   = useState('005930')
+  const [inputSymbol,   setInputSymbol]   = useState('')
   const [currentPrice,  setCurrentPrice]  = useState(null)
   const [stockName,     setStockName]     = useState('')
   const [changeRate,    setChangeRate]    = useState(null)
@@ -21,6 +29,12 @@ export default function TradePage() {
   const [quoteLoading,  setQuoteLoading]  = useState(false)
   const [kisConnected,  setKisConnected]  = useState(true)
   const [kisMode,       setKisMode]       = useState(true)
+  const [suggestions,   setSuggestions]   = useState([])
+  const [showSugg,      setShowSugg]      = useState(false)
+  const [marketOpen,    setMarketOpen]    = useState(isMarketOpen)
+
+  const searchRef   = useRef(null)
+  const searchTimer = useRef(null)
 
   // 현재가 조회
   const fetchQuote = useCallback(async () => {
@@ -41,16 +55,47 @@ export default function TradePage() {
 
   useEffect(() => { fetchQuote() }, [fetchQuote])
 
-  // 5초 폴링
+  // 장 시간 인식 폴링: 장중 5초, 장외 60초
   useEffect(() => {
-    const id = setInterval(fetchQuote, 5000)
+    const INTERVAL = marketOpen ? 5000 : 60000
+    const id = setInterval(() => {
+      const open = isMarketOpen()
+      setMarketOpen(open)
+      if (open) fetchQuote()
+    }, INTERVAL)
     return () => clearInterval(id)
-  }, [fetchQuote])
+  }, [fetchQuote, marketOpen])
+
+  // 자동완성 검색
+  const handleSearchInput = (val) => {
+    setInputSymbol(val)
+    clearTimeout(searchTimer.current)
+    if (!val.trim()) { setSuggestions([]); setShowSugg(false); return }
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await api.get(`/api/v1/market/search?q=${encodeURIComponent(val)}&limit=8`)
+        setSuggestions(res.data || [])
+        setShowSugg(true)
+      } catch { setSuggestions([]) }
+    }, 250)
+  }
+
+  const handleSelectSugg = (stock) => {
+    setSuggestions([])
+    setShowSugg(false)
+    setInputSymbol('')
+    setSymbol(stock.code)
+    setStockName(stock.name)
+    setSelectedPrice(null)
+    setCurrentPrice(null)
+  }
 
   const handleSearch = () => {
     const code = inputSymbol.trim().padStart(6, '0')
-    if (code.length === 6) {
+    if (/^\d{6}$/.test(code)) {
       setSymbol(code)
+      setInputSymbol('')
+      setShowSugg(false)
       setSelectedPrice(null)
       setStockName('')
       setCurrentPrice(null)
@@ -61,6 +106,15 @@ export default function TradePage() {
     setRefreshTick(t => t + 1)
     fetchQuote()
   }
+
+  // 검색창 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    const handler = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) setShowSugg(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   // KIS 연결 상태 확인 (마운트 시 1회)
   useEffect(() => {
@@ -106,35 +160,70 @@ export default function TradePage() {
           padding: '8px 14px', marginBottom: 10,
           border: '0.5px solid var(--color-border-tertiary)',
         }}>
-          <input
-            value={inputSymbol}
-            onChange={e => setInputSymbol(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="종목코드 (예: 005930)"
-            maxLength={6}
-            style={{
-              width: 140, background: 'transparent', border: 'none',
-              fontSize: 14, color: 'var(--color-text-primary)', outline: 'none',
-            }}
-          />
-          <button
-            onClick={handleSearch}
-            style={{
-              padding: '4px 14px', background: '#0F6E56', color: '#fff',
-              border: 'none', borderRadius: 'var(--border-radius-md)',
-              fontSize: 13, cursor: 'pointer',
-            }}
-          >조회</button>
+          {/* 자동완성 드롭다운 래퍼 */}
+          <div ref={searchRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              value={inputSymbol}
+              onChange={e => handleSearchInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              placeholder="종목명 또는 코드 검색"
+              style={{
+                width: 180, background: 'transparent', border: 'none',
+                fontSize: 14, color: 'var(--color-text-primary)', outline: 'none',
+              }}
+            />
+            <button
+              onClick={handleSearch}
+              style={{
+                padding: '4px 14px', background: '#0F6E56', color: '#fff',
+                border: 'none', borderRadius: 'var(--border-radius-md)',
+                fontSize: 13, cursor: 'pointer',
+              }}
+            >조회</button>
+
+            {/* 드롭다운 */}
+            {showSugg && suggestions.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, zIndex: 200,
+                background: 'var(--color-background-primary)',
+                border: '1px solid var(--color-border-tertiary)',
+                borderRadius: 'var(--border-radius-md)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                minWidth: 280, marginTop: 4,
+              }}>
+                {suggestions.map(s => (
+                  <div
+                    key={s.code}
+                    onMouseDown={() => handleSelectSugg(s)}
+                    style={{
+                      padding: '8px 12px', cursor: 'pointer', display: 'flex',
+                      justifyContent: 'space-between', alignItems: 'center', fontSize: 13,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-tertiary)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>{s.name}</span>
+                    <span style={{ color: 'var(--color-text-secondary)', fontSize: 11, fontFamily: 'monospace' }}>
+                      {s.code} <span style={{ color: '#94a3b8', marginLeft: 4 }}>{s.market}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* 구분선 */}
           <div style={{ width: 1, height: 28, background: 'var(--color-border-tertiary)' }} />
 
+          {/* 종목명 표시 (코드보다 이름 강조) */}
           {stockName && (
             <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>
               {stockName}
             </span>
           )}
-          <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>({symbol})</span>
+          <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', fontFamily: 'monospace' }}>
+            {symbol}
+          </span>
 
           {currentPrice != null && (
             <>
@@ -149,8 +238,14 @@ export default function TradePage() {
             </>
           )}
 
-          <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>
-            {quoteLoading ? '갱신 중...' : '5초 자동갱신'}
+          <span style={{ fontSize: 11, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
+              background: marketOpen ? '#22c55e' : '#94a3b8',
+            }} />
+            <span style={{ color: marketOpen ? '#22c55e' : 'var(--color-text-secondary)' }}>
+              {quoteLoading ? '갱신 중...' : marketOpen ? '장 운영 중 · 5초 갱신' : '장 마감 · 1분 갱신'}
+            </span>
           </span>
         </div>
 

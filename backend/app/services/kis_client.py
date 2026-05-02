@@ -172,13 +172,39 @@ def _raise_not_connected(e: KISNotConnectedError) -> None:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
+# ── 종목코드 → 종목명 fallback 테이블 ────────────────────────────────────────
+_KR_STOCK_NAMES: dict[str, str] = {
+    "005930": "삼성전자",    "000660": "SK하이닉스",  "035420": "NAVER",
+    "005380": "현대차",      "000270": "기아",         "051910": "LG화학",
+    "006400": "삼성SDI",     "035720": "카카오",       "373220": "LG에너지솔루션",
+    "207940": "삼성바이오로직스", "068270": "셀트리온", "055550": "신한지주",
+    "105560": "KB금융",      "086790": "하나금융지주", "316140": "우리금융지주",
+    "005490": "POSCO홀딩스", "066570": "LG전자",       "003550": "LG",
+    "028260": "삼성물산",    "012330": "현대모비스",   "009150": "삼성전기",
+    "018260": "삼성에스디에스", "017670": "SK텔레콤",  "030200": "KT",
+    "032640": "LG유플러스",  "034730": "SK",           "096770": "SK이노베이션",
+    "003490": "대한항공",    "011200": "HMM",           "032830": "삼성생명",
+    "000100": "유한양행",    "036570": "엔씨소프트",   "259960": "크래프톤",
+    "251270": "넷마블",      "352820": "하이브",        "010130": "고려아연",
+    "009830": "한화솔루션",  "000720": "현대건설",      "139480": "이마트",
+    "086520": "에코프로",    "247540": "에코프로비엠",  "196170": "알테오젠",
+    "293490": "카카오게임즈", "263750": "펄어비스",     "041510": "에스엠",
+    "035900": "JYP Ent.",    "145020": "휴젤",          "047050": "포스코인터내셔널",
+    "011170": "롯데케미칼",  "023530": "롯데쇼핑",
+}
+
+def _stock_name(symbol: str) -> str:
+    """종목코드로 한국어 종목명 반환. 테이블에 없으면 코드 그대로."""
+    return _KR_STOCK_NAMES.get(symbol, symbol)
+
+
 # ── 현재가 조회 ────────────────────────────────────────────────────────────────
 
 def _mock_quote(symbol: str) -> dict:
     base = 219_000
     return {
         "symbol":        symbol,
-        "name":          f"{symbol}(모의)",
+        "name":          _stock_name(symbol),
         "current_price": base + random.randint(-3_000, 3_000),
         "change":        random.randint(-2_000, 2_000),
         "change_rate":   round(random.uniform(-2.0, 2.0), 2),
@@ -202,9 +228,10 @@ async def get_quote(symbol: str, user_id: str, is_mock: bool = True) -> dict:
             resp = await client.get(url, headers=headers, params=params, timeout=10)
             resp.raise_for_status()
         output = resp.json().get("output", {})
+        name = output.get("hts_kor_isnm", "").strip() or _stock_name(symbol)
         return {
             "symbol":        symbol,
-            "name":          output.get("hts_kor_isnm", ""),
+            "name":          name,
             "current_price": int(output.get("stck_prpr", 0)   or 0),
             "change":        int(output.get("prdy_vrss", 0)    or 0),
             "change_rate":   float(output.get("prdy_ctrt", 0)  or 0),
@@ -277,17 +304,24 @@ async def get_stock_info(symbol: str, user_id: str, is_mock: bool = True) -> dic
 
 # ── 호가 조회 ──────────────────────────────────────────────────────────────────
 
+def _mock_orderbook(symbol: str) -> dict:
+    base = 219_000; tick = 500
+    return {
+        "asks":        [{"price": base + tick * i, "volume": random.randint(50_000, 300_000)} for i in range(1, 11)],
+        "bids":        [{"price": base - tick * i, "volume": random.randint(50_000, 300_000)} for i in range(1, 11)],
+        "upper_limit": int(base * 1.30),
+        "lower_limit": int(base * 0.70),
+        "symbol":      symbol,
+        "is_mock":     True,
+    }
+
+
 async def get_orderbook(symbol: str, user_id: str, is_mock: bool = True) -> dict:
-    """호가창 조회. 미연결 시 mock 데이터 반환."""
+    """호가창 조회 (10호가 + 상한가/하한가). 미연결 시 mock 데이터 반환."""
     try:
         creds = await get_user_token(user_id, is_mock)
     except KISNotConnectedError:
-        base = 219_000; tick = 500
-        return {
-            "asks": [{"price": base + tick * i, "volume": random.randint(50_000, 300_000)} for i in range(1, 6)],
-            "bids": [{"price": base - tick * i, "volume": random.randint(50_000, 300_000)} for i in range(1, 6)],
-            "symbol": symbol, "is_mock": True,
-        }
+        return _mock_orderbook(symbol)
 
     url     = f"{_base_url(is_mock)}/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn"
     headers = _kis_headers(creds, "FHKST01010200")
@@ -299,16 +333,21 @@ async def get_orderbook(symbol: str, user_id: str, is_mock: bool = True) -> dict
             resp.raise_for_status()
         out  = resp.json().get("output1", {})
         asks = [{"price": int(out.get(f"askp{i}",       0) or 0),
-                 "volume": int(out.get(f"askp_rsqn{i}", 0) or 0)} for i in range(1, 6)]
+                 "volume": int(out.get(f"askp_rsqn{i}", 0) or 0)} for i in range(1, 11)]
         bids = [{"price": int(out.get(f"bidp{i}",       0) or 0),
-                 "volume": int(out.get(f"bidp_rsqn{i}", 0) or 0)} for i in range(1, 6)]
-        return {"asks": asks, "bids": bids, "symbol": symbol, "is_mock": False}
+                 "volume": int(out.get(f"bidp_rsqn{i}", 0) or 0)} for i in range(1, 11)]
+        asks = [a for a in asks if a["price"] > 0]
+        bids = [b for b in bids if b["price"] > 0]
+        return {
+            "asks":        asks,
+            "bids":        bids,
+            "upper_limit": int(out.get("stck_mxpr", 0) or 0),
+            "lower_limit": int(out.get("stck_llam", 0) or 0),
+            "symbol":      symbol,
+            "is_mock":     False,
+        }
     except Exception:
-        base = 219_000
-        tick = 500
-        asks = [{"price": base + tick * i, "volume": random.randint(50_000, 300_000)} for i in range(1, 6)]
-        bids = [{"price": base - tick * i, "volume": random.randint(50_000, 300_000)} for i in range(1, 6)]
-        return {"asks": asks, "bids": bids, "symbol": symbol, "is_mock": True}
+        return _mock_orderbook(symbol)
 
 
 # ── 차트 OHLCV ─────────────────────────────────────────────────────────────────
@@ -388,15 +427,23 @@ _MOCK_BALANCE = {
 }
 
 
-async def get_balance(user_id: str, is_mock: bool = True) -> dict:
-    """잔고 조회. 미연결 시 mock 데이터 반환."""
+async def get_balance(user_id: str, is_mock: bool = False) -> dict:
+    """잔고 조회. 실계좌 우선 → 모의계좌 → mock 데이터 순으로 fallback."""
+    actual_is_mock = is_mock
     try:
         creds = await get_user_token(user_id, is_mock)
     except KISNotConnectedError:
-        return _MOCK_BALANCE
+        if not is_mock:
+            try:
+                creds = await get_user_token(user_id, True)
+                actual_is_mock = True
+            except KISNotConnectedError:
+                return _MOCK_BALANCE
+        else:
+            return _MOCK_BALANCE
 
-    tr_id   = "VTTC8434R" if is_mock else "TTTC8434R"
-    url     = f"{_base_url(is_mock)}/uapi/domestic-stock/v1/trading/inquire-balance"
+    tr_id   = "VTTC8434R" if actual_is_mock else "TTTC8434R"
+    url     = f"{_base_url(actual_is_mock)}/uapi/domestic-stock/v1/trading/inquire-balance"
     headers = _kis_headers(creds, tr_id)
     params  = {
         "CANO":                  creds["cano"],
@@ -438,20 +485,28 @@ async def get_balance(user_id: str, is_mock: bool = True) -> dict:
 # ── 보유종목 ───────────────────────────────────────────────────────────────────
 
 _MOCK_HOLDINGS = [
-    {"stock_code": "005930", "stock_name": "삼성전자(모의)", "quantity": 5,
+    {"stock_code": "005930", "stock_name": _stock_name("005930"), "quantity": 5,
      "avg_price": 217_500, "current_price": 219_000, "profit_loss": 7_500, "profit_loss_rate": 0.69},
 ]
 
 
-async def get_holdings(user_id: str, is_mock: bool = True) -> list:
-    """보유종목 조회. 미연결 시 mock 데이터 반환."""
+async def get_holdings(user_id: str, is_mock: bool = False) -> list:
+    """보유종목 조회. 실계좌 우선 → 모의계좌 → mock 데이터 순으로 fallback."""
+    actual_is_mock = is_mock
     try:
         creds = await get_user_token(user_id, is_mock)
     except KISNotConnectedError:
-        return _MOCK_HOLDINGS
+        if not is_mock:
+            try:
+                creds = await get_user_token(user_id, True)
+                actual_is_mock = True
+            except KISNotConnectedError:
+                return _MOCK_HOLDINGS
+        else:
+            return _MOCK_HOLDINGS
 
-    tr_id   = "VTTC8434R" if is_mock else "TTTC8434R"
-    url     = f"{_base_url(is_mock)}/uapi/domestic-stock/v1/trading/inquire-balance"
+    tr_id   = "VTTC8434R" if actual_is_mock else "TTTC8434R"
+    url     = f"{_base_url(actual_is_mock)}/uapi/domestic-stock/v1/trading/inquire-balance"
     headers = _kis_headers(creds, tr_id)
     params  = {
         "CANO":                  creds["cano"],
@@ -477,7 +532,7 @@ async def get_holdings(user_id: str, is_mock: bool = True) -> list:
             if qty > 0:
                 holdings.append({
                     "stock_code":       item.get("pdno", ""),
-                    "stock_name":       item.get("prdt_name", ""),
+                    "stock_name":       item.get("prdt_name", "").strip() or _stock_name(item.get("pdno", "")),
                     "quantity":         qty,
                     "avg_price":        int(float(item.get("pchs_avg_pric", 0) or 0)),
                     "current_price":    int(item.get("prpr", 0) or 0),
@@ -489,7 +544,7 @@ async def get_holdings(user_id: str, is_mock: bool = True) -> list:
         return [
             {
                 "stock_code":       "005930",
-                "stock_name":       "삼성전자(모의)",
+                "stock_name":       _stock_name("005930"),
                 "quantity":         5,
                 "avg_price":        217_500,
                 "current_price":    219_000,
@@ -510,9 +565,10 @@ async def get_today_orders(
     try:
         creds = await get_user_token(user_id, is_mock)
     except KISNotConnectedError:
-        return _mock_today_orders()
+        return []
 
-    today = datetime.now().strftime("%Y%m%d")
+    kst   = timezone(timedelta(hours=9))
+    today = datetime.now(tz=kst).strftime("%Y%m%d")
 
     if order_status == "ccld":
         tr_id = "VTTC8001R" if is_mock else "TTTC8001R"
@@ -572,7 +628,7 @@ async def get_today_orders(
             })
         return orders
     except Exception:
-        return _mock_today_orders()
+        return []
 
 
 def _mock_today_orders() -> list:

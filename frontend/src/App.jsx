@@ -9,6 +9,7 @@ import ContentViewerPage from './pages/ContentViewerPage'
 import CurriculumDetailPage from './pages/CurriculumDetailPage'
 import MyPage from './pages/MyPage'
 import AiChatPage from './pages/AiChatPage'
+import MarketAnalysisPage from './pages/MarketAnalysisPage'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/education/curriculum" element={<PrivateRoute><CurriculumDetailPage /></PrivateRoute>} />
         <Route path="/education/curriculum/:pathId" element={<PrivateRoute><CurriculumDetailPage /></PrivateRoute>} />
         <Route path="/ai-chat" element={<PrivateRoute><AiChatPage /></PrivateRoute>} />
+        <Route path="/market" element={<PrivateRoute><MarketAnalysisPage /></PrivateRoute>} />
 
         {/* ── 마이페이지 (KIS 계좌 연결) ── */}
         <Route path="/mypage" element={<PrivateRoute><MyPage /></PrivateRoute>} />

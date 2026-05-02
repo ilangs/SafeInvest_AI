@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 
-const EDU_API = 'http://localhost:8000'
+const EDU_API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 export default function EducationPage() {
   const navigate = useNavigate()
@@ -115,10 +115,11 @@ export default function EducationPage() {
             { key: 'basic', label: '기본기' },
             { key: 'topics', label: '교육주제' },
             { key: 'curriculum', label: '학습경로' },
+            { key: 'ai-chat', label: 'AI챗봇' },
           ].map(tab => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => tab.key === 'ai-chat' ? navigate('/ai-chat') : setActiveTab(tab.key)}
               style={{
                 padding: '14px 20px',
                 background: 'none',

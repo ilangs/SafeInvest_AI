@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.routers import auth, market, order, orders, ai, watchlist, account, stock, credentials
+from app.routers import auth, market, order, orders, ai, watchlist, account, credentials, stocks
 from app.education.router import router as education_router, self_router
 from app.education.curriculum import router as curriculum_router
 from app.education.fss_proxy import router as fss_proxy_router
@@ -69,7 +69,7 @@ app.include_router(order.router)
 app.include_router(ai.router)
 app.include_router(watchlist.router)
 app.include_router(account.router)
-app.include_router(stock.router)
+app.include_router(stocks.router)
 app.include_router(credentials.router)
 app.include_router(orders.router)
 
@@ -90,7 +90,7 @@ if _static_dir.exists():
 @app.get("/health", tags=["system"], summary="서버 상태 확인")
 async def health_check():
     """
-    UptimeRobot 이 15분마다 이 엔드포인트를 호출합니다.
+    UptimeRobot 이 10분마다 이 엔드포인트를 호출합니다.
     Render.com Free tier 의 Sleep 을 방지합니다.
     인증 불필요.
     """

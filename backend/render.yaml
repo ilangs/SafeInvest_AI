@@ -1,13 +1,17 @@
 # render.yaml
 # Render.com 배포 설정 파일
-# 이 파일을 git 루트에 두면 Render 가 자동으로 읽습니다.
+# Render Dashboard → "Root Directory" = backend
+# 이 파일의 모든 경로는 backend/ 기준 상대 경로입니다.
 
 services:
+
+  # ── 1. Web API 서버 ────────────────────────────────────────────
   - type: web
     name: safeinvest-ai-backend
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.0"
@@ -17,9 +21,30 @@ services:
         value: production
       - key: KIS_MOCK
         value: "true"
-      # 아래 항목은 Render Dashboard → Environment 탭에서 수동 입력
-      # SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
-      # SUPABASE_JWT_SECRET, OPENAI_API_KEY
-      # KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT
+      # ── Render Dashboard → Environment 탭에서 수동 입력 ──
+      # SUPABASE_URL
+      # SUPABASE_ANON_KEY
+      # SUPABASE_SERVICE_ROLE_KEY
+      # SUPABASE_JWT_SECRET
+      # OPENAI_API_KEY
       # FASTAPI_SECRET_KEY
-    healthCheckPath: /health
+      # ENCRYPTION_KEY
+      # ALLOWED_ORIGINS=https://your-app.vercel.app,https://your-preview.vercel.app
+
+  # ── 2. 일별 주식 데이터 수집 Cron Job ─────────────────────────
+  # 한국 시장 마감(15:30 KST) 이후 → 매일 평일 09:30 UTC (= 18:30 KST)
+  - type: cron
+    name: safeinvest-daily-collector
+    runtime: python
+    schedule: "30 9 * * 1-5"
+    buildCommand: pip install -r requirements.txt -r analysis/requirements.txt
+    startCommand: python analysis/maintenance/daily_collector.py --once
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: PYTHONPATH
+        value: .
+      # ── Render Dashboard → Environment 탭에서 수동 입력 ──
+      # SUPABASE_URL
+      # SUPABASE_SERVICE_ROLE_KEY ← analysis/common/db_utils.py 가 사용 (RLS 우회 필요)
+      # DART_API_KEY              ← collect_financials.py 가 사용 (DART OpenAPI)

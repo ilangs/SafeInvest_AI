@@ -6,8 +6,9 @@ export default function Navbar() {
   const location = useLocation()
 
   const isActive = (path) => {
-    if (path === '/ai-chat') return location.pathname.startsWith('/ai-chat')
-    if (path === '/education') return location.pathname.startsWith('/education')
+    if (path === '/education') return location.pathname.startsWith('/education') || location.pathname.startsWith('/ai-chat')
+    if (path === '/market')    return location.pathname.startsWith('/market')
+    if (path === '/mypage')    return location.pathname.startsWith('/mypage')
     return location.pathname === path
   }
 
@@ -17,29 +18,26 @@ export default function Navbar() {
         <span className="nav-logo">📈</span>
         <span className="nav-title">SafeInvest AI</span>
         <div className="nav-links">
-          <Link
-            to="/education"
-            className={`nav-link ${isActive('/education') ? 'active' : ''}`}
-          >
+          <Link to="/education" className={`nav-link ${isActive('/education') ? 'active' : ''}`}>
             교육센터
           </Link>
-          <Link
-            to="/ai-chat"
-            className={`nav-link ${isActive('/ai-chat') ? 'active' : ''}`}
-          >
-            AI 챗봇
+          <Link to="/market" className={`nav-link ${isActive('/market') ? 'active' : ''}`}>
+            마켓분석
           </Link>
-          <Link
-            to="/trade"
-            className={`nav-link ${isActive('/trade') ? 'active' : ''}`}
-          >
-            주식거래
+          <Link to="/trade" className={`nav-link ${isActive('/trade') ? 'active' : ''}`}>
+            주식매매
           </Link>
         </div>
       </div>
       <div className="navbar-right">
-        <span className="mock-badge">비공개 학생 프로젝트</span>
         <span className="user-email">{user?.email}</span>
+        <Link
+          to="/mypage"
+          className={`nav-link ${isActive('/mypage') ? 'active' : ''}`}
+          style={{ fontSize: '0.82rem', padding: '0.25rem 0.65rem' }}
+        >
+          회원정보
+        </Link>
         <button className="btn-logout" onClick={signOut}>로그아웃</button>
       </div>
     </nav>

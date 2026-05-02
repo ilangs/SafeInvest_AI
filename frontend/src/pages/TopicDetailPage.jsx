@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 
-const EDU_API = 'http://localhost:8000'
+const EDU_API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 const MAKE_TYPE_ICONS = {
   '1': '🎬', '2': '📖', '3': '🖼️', '5': '🎮', '6': '📰', '7': '📔', '8': '🎧',

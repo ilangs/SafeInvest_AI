@@ -10,3 +10,5 @@ langchain-openai==0.2.14
 openai==1.109.1
 python-multipart==0.0.20
 cryptography>=43.0.0
+numpy>=1.26.0
+pandas>=2.1.0

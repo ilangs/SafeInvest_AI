@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 
-const EDU_API = 'http://localhost:8000'
+const EDU_API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 export default function ContentViewerPage() {
   const { slno } = useParams()
