@@ -5,9 +5,10 @@ import { formatVolume } from '../../utils/format'
 export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock = true }) {
   const [data, setData] = useState({ asks: [], bids: [], upper_limit: 0, lower_limit: 0 })
 
-  const scrollRef        = useRef(null)
-  const midRef           = useRef(null)
-  const scrolledSymbol   = useRef(null)   // 마지막으로 스크롤 중앙정렬한 종목코드
+  const scrollRef      = useRef(null)
+  const midRef         = useRef(null)
+  // "종목코드:isMock" 조합 — 어느 하나라도 바뀌면 재중앙정렬
+  const scrolledKey    = useRef(null)
 
   const load = useCallback(async () => {
     if (!symbol) return
@@ -19,28 +20,30 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
     }
   }, [symbol, isMock])
 
-  useEffect(() => { load() }, [load, isMock])
+  useEffect(() => { load() }, [load])
 
   useEffect(() => {
     const id = setInterval(load, 5000)
     return () => clearInterval(id)
-  }, [load, isMock])
+  }, [load])
 
-  // 종목이 바뀌었거나 첫 로드일 때만 현재가 행을 중앙으로 스크롤
+  // 종목·모드가 바뀌었을 때만 현재가 행을 중앙으로 스크롤 (폴링 갱신 시에는 건너뜀)
   useEffect(() => {
     if (!data.asks?.length) return
-    if (scrolledSymbol.current === symbol) return  // 이미 이 종목으로 스크롤했으면 건너뜀
-    if (!scrollRef.current || !midRef.current) return
+    const key = `${symbol}:${isMock}`
+    if (scrolledKey.current === key) return   // 이미 이 조합으로 스크롤했으면 건너뜀
 
-    // rAF으로 DOM 레이아웃 완료 후 실행
+    // rAF 이중 호출: 첫 번째는 React 렌더 완료, 두 번째는 브라우저 레이아웃 완료 보장
     requestAnimationFrame(() => {
-      if (!scrollRef.current || !midRef.current) return
-      const el  = scrollRef.current
-      const mid = midRef.current
-      el.scrollTop = mid.offsetTop - el.clientHeight / 2 + mid.offsetHeight / 2
-      scrolledSymbol.current = symbol
+      requestAnimationFrame(() => {
+        if (!scrollRef.current || !midRef.current) return
+        const el  = scrollRef.current
+        const mid = midRef.current
+        el.scrollTop = mid.offsetTop - el.clientHeight / 2 + mid.offsetHeight / 2
+        scrolledKey.current = key
+      })
     })
-  }, [data, symbol])
+  }, [data, symbol, isMock])
 
   const asks  = data.asks  || []
   const bids  = data.bids  || []

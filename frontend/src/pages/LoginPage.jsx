@@ -26,11 +26,34 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
-        // onAuthStateChange + LoginPage useEffect가 /dashboard로 이동시킴
+        if (error) {
+          // Supabase 에러 메시지 한국어 변환
+          if (error.message.includes('Invalid login credentials'))
+            throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.')
+          if (error.message.includes('Email not confirmed'))
+            throw new Error('이메일 인증이 필요합니다. 받은 편지함을 확인해 주세요.')
+          throw error
+        }
+        // onAuthStateChange → useAuth → LoginPage useEffect가 /education으로 이동
       } else {
-        const { error } = await supabase.auth.signUp({ email, password })
+        // 비밀번호 최소 길이 확인
+        if (password.length < 6) throw new Error('비밀번호는 6자리 이상이어야 합니다.')
+
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            // 이메일 인증 후 리다이렉트 URL (배포 URL 자동 감지)
+            emailRedirectTo: `${window.location.origin}/`,
+          },
+        })
         if (error) throw error
+
+        // Supabase v2: 이미 가입된 이메일은 error 없이 identities:[] 반환 (보안 정책)
+        if (data.user && data.user.identities?.length === 0) {
+          throw new Error('이미 가입된 이메일입니다. 로그인을 시도해 주세요.')
+        }
+
         setSignupDone(true)
       }
     } catch (e) {
