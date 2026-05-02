@@ -20,5 +20,7 @@ npm run dev
 
 ### 3. 테스트 계정
 
+```bash
 e-mail: test@safeinvest.dev
 password: Test1234!
+```
