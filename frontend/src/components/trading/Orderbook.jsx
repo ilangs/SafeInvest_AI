@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import api from '../../services/api'
 import { formatVolume } from '../../utils/format'
 
@@ -49,18 +49,23 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
   }, [symbol, isMock])
 
   /* ── 현재가 행 중앙 정렬 (종목·모드 변경 시 1회) ────────── */
-  // useLayoutEffect: DOM 업데이트 직후 브라우저 페인트 전에 동기 실행 → 가장 안정적
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!data.asks?.length) return
     const key = `${symbol}:${isMock}`
     if (scrolledKey.current === key) return   // 이미 스크롤했으면 건너뜀
 
-    const el  = scrollRef.current
-    const mid = midRef.current
-    if (!el || !mid) return
+    const doScroll = () => {
+      const el  = scrollRef.current
+      const mid = midRef.current
+      if (!el || !mid) return
+      el.scrollTop = mid.offsetTop - el.clientHeight / 2 + mid.offsetHeight / 2
+      scrolledKey.current = key
+    }
 
-    el.scrollTop = mid.offsetTop - el.clientHeight / 2 + mid.offsetHeight / 2
-    scrolledKey.current = key
+    // 즉시 시도 + rAF 이중 백업 (레이아웃 계산 완료 시점 보장)
+    doScroll()
+    const id = requestAnimationFrame(() => requestAnimationFrame(doScroll))
+    return () => cancelAnimationFrame(id)
   }, [data, symbol, isMock])
 
   /* ── 렌더 데이터 ─────────────────────────────────────────── */

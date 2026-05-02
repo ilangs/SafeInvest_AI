@@ -338,6 +338,9 @@ async def get_orderbook(symbol: str, user_id: str, is_mock: bool = True) -> dict
                  "volume": int(out.get(f"bidp_rsqn{i}", 0) or 0)} for i in range(1, 11)]
         asks = [a for a in asks if a["price"] > 0]
         bids = [b for b in bids if b["price"] > 0]
+        # 장 마감/시간외 → 호가가 비어있으면 mock 데이터로 fallback (UI 표시용)
+        if not asks and not bids:
+            return _mock_orderbook(symbol)
         return {
             "asks":        asks,
             "bids":        bids,
