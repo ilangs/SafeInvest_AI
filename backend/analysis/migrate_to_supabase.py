@@ -16,7 +16,7 @@ analysis/migrate_to_supabase.py
   python analysis/migrate_to_supabase.py   ← 전체
 """
 
-import os, math
+import os, math, time
 import sys
 import sqlite3
 import argparse
@@ -148,17 +148,24 @@ def apply_col_map(df: pd.DataFrame, col_map: dict) -> pd.DataFrame:
 
 
 def upsert_batch(table: str, records: list[dict], batch_size: int = 500) -> int:
-    """배치 upsert. 성공 건수 반환."""
     total, success = len(records), 0
     for i in range(0, total, batch_size):
         batch = records[i: i + batch_size]
-        try:
-            supabase.table(table).upsert(batch).execute()
-            success += len(batch)
-            print(f"  [{table}] {success:,}/{total:,} ({success/total*100:.1f}%)", end="\r")
-        except Exception as e:
-            print(f"\n  ⚠️  {table} batch {i}~{i+len(batch)}: {e}")
-    print(f"  [{table}] 완료 {success:,}/{total:,}" + " " * 20)
+        retry_count = 0
+        while retry_count < 3:  # 최대 3번 재시도
+            try:
+                supabase.table(table).upsert(batch).execute()
+                success += len(batch)
+                print(f"  [{table}] {success:,}/{total:,} ({success/total*100:.1f}%)", end="\r")
+                break 
+            except Exception as e:
+                retry_count += 1
+                print(f"\n  ⚠️ 에러 발생 (재시도 {retry_count}/3): {e}")
+                time.sleep(2)  # 잠시 대기 후 재시도
+                if retry_count == 3:
+                    print(f"  ❌ {i}번 항목부터 {len(batch)}개 데이터 전송 실패")
+    
+    print(f"  [{table}] 완료 {success:,}/{total:,}")
     return success
 
 

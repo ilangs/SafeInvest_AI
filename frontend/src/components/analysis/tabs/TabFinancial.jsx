@@ -6,6 +6,7 @@ import { darkLayout, fmtMoney, fmtRatio } from '../../../services/analysisApi.js
 export default function TabFinancial({ financials }) {
   if (!financials) return <div className="an-loading"><div className="an-spinner"/></div>
 
+  // financials 구조에 따라 데이터 추출 (기존 속성명 유지하되 내부 데이터 접근 방식 수정)
   const annual    = financials.annual    ?? []
   const quarterly = financials.quarterly ?? []
 
@@ -18,10 +19,11 @@ export default function TabFinancial({ financials }) {
     )
   }
 
-  const years    = annual.map(r => r.year)
-  const revenue  = annual.map(r => (r.revenue ?? 0) / 1e8)
+  // [수정] year -> fiscal_year / net_profit -> net_income
+  const years    = annual.map(r => r.fiscal_year || 'N/A')
+  const revenue  = annual.map(r => (r.revenue ?? 0) / 1e8) // 억원 단위
   const opProfit = annual.map(r => (r.operating_profit ?? 0) / 1e8)
-  const netProfit= annual.map(r => (r.net_profit ?? 0) / 1e8)
+  const netProfit= annual.map(r => (r.net_income ?? 0) / 1e8)
 
   const finData = [
     { type:'bar', x:years, y:revenue,   name:'매출(억원)', marker:{ color:'rgba(59,130,246,0.7)' } },
@@ -30,25 +32,28 @@ export default function TabFinancial({ financials }) {
   ]
   const finLayout = darkLayout('매출 / 영업이익 / 순이익 추이', 440)
 
-  const periods   = quarterly.map(r => `${r.year}-${r.quarter}`)
+  // [수정] year, quarter -> fiscal_year, fiscal_quarter
+  const periods   = quarterly.map(r => `${r.fiscal_year}-${r.fiscal_quarter}`)
   const debtRatio = quarterly.map(r => r.debt_ratio)
   const debtColors = debtRatio.map(v => v == null ? '#94a3b8' : v < 200 ? '#22c55e' : v < 500 ? '#eab308' : '#ef4444')
+  
   const debtData = [{
     type:'scatter', mode:'lines+markers',
     x:periods, y:debtRatio, name:'부채비율(%)',
     line:{ color:'#6ee7ff', width:3 },
     marker:{ color:debtColors, size:9 },
   }]
+
   const debtLayout = {
     ...darkLayout('부채비율 추이', 360),
-    shapes: [
+    shapes: periods.length > 0 ? [
       { type:'line', x0:periods[0], x1:periods[periods.length-1], y0:100, y1:100, line:{ color:'#22c55e', dash:'dot' } },
       { type:'line', x0:periods[0], x1:periods[periods.length-1], y0:500, y1:500, line:{ color:'#ef4444', dash:'dot' } },
-    ],
-    annotations: [
+    ] : [],
+    annotations: periods.length > 0 ? [
       { x:periods[periods.length-1], y:100, text:'100%', showarrow:false, font:{ color:'#22c55e' }, xanchor:'right' },
       { x:periods[periods.length-1], y:500, text:'500%', showarrow:false, font:{ color:'#ef4444' }, xanchor:'right' },
-    ],
+    ] : [],
   }
 
   const latest = annual[annual.length - 1]
@@ -79,12 +84,14 @@ export default function TabFinancial({ financials }) {
             </tr>
           </thead>
           <tbody>
-            {[...annual].reverse().map(r => (
-              <tr key={r.year}>
-                <td>{r.year}</td>
+            {[...annual].reverse().map((r, idx) => (
+              /* [수정] key 값에 index나 fiscal_year 사용으로 콘솔 에러 방지 */
+              <tr key={r.fiscal_year || idx}>
+                <td>{r.fiscal_year}</td>
                 <td>{fmtMoney(r.revenue)}</td>
                 <td style={{ color: r.operating_profit < 0 ? '#ef4444' : '#22c55e' }}>{fmtMoney(r.operating_profit)}</td>
-                <td style={{ color: r.net_profit < 0 ? '#ef4444' : '#22c55e' }}>{fmtMoney(r.net_profit)}</td>
+                {/* [수정] net_profit -> net_income */}
+                <td style={{ color: r.net_income < 0 ? '#ef4444' : '#22c55e' }}>{fmtMoney(r.net_income)}</td>
                 <td>{fmtRatio(r.debt_ratio)}</td>
                 <td>{fmtMoney(r.total_equity)}</td>
                 <td style={{ color: (r.roe ?? 0) < 0 ? '#ef4444' : '#d9e2f2' }}>{fmtRatio(r.roe)}</td>
@@ -117,7 +124,8 @@ export default function TabFinancial({ financials }) {
 }
 
 function FinExplainRevenue({ annual }) {
-  const sorted = [...annual].sort((a, b) => Number(a.year) - Number(b.year))
+  // [수정] Number(a.fiscal_year) 로 정렬
+  const sorted = [...annual].sort((a, b) => Number(a.fiscal_year) - Number(b.fiscal_year))
   let trend = '비교할 수 있는 연도 데이터가 부족합니다.', detail = ''
   if (sorted.length >= 2) {
     const r0 = sorted[sorted.length-1].revenue ?? 0
@@ -146,7 +154,7 @@ function FinExplainRevenue({ annual }) {
 }
 
 function FinExplainOpProfit({ annual }) {
-  const sorted = [...annual].sort((a, b) => Number(a.year) - Number(b.year))
+  const sorted = [...annual].sort((a, b) => Number(a.fiscal_year) - Number(b.fiscal_year))
   let trend = '영업이익 데이터가 충분하지 않습니다.', detail = ''
   if (sorted.length >= 2) {
     const o0 = sorted[sorted.length-1].operating_profit ?? null
@@ -188,10 +196,10 @@ function FinExplainDebt({ latest }) {
   const d = latest?.debt_ratio ?? null
   let status = '⚪ 부채비율 데이터가 없습니다.'
   if (d != null) {
-    if (d < 100)      status = `🟢 부채비율 ${d.toFixed(1)}% — 매우 안전합니다.`
+    if (d < 100)       status = `🟢 부채비율 ${d.toFixed(1)}% — 매우 안전합니다.`
     else if (d < 200) status = `🟡 부채비율 ${d.toFixed(1)}% — 양호합니다.`
     else if (d < 400) status = `🟠 부채비율 ${d.toFixed(1)}% — 높은 편입니다.`
-    else              status = `🔴 부채비율 ${d.toFixed(1)}% — 매우 높습니다.`
+    else               status = `🔴 부채비율 ${d.toFixed(1)}% — 매우 높습니다.`
   }
   return (
     <>
@@ -206,10 +214,10 @@ function FinExplainROE({ latest }) {
   const roe = latest?.roe ?? null
   let status = '⚪ ROE 데이터가 없습니다.'
   if (roe != null) {
-    if (roe >= 15)      status = `🟢 ROE ${roe.toFixed(1)}% — 매우 우수합니다.`
-    else if (roe >= 5)  status = `🟡 ROE ${roe.toFixed(1)}% — 보통 수준입니다.`
-    else if (roe >= 0)  status = `🟠 ROE ${roe.toFixed(1)}% — 낮은 편입니다.`
-    else                status = `🔴 ROE ${roe.toFixed(1)}% — 순손실 상태입니다.`
+    if (roe >= 15)       status = `🟢 ROE ${roe.toFixed(1)}% — 매우 우수합니다.`
+    else if (roe >= 5)   status = `🟡 ROE ${roe.toFixed(1)}% — 보통 수준입니다.`
+    else if (roe >= 0)   status = `🟠 ROE ${roe.toFixed(1)}% — 낮은 편입니다.`
+    else                 status = `🔴 ROE ${roe.toFixed(1)}% — 순손실 상태입니다.`
   }
   return (
     <>
