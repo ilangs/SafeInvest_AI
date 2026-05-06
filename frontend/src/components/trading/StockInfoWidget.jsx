@@ -1,20 +1,29 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import api from '../../services/api'
 
 export default function StockInfoWidget({ symbol, currentPrice, isMock = true }) {
   const [info, setInfo]       = useState(null)
   const [loading, setLoading] = useState(true)
+  const reqIdRef              = useRef(0)
+
+  // 종목 변경 시 즉시 비우기 + 이전 요청 무효화
+  useEffect(() => {
+    reqIdRef.current += 1
+    setInfo(null)
+  }, [symbol])
 
   const load = useCallback(async () => {
     if (!symbol) return
+    const myReq = ++reqIdRef.current
     setLoading(true)
     try {
       const { data } = await api.get(`/api/v1/market/info?symbol=${symbol}&is_mock=${isMock}`)
+      if (myReq !== reqIdRef.current) return
       setInfo(data)
     } catch {
-      setInfo(null)
+      if (myReq === reqIdRef.current) setInfo(null)
     } finally {
-      setLoading(false)
+      if (myReq === reqIdRef.current) setLoading(false)
     }
   }, [symbol, isMock])
 

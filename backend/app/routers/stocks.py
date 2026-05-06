@@ -185,10 +185,10 @@ def _calculate_score(fin_df: pd.DataFrame, price_df: pd.DataFrame, warn_df: pd.D
     if not annual.empty and "revenue" in annual.columns:
         rev = _safe_float(annual.iloc[-1]["revenue"])
         if rev is not None:
-            revenue_score = (15.0 if rev >= 10_000_000_000_000 else
-                             13.0 if rev >=  1_000_000_000_000 else
-                             10.0 if rev >=    100_000_000_000 else
-                              6.0 if rev >=     50_000_000_000 else 2.0)
+            revenue_score = (15.0 if rev >= 1_000_000_000_000 else
+                             13.0 if rev >=   100_000_000_000 else
+                             10.0 if rev >=    10_000_000_000 else
+                              6.0 if rev >=     5_000_000_000 else 2.0)
         else:
             notes.append("매출규모: 데이터 부족 → 중립 6점")
     else:

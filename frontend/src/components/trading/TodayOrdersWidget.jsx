@@ -1,21 +1,32 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../services/api'
 
-const TABS = [
-  { key: 'ccld',    label: '체결' },
-  { key: 'pending', label: '미체결' },
-]
+// 오늘 날짜를 YYYY-MM-DD 형식으로
+function todayStr() {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+// YYYYMMDD → YYYY-MM-DD
+function fmtDate(s) {
+  if (!s || s.length < 8) return s || ''
+  return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
+}
 
 export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
-  const [tab,     setTab]     = useState('ccld')
+  const today = todayStr()
+  const [startDate, setStartDate] = useState(today)
+  const [endDate,   setEndDate]   = useState(today)
   const [orders,  setOrders]  = useState([])
   const [loading, setLoading] = useState(true)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (s = startDate, e = endDate) => {
     setLoading(true)
     try {
       const { data } = await api.get(
-        `/api/v1/orders/today?is_mock=${isMock}&order_status=${tab}`
+        `/api/v1/orders/history?is_mock=${isMock}&start_date=${s}&end_date=${e}`
       )
       setOrders(Array.isArray(data) ? data : [])
     } catch {
@@ -23,47 +34,73 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
     } finally {
       setLoading(false)
     }
-  }, [tab, isMock])
+  }, [startDate, endDate, isMock])
 
-  useEffect(() => { load() }, [load, refreshTrigger])
+  // 화면 진입 + refreshTrigger 변경(매매 발생) 시 자동 갱신 — 항상 오늘로 리셋
+  useEffect(() => {
+    setStartDate(today)
+    setEndDate(today)
+    load(today, today)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger, isMock])
 
   const fmtTime = (t) => {
     if (!t || t.length < 6) return t || ''
     return `${t.slice(0, 2)}:${t.slice(2, 4)}:${t.slice(4, 6)}`
   }
 
+  const dateInputStyle = {
+    padding: '4px 8px',
+    fontSize: 12,
+    border: '0.5px solid var(--color-border-secondary)',
+    borderRadius: 6,
+    background: 'var(--color-background-secondary)',
+    color: 'var(--color-text-primary)',
+    outline: 'none',
+  }
+
   return (
     <div className="card" style={{ minWidth: 0 }}>
 
-      {/* 헤더 + 탭 */}
+      {/* 헤더 + 기간 선택 + 조회 버튼 */}
       <div style={{
         display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', marginBottom: 10,
+        justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8,
       }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>
-          📋 당일 주문내역
+          📋 매매내역
         </span>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {TABS.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              style={{
-                padding: '3px 12px',
-                borderRadius: 20,
-                border: 'none',
-                fontSize: 12,
-                fontWeight: tab === t.key ? 700 : 400,
-                background: tab === t.key ? '#0A3D62' : 'var(--color-background-tertiary)',
-                color:      tab === t.key ? '#fff'    : 'var(--color-text-secondary)',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-          <button className="btn-sm" onClick={load} style={{ marginLeft: 4 }}>새로고침</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            type="date"
+            value={startDate}
+            max={endDate}
+            onChange={e => setStartDate(e.target.value)}
+            style={dateInputStyle}
+          />
+          <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>~</span>
+          <input
+            type="date"
+            value={endDate}
+            min={startDate}
+            max={today}
+            onChange={e => setEndDate(e.target.value)}
+            style={dateInputStyle}
+          />
+          <button
+            onClick={() => load()}
+            disabled={loading}
+            style={{
+              padding: '4px 14px',
+              fontSize: 12, fontWeight: 600,
+              background: '#0F6E56', color: '#fff',
+              border: 'none', borderRadius: 6,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            {loading ? '조회중...' : '조회'}
+          </button>
         </div>
       </div>
 
@@ -72,7 +109,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
         <p className="muted">불러오는 중...</p>
       ) : orders.length === 0 ? (
         <p className="muted" style={{ textAlign: 'center', padding: '16px 0' }}>
-          {tab === 'ccld' ? '체결된 주문이 없습니다.' : '미체결 주문이 없습니다.'}
+          해당 기간 매매내역이 없습니다.
         </p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -82,6 +119,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
           }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--color-border-tertiary)' }}>
+                <Th>일시</Th>
                 <Th>종목/유형</Th>
                 <Th align="right">가격</Th>
                 <Th align="right">수량</Th>
@@ -94,6 +132,14 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
                   key={i}
                   style={{ borderBottom: '0.5px solid var(--color-border-tertiary)' }}
                 >
+                  {/* 일시 */}
+                  <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontWeight: 500 }}>{fmtDate(o.order_date)}</div>
+                    <div style={{ fontSize: 10, color: 'var(--color-text-secondary)' }}>
+                      {fmtTime(o.order_time)}
+                    </div>
+                  </td>
+
                   {/* 종목 / 유형 */}
                   <td style={{ padding: '8px 4px' }}>
                     <div style={{ fontWeight: 600, marginBottom: 2 }}>
@@ -105,7 +151,6 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
                       fontWeight: 600,
                     }}>
                       {o.order_type} {o.filled_qty > 0 ? `${o.filled_qty}주` : `${o.quantity}주`}
-                      {o.order_time ? ` · ${fmtTime(o.order_time)}` : ''}
                     </div>
                   </td>
 

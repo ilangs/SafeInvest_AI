@@ -4,8 +4,8 @@
  *
  * 조회 순서:
  *  1. 모듈 캐시 (탭 전환 후에도 재요청 없음)
- *  2. GET /api/v1/stock/{code}/overview  → stock_name  (stock_companies 테이블)
- *  3. GET /api/v1/market/quote?symbol={code} → name  (KIS API, mock에서 빈값일 수 있음)
+ *  2. GET /api/v1/stocks/{code} → stock_name  (Supabase stocks 테이블)
+ *  3. GET /api/v1/market/quote?symbol={code} → name  (KIS API 폴백)
  *
  * 반환: 기업명 string | null (로딩 중 or 미지원 종목)
  */
@@ -26,8 +26,8 @@ export function useStockName(code) {
 
     pending.add(key)
 
-    // 1순위: stock_companies (DB에 시드된 주요 종목 → 항상 정확한 이름)
-    api.get(`/api/v1/stock/${key}/overview`)
+    // 1순위: Supabase stocks 테이블 (전체 2610개 종목)
+    api.get(`/api/v1/stocks/${key}`)
       .then(r => {
         const n = r.data?.stock_name
         if (n) { cache.set(key, n); setName(n) }

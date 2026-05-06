@@ -85,7 +85,7 @@ async def search_stocks(
         if q.isdigit():
             res = (
                 supabase_admin.table("stocks")
-                .select("ticker,name,market")
+                .select("ticker,stock_name,market")
                 .ilike("ticker", f"{q}%")
                 .limit(limit)
                 .execute()
@@ -93,14 +93,14 @@ async def search_stocks(
         else:
             res = (
                 supabase_admin.table("stocks")
-                .select("ticker,name,market")
-                .ilike("name", f"%{q}%")
+                .select("ticker,stock_name,market")
+                .ilike("stock_name", f"%{q}%")
                 .limit(limit)
                 .execute()
             )
         if res.data:
             return [
-                {"code": r["ticker"], "name": r["name"], "market": r.get("market", "")}
+                {"code": r["ticker"], "name": r["stock_name"], "market": r.get("market", "")}
                 for r in res.data
             ]
     except Exception:

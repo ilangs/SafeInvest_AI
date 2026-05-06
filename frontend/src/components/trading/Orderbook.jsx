@@ -14,19 +14,34 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
 
   const scrollRef   = useRef(null)
   const midRef      = useRef(null)
-  // 마지막으로 스크롤 중앙정렬한 "종목:모드" 키 — 폴링 갱신 시 재스크롤 방지
   const scrolledKey = useRef(null)
+  // 요청 ID: 종목 변경 시 증가 → 이전 in-flight 응답을 무시하는 데 사용
+  const reqIdRef    = useRef(0)
+
+  /* ── 종목 변경 시 즉시 초기화 + 이전 in-flight 요청 무효화 ── */
+  useEffect(() => {
+    reqIdRef.current += 1        // 이전 요청의 응답이 도착해도 setData 하지 않도록 ID 변경
+    setData({ asks: [], bids: [] })
+    setLimits({ upper: 0, lower: 0 })
+    scrolledKey.current = null
+  }, [symbol])
 
   /* ── 호가 폴링 ──────────────────────────────────────────── */
   const load = useCallback(async () => {
     if (!symbol) return
+    const myReqId = ++reqIdRef.current   // 이 요청 고유 ID 획득
     try {
       const res = await api.get(
         `/api/v1/market/orderbook?symbol=${symbol}&is_mock=${isMock}`
       )
-      setData(res.data)
+      // 이 응답이 가장 최신 요청인 경우에만 상태 반영
+      if (myReqId === reqIdRef.current) {
+        setData(res.data)
+      }
     } catch (e) {
-      console.error('호가 로드 실패:', e)
+      if (myReqId === reqIdRef.current) {
+        console.error('호가 로드 실패:', e)
+      }
     }
   }, [symbol, isMock])
 
@@ -52,19 +67,18 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
   useEffect(() => {
     if (!data.asks?.length) return
     const key = `${symbol}:${isMock}`
-    if (scrolledKey.current === key) return   // 이미 스크롤했으면 건너뜀
+    if (scrolledKey.current === key) return
 
-    const doScroll = () => {
+    // 레이아웃 완료 후 getBoundingClientRect로 정확한 위치 계산
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => {
       const el  = scrollRef.current
       const mid = midRef.current
       if (!el || !mid) return
-      el.scrollTop = mid.offsetTop - el.clientHeight / 2 + mid.offsetHeight / 2
+      const elRect  = el.getBoundingClientRect()
+      const midRect = mid.getBoundingClientRect()
+      el.scrollTop += midRect.top - elRect.top - (el.clientHeight - mid.offsetHeight) / 2
       scrolledKey.current = key
-    }
-
-    // 즉시 시도 + rAF 이중 백업 (레이아웃 계산 완료 시점 보장)
-    doScroll()
-    const id = requestAnimationFrame(() => requestAnimationFrame(doScroll))
+    }))
     return () => cancelAnimationFrame(id)
   }, [data, symbol, isMock])
 
@@ -123,8 +137,21 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
 
       {/* ── 스크롤 영역 ─────────────────────────────────────
           maxHeight = ROW_H×5 + MID_H + ROW_H×5 = 296px
-          초기: 5+현재가+5 표시 / 스크롤: 10+상한가, 10+하한가 노출  */}
-      <div ref={scrollRef} style={{ maxHeight: MAX_H, overflowY: 'auto', flexShrink: 0 }}>
+          초기: 5+현재가+5 표시 / 스크롤: 10+상한가, 10+하한가 노출
+          스크롤바는 시각적으로 숨김 (휠/키보드 스크롤은 유지)  */}
+      <div
+        ref={scrollRef}
+        tabIndex={0}
+        className="orderbook-scroll-hide"
+        style={{
+          maxHeight:        MAX_H,
+          overflowY:        'auto',
+          flexShrink:       0,
+          outline:          'none',
+          scrollbarWidth:   'none',     /* Firefox */
+          msOverflowStyle:  'none',     /* IE / 구 Edge */
+        }}
+      >
 
         {/* 상한가 */}
         {upper > 0 && (

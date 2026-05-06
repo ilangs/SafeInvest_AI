@@ -8,6 +8,7 @@ import HoldingsWidget    from '../components/trading/HoldingsWidget'
 import StockInfoWidget   from '../components/trading/StockInfoWidget'
 import TodayOrdersWidget from '../components/trading/TodayOrdersWidget'
 import api from '../services/api'
+import { useAuth } from '../hooks/useAuth'
 
 function isMarketOpen() {
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
@@ -17,8 +18,30 @@ function isMarketOpen() {
   return minutes >= 9 * 60 && minutes < 15 * 60 + 30
 }
 
+const DEFAULT_SYMBOL = '005930'   // 미로그인/저장기록 없을 때 기본값 (삼성전자)
+
+// 사용자별 마지막 조회 종목 키 (localStorage)
+const lastSymbolKey = (userId) => `safeinvest:lastSymbol:${userId || 'guest'}`
+
+function readLastSymbol(userId) {
+  try {
+    const v = localStorage.getItem(lastSymbolKey(userId))
+    return v && /^\d{6}$/.test(v) ? v : null
+  } catch {
+    return null
+  }
+}
+
+function saveLastSymbol(userId, code) {
+  try { localStorage.setItem(lastSymbolKey(userId), code) } catch {}
+}
+
 export default function TradePage() {
-  const [symbol,        setSymbol]        = useState('005930')
+  const { user } = useAuth()
+  const userId = user?.id || null
+
+  // 초기값: 사용자별 마지막 조회 종목 → 없으면 삼성전자
+  const [symbol,        setSymbol]        = useState(() => readLastSymbol(userId) || DEFAULT_SYMBOL)
   const [inputSymbol,   setInputSymbol]   = useState('')
   const [currentPrice,  setCurrentPrice]  = useState(null)
   const [stockName,     setStockName]     = useState('')
@@ -35,21 +58,49 @@ export default function TradePage() {
 
   const searchRef   = useRef(null)
   const searchTimer = useRef(null)
+  // 종목 변경 시 in-flight 요청을 무효화하기 위한 요청 ID
+  const quoteReqId  = useRef(0)
+
+  // 종목 변경 시 즉시 초기화 + 이전 요청 무효화 + 사용자별 localStorage 저장
+  useEffect(() => {
+    quoteReqId.current += 1
+    setCurrentPrice(null)
+    setChangeRate(null)
+    setChange(null)
+    if (symbol && /^\d{6}$/.test(symbol)) saveLastSymbol(userId, symbol)
+  }, [symbol, userId])
+
+  // 로그인 정보 로드 후 저장된 마지막 조회 종목으로 복원
+  // (useAuth가 비동기라 초기 렌더 시 userId가 null일 수 있음 — 로드 후 재적용)
+  useEffect(() => {
+    if (!userId) return
+    const saved = readLastSymbol(userId)
+    if (saved && saved !== symbol) {
+      setSymbol(saved)
+      setStockName('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
 
   // 현재가 조회
   const fetchQuote = useCallback(async () => {
     if (!symbol) return
+    const myReq = ++quoteReqId.current
     setQuoteLoading(true)
     try {
       const res = await api.get(`/api/v1/market/quote?symbol=${symbol}&is_mock=${kisMode}`)
+      // 최신 요청만 반영 (이전 종목 응답 무시)
+      if (myReq !== quoteReqId.current) return
       setCurrentPrice(res.data.current_price)
-      setStockName(res.data.name)
+      // KIS API가 올바른 종목명을 반환할 때만 업데이트 (티커코드 반환 시 무시)
+      const apiName = res.data.name
+      if (apiName && apiName !== symbol && !/^\d{6}$/.test(apiName)) setStockName(apiName)
       setChangeRate(res.data.change_rate)
       setChange(res.data.change)
     } catch (e) {
-      console.error('시세 조회 실패:', e)
+      if (myReq === quoteReqId.current) console.error('시세 조회 실패:', e)
     } finally {
-      setQuoteLoading(false)
+      if (myReq === quoteReqId.current) setQuoteLoading(false)
     }
   }, [symbol, kisMode])
 
@@ -103,8 +154,11 @@ export default function TradePage() {
   }
 
   const handleOrderComplete = () => {
+    // 즉시 1차 갱신 (로컬 주문 로그 + 모의 즉시 반영)
     setRefreshTick(t => t + 1)
     fetchQuote()
+    // KIS API 처리 지연 보완: 1.5초 후 2차 갱신 (잔고/보유종목 정확화)
+    setTimeout(() => setRefreshTick(t => t + 1), 1500)
   }
 
   // 검색창 외부 클릭 시 드롭다운 닫기
