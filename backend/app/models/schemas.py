@@ -213,3 +213,39 @@ class PortfolioAnalysisResponse(BaseModel):
     risk_level: str               # conservative | moderate | aggressive
     suggestions: list[str]        = Field(default_factory=list)
     analyzed_at: datetime
+
+
+# ── Study Log (학습 일기) ─────────────────────────────────────────────────────
+
+class StudyLogCreate(BaseModel):
+    title:   str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=1)
+    tag:     str = Field("학습기록", max_length=50)
+    mood:    str = Field("기록", max_length=30)
+
+
+class StudyLogUpdate(BaseModel):
+    title:   str | None = Field(None, max_length=200)
+    content: str | None = None
+    tag:     str | None = Field(None, max_length=50)
+    mood:    str | None = Field(None, max_length=30)
+
+
+class StudyLogItem(BaseModel):
+    id:         str
+    title:      str
+    content:    str
+    tag:        str | None
+    mood:       str | None
+    ai_comment: str | None
+    log_date:   str        # "YYYY-MM-DD"
+    created_at: datetime
+    updated_at: datetime
+
+
+class StudyLogListResponse(BaseModel):
+    logs:        list[StudyLogItem]
+    total:       int
+    page:        int
+    total_pages: int
+    today_count: int

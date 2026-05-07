@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.routers import auth, market, order, orders, ai, watchlist, account, credentials, stocks
+from app.routers import auth, market, order, orders, ai, watchlist, account, credentials, stocks, study_logs
 from app.education.router import router as education_router, self_router
 from app.education.curriculum import router as curriculum_router
 from app.education.fss_proxy import router as fss_proxy_router
@@ -72,6 +72,7 @@ app.include_router(account.router)
 app.include_router(stocks.router)
 app.include_router(credentials.router)
 app.include_router(orders.router)
+app.include_router(study_logs.router)
 
 # ── 교육 모듈 라우터 ───────────────────────────────────────────────────────────
 app.include_router(education_router)
