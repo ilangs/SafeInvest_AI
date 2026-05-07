@@ -9,9 +9,37 @@ daily_update.py 완료 후 자동 호출됨
   - 결과는 data_quality_reports / data_quality_items 테이블에 영구 저장
 """
 
-import os, sys, json, logging
+import os, sys, json, logging, traceback, time
 from datetime import datetime, timedelta
 from pathlib import Path
+
+# httpx 예외 (Supabase HTTP/2 stream reset 대응)
+try:
+    import httpx
+    _HTTPX_NETWORK_ERRORS = (
+        httpx.RemoteProtocolError, httpx.ReadError,
+        httpx.ConnectError,        httpx.ReadTimeout,
+        httpx.WriteError,          httpx.PoolTimeout,
+    )
+except ImportError:
+    _HTTPX_NETWORK_ERRORS = (Exception,)
+
+
+def _retry_call(fn, *args, max_retries: int = 3, label: str = "", **kwargs):
+    """일시적 네트워크 오류(HTTP/2 StreamReset 등) 재시도. 마지막 실패 시 raise."""
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            return fn(*args, **kwargs)
+        except _HTTPX_NETWORK_ERRORS as e:
+            last_exc = e
+            wait = 1.5 ** attempt
+            logging.getLogger(__name__).warning(
+                f"  [재시도 {attempt+1}/{max_retries}] {label} → "
+                f"{type(e).__name__} → {wait:.1f}s 대기"
+            )
+            time.sleep(wait)
+    raise last_exc if last_exc else RuntimeError("retry exhausted")
 
 BASE_DIR = Path(__file__).parent.parent
 LOG_DIR  = BASE_DIR / "analysis" / "logs"
@@ -57,41 +85,57 @@ def record(group, name, grade, msg, detail=""):
 def count_table(table: str, filters: dict | None = None,
                 gte: dict | None = None, lte: dict | None = None,
                 ne:  dict | None = None) -> int:
-    q = sb.table(table).select("*", count="exact").limit(1)
-    if filters:
-        for k, v in filters.items():
-            q = q.eq(k, v)
-    if gte:
-        for k, v in gte.items():
-            q = q.gte(k, v)
-    if lte:
-        for k, v in lte.items():
-            q = q.lte(k, v)
-    if ne:
-        for k, v in ne.items():
-            q = q.neq(k, v)
-    res = q.execute()
-    return res.count or 0
-
-
-def fetch_all(table: str, columns: str = "*", filters: dict | None = None,
-              gte: dict | None = None, order: tuple | None = None) -> list:
-    rows: list = []
-    page = 1000
-    offset = 0
-    while True:
-        q = sb.table(table).select(columns)
+    """Supabase 테이블 row 카운트. 재시도 + 실패 시 0 반환."""
+    def _do():
+        # count="planned" — pg_class 통계 기반 추정 카운트, 빠르고 stream reset 없음
+        # (정확도 약간 떨어지지만 정합성 검사에는 충분)
+        q = sb.table(table).select("*", count="planned").limit(1)
         if filters:
             for k, v in filters.items():
                 q = q.eq(k, v)
         if gte:
             for k, v in gte.items():
                 q = q.gte(k, v)
-        if order:
-            col, desc = order
-            q = q.order(col, desc=desc)
-        q = q.range(offset, offset + page - 1)
-        res = q.execute()
+        if lte:
+            for k, v in lte.items():
+                q = q.lte(k, v)
+        if ne:
+            for k, v in ne.items():
+                q = q.neq(k, v)
+        return q.execute()
+    try:
+        res = _retry_call(_do, label=f"count_table({table})")
+        return res.count or 0
+    except Exception as e:
+        log.error(f"  [count_table 실패] {table} filters={filters} -> {type(e).__name__}: {e}")
+        return 0
+
+
+def fetch_all(table: str, columns: str = "*", filters: dict | None = None,
+              gte: dict | None = None, order: tuple | None = None) -> list:
+    """전체 행 페이지네이션 조회. 페이지 단위 재시도 + StreamReset 안전."""
+    rows: list = []
+    page = 500          # HTTP/2 stream reset 회피를 위해 작게 (이전 1000)
+    offset = 0
+    while True:
+        def _fetch_page(_off=offset):
+            q = sb.table(table).select(columns)
+            if filters:
+                for k, v in filters.items():
+                    q = q.eq(k, v)
+            if gte:
+                for k, v in gte.items():
+                    q = q.gte(k, v)
+            if order:
+                col, desc = order
+                q = q.order(col, desc=desc)
+            q = q.range(_off, _off + page - 1)
+            return q.execute()
+        try:
+            res = _retry_call(_fetch_page, label=f"fetch_all({table}) offset={offset}")
+        except Exception as e:
+            log.error(f"  [fetch_all 실패] {table} offset={offset} -> {type(e).__name__}: {e}")
+            break
         chunk = res.data or []
         rows.extend(chunk)
         if len(chunk) < page:
@@ -568,6 +612,16 @@ def save_report_to_supabase(today_price_cnt, latest_date):
 # ══════════════════════════════════════════════════
 # 메인
 # ══════════════════════════════════════════════════
+def _run_check(name: str, fn, *args):
+    """각 CHECK 를 독립적으로 실행 — 한 단계 실패해도 다음 진행."""
+    try:
+        return fn(*args)
+    except Exception as e:
+        log.error(f"❌ [{name}] 예외 발생: {type(e).__name__}: {e}")
+        log.error(f"   상세 traceback:\n{traceback.format_exc()}")
+        return None
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
@@ -579,19 +633,36 @@ def main():
     log.info(f"Supabase: {SUPABASE_URL}")
     log.info("=" * 60)
 
-    today_price_cnt, latest_date = check_incremental_inflow()
-    check_ohlcv_logic()
-    if not args.quick:
-        check_outliers()
-    check_nulls()
-    if not args.quick:
-        check_continuity()
-    check_financial_integrity()
-    check_warning_consistency()
-    check_duplicates()
-    check_referential_integrity()
+    # 사전 진단: 핵심 테이블 존재 여부
+    log.info("[사전진단] 필수 테이블 접근 테스트")
+    for tbl in ("stocks", "stock_prices", "stock_financials", "stock_warnings",
+                "data_quality_reports"):
+        try:
+            r = sb.table(tbl).select("*", count="exact").limit(1).execute()
+            log.info(f"  ✓ {tbl}: 접근 OK (row count={r.count})")
+        except Exception as e:
+            log.error(f"  ✗ {tbl}: 접근 실패 → {type(e).__name__}: {e}")
 
-    overall, p, w, f = save_report_to_supabase(today_price_cnt, latest_date)
+    inflow_result = _run_check("CHECK1", check_incremental_inflow)
+    today_price_cnt, latest_date = inflow_result if inflow_result else (0, "")
+
+    _run_check("CHECK2", check_ohlcv_logic)
+    if not args.quick:
+        _run_check("CHECK3", check_outliers)
+    _run_check("CHECK4", check_nulls)
+    if not args.quick:
+        _run_check("CHECK5", check_continuity)
+    _run_check("CHECK6", check_financial_integrity)
+    _run_check("CHECK7", check_warning_consistency)
+    _run_check("CHECK8", check_duplicates)
+    _run_check("CHECK9", check_referential_integrity)
+
+    try:
+        overall, p, w, f = save_report_to_supabase(today_price_cnt, latest_date)
+    except Exception as e:
+        log.error(f"❌ 보고서 저장 실패: {type(e).__name__}: {e}")
+        log.error(traceback.format_exc())
+        overall, p, w, f = "FAIL", 0, 0, 1
 
     icon = {"PASS": "🟢", "WARN": "🟡", "FAIL": "🔴"}.get(overall, "❓")
     print(f"\n{icon} 최종결과: {overall}  ✅{p} ⚠️{w} ❌{f}  →  Supabase 저장 완료")

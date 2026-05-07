@@ -21,6 +21,34 @@ import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+# httpx 예외 (Supabase HTTP/2 stream reset 대응)
+try:
+    import httpx
+    _HTTPX_NETWORK_ERRORS = (
+        httpx.RemoteProtocolError, httpx.ReadError,
+        httpx.ConnectError,        httpx.ReadTimeout,
+        httpx.WriteError,          httpx.PoolTimeout,
+    )
+except ImportError:
+    _HTTPX_NETWORK_ERRORS = (Exception,)
+
+
+def _retry_call(fn, *args, max_retries: int = 3, label: str = "", **kwargs):
+    """일시적 네트워크 오류(HTTP/2 StreamReset 등) 재시도. 마지막 실패 시 raise."""
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            return fn(*args, **kwargs)
+        except _HTTPX_NETWORK_ERRORS as e:
+            last_exc = e
+            wait = 1.5 ** attempt
+            logging.getLogger(__name__).warning(
+                f"  [재시도 {attempt+1}/{max_retries}] {label} → "
+                f"{type(e).__name__} → {wait:.1f}s 대기"
+            )
+            time.sleep(wait)
+    raise last_exc if last_exc else RuntimeError("retry exhausted")
+
 # ── 환경 설정 ──────────────────────────────────────────
 BASE_DIR = Path(__file__).parent.parent      # backend/
 LOG_DIR  = BASE_DIR / "analysis" / "logs"
@@ -63,20 +91,26 @@ BATCH = 500
 # ══════════════════════════════════════════════════════
 def fetch_all(table: str, columns: str = "*", filters: dict | None = None,
               order: tuple | None = None) -> list:
-    """Supabase 페이지네이션 조회 (모든 행을 가져온다)."""
+    """Supabase 페이지네이션 조회 (모든 행). 페이지 단위 재시도."""
     rows: list = []
-    page_size = 1000
+    page_size = 500     # HTTP/2 stream reset 회피
     offset = 0
     while True:
-        q = sb.table(table).select(columns)
-        if filters:
-            for k, v in filters.items():
-                q = q.eq(k, v)
-        if order:
-            col, desc = order
-            q = q.order(col, desc=desc)
-        q = q.range(offset, offset + page_size - 1)
-        res = q.execute()
+        def _fetch_page(_off=offset):
+            q = sb.table(table).select(columns)
+            if filters:
+                for k, v in filters.items():
+                    q = q.eq(k, v)
+            if order:
+                col, desc = order
+                q = q.order(col, desc=desc)
+            q = q.range(_off, _off + page_size - 1)
+            return q.execute()
+        try:
+            res = _retry_call(_fetch_page, label=f"fetch_all({table}) offset={offset}")
+        except Exception as e:
+            log.error(f"  [fetch_all 실패] {table} offset={offset}: {type(e).__name__}: {e}")
+            break
         chunk = res.data or []
         rows.extend(chunk)
         if len(chunk) < page_size:
@@ -86,21 +120,22 @@ def fetch_all(table: str, columns: str = "*", filters: dict | None = None,
 
 
 def upsert_chunked(table: str, records: list, on_conflict: str | None = None):
-    """대량 records 를 BATCH 크기로 분할 upsert."""
+    """대량 records 를 BATCH 크기로 분할 upsert. 청크 단위 재시도."""
     if not records:
         return 0
     success = 0
     for i in range(0, len(records), BATCH):
         chunk = records[i:i + BATCH]
-        try:
+        def _do():
             q = sb.table(table)
             if on_conflict:
-                q.upsert(chunk, on_conflict=on_conflict).execute()
-            else:
-                q.upsert(chunk).execute()
+                return q.upsert(chunk, on_conflict=on_conflict).execute()
+            return q.upsert(chunk).execute()
+        try:
+            _retry_call(_do, label=f"upsert({table}) chunk {i}")
             success += len(chunk)
         except Exception as e:
-            log.warning(f"  [upsert 실패] {table} 청크 {i}~{i+len(chunk)}: {e}")
+            log.warning(f"  [upsert 실패] {table} 청크 {i}~{i+len(chunk)}: {type(e).__name__}: {e}")
     return success
 
 
