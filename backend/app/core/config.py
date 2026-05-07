@@ -15,6 +15,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",   # analysis 전용 키(DART_API_KEY 등) 는 무시
     )
 
     # ── Supabase ─────────────────────────────────────────────

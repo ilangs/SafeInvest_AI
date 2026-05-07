@@ -1,9 +1,13 @@
 import ExplainBox from '../shared/ExplainBox.jsx'
 import { warnKorean, warnDesc } from '../../../services/analysisApi.js'
 
+// Supabase BOOLEAN → JS true/false, 과거 SQLite 0/1, 문자열 "true"/"1" 모두 활성으로 인식
+const isActiveTruthy = (v) =>
+  v === true || v === 1 || v === '1' || v === 'true' || v === 'TRUE'
+
 export default function TabSafety({ score, warnings }) {
-  const active   = (warnings ?? []).filter(w => w.is_active === 1)
-  const inactive = (warnings ?? []).filter(w => w.is_active !== 1)
+  const active   = (warnings ?? []).filter(w => isActiveTruthy(w.is_active))
+  const inactive = (warnings ?? []).filter(w => !isActiveTruthy(w.is_active))
 
   return (
     <div>

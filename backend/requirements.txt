@@ -1,14 +1,36 @@
+# ============================================================
+# SafeInvest Backend - Unified Dependencies
+# Install: pip install -r backend/requirements.txt
+# ============================================================
+
+# --- Web framework ---
 fastapi==0.136.0
 uvicorn==0.44.0
 pydantic==2.13.2
 pydantic-settings==2.13.1
+python-multipart==0.0.20
+
+# --- DB / Auth / Security ---
 supabase==2.28.3
 PyJWT==2.12.1
-httpx==0.28.1
-langchain-core==0.3.84
-langchain-openai==0.2.14
-openai==1.109.1
-python-multipart==0.0.20
 cryptography>=43.0.0
+python-dotenv>=1.0.0
+
+# --- HTTP clients ---
+httpx==0.28.1
+requests>=2.31.0
+
+# --- Data processing ---
 numpy>=1.26.0
 pandas>=2.1.0
+
+# --- AI / LangChain ---
+openai==1.109.1
+langchain-core==0.3.84
+langchain-openai==0.2.14
+
+# --- Data collection (analysis/daily_update.py, data_quality_check.py) ---
+pykrx>=1.0.45
+OpenDartReader
+finance-datareader>=0.9.90
+schedule>=1.2.0

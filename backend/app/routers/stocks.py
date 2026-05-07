@@ -121,38 +121,50 @@ def _build_annual(fin_df: pd.DataFrame) -> pd.DataFrame:
 
 # ── 안전점수 계산 ──────────────────────────────────────────────────
 
+def _latest_valid(fin_df: pd.DataFrame, col: str):
+    """
+    fin_df 의 col 컬럼에서 가장 최근(연·분기 정렬 기준 마지막) non-null 값을 반환.
+    없으면 None.
+    """
+    if fin_df.empty or col not in fin_df.columns:
+        return None
+    series = fin_df[col].dropna()
+    if series.empty:
+        return None
+    return series.iloc[-1]
+
+
 def _calculate_score(fin_df: pd.DataFrame, price_df: pd.DataFrame, warn_df: pd.DataFrame) -> dict:
     """
     ✅ 수정:
        - total_equity 제거 → capital_impairment 컬럼으로 자본건전성 판단
        - net_profit → net_income
+       - latest 행이 NaN인 경우(미수집 분기 등)에도 가장 최근 유효 값으로 fallback
+       - NaN 비교가 모두 False가 되어 0점이 되던 버그 수정
     """
     notes = []
     capital_score = debt_score = profit_score = 12.0
     volume_score = revenue_score = 6.0
     annual = _build_annual(fin_df)
-    latest = fin_df.iloc[-1] if not fin_df.empty else None
 
-    # ✅ 자본건전성: total_equity 없으므로 capital_impairment로 대체
-    if latest is not None and "capital_impairment" in fin_df.columns:
-        ci = latest.get("capital_impairment")
-        if ci is not None:
-            capital_score = 0.0 if bool(ci) else 25.0
-        else:
-            notes.append("자본건전성: 데이터 부족 → 중립 12점")
-    else:
+    # ── 자본건전성: 가장 최근 유효한 capital_impairment 사용 ──
+    ci = _latest_valid(fin_df, "capital_impairment")
+    # NaN 안전: pd.isna(NaN) → True, bool(NaN) → True (오판정 위험)
+    if ci is None or (isinstance(ci, float) and np.isnan(ci)):
         notes.append("자본건전성: 데이터 부족 → 중립 12점")
-
-    # 부채안정성
-    if latest is not None and "debt_ratio" in fin_df.columns:
-        dr = _safe_float(latest.get("debt_ratio"))
-        if dr is not None:
-            debt_score = (20.0 if dr < 100 else 16.0 if dr < 200 else
-                          10.0 if dr < 400 else  5.0 if dr < 500 else 0.0)
-        else:
-            notes.append("부채안정성: 데이터 부족 → 중립 10점")
     else:
+        capital_score = 0.0 if bool(ci) else 25.0
+
+    # ── 부채안정성: 가장 최근 유효한 debt_ratio 사용 ──
+    dr_raw = _latest_valid(fin_df, "debt_ratio")
+    dr = _safe_float(dr_raw)
+    # NaN 비교는 모두 False가 되어 0점으로 떨어지는 버그 차단
+    if dr is None or (isinstance(dr, float) and np.isnan(dr)):
+        debt_score = 10.0    # 명시적 중립값
         notes.append("부채안정성: 데이터 부족 → 중립 10점")
+    else:
+        debt_score = (20.0 if dr < 100 else 16.0 if dr < 200 else
+                      10.0 if dr < 400 else  5.0 if dr < 500 else 0.0)
 
     # ✅ 수익성: net_profit → net_income
     if not annual.empty and "net_income" in annual.columns:
