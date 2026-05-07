@@ -34,7 +34,7 @@ jobs:
   update:
     name: Run daily update
     runs-on: ubuntu-latest
-    timeout-minutes: 90              # 1회 실행 최대 90분 (5,000종목 기준 충분)
+    timeout-minutes: 360             # 초기 전체 로드 대비 6시간 (이후 증분 실행은 90분 이내)
 
     env:
       TZ: Asia/Seoul                  # 로그 타임스탬프 KST 표시
