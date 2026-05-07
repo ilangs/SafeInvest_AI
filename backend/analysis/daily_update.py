@@ -327,23 +327,37 @@ def update_financials():
                 continue
 
             # 해당 분기 row 개수
-            cnt_res = (sb.table("stock_financials")
-                         .select("ticker", count="exact")
-                         .eq("fiscal_year", str(yr))
-                         .eq("fiscal_quarter", q)
-                         .limit(1)
-                         .execute())
-            exists = cnt_res.count or 0
+            try:
+                cnt_res = _retry_call(
+                    lambda: (sb.table("stock_financials")
+                               .select("ticker", count="exact")
+                               .eq("fiscal_year", str(yr))
+                               .eq("fiscal_quarter", q)
+                               .limit(1)
+                               .execute()),
+                    label=f"count stock_financials {yr} {q}"
+                )
+                exists = cnt_res.count or 0
+            except Exception as e:
+                log.warning(f"  {yr} {q} count 조회 실패: {e} → 신규로 처리")
+                exists = 0
             if exists == 0:
                 collect_targets.append((yr, q, info["reprt_code"], None))
                 continue
 
             # NaN 후보 ticker 목록
-            nan_candidates = (sb.table("stock_financials")
-                                .select("ticker,revenue,operating_profit,net_income,total_assets,data_source")
-                                .eq("fiscal_year", str(yr))
-                                .eq("fiscal_quarter", q)
-                                .execute()).data or []
+            try:
+                nan_candidates = _retry_call(
+                    lambda: (sb.table("stock_financials")
+                               .select("ticker,revenue,operating_profit,net_income,total_assets,data_source")
+                               .eq("fiscal_year", str(yr))
+                               .eq("fiscal_quarter", q)
+                               .execute()),
+                    label=f"nan_candidates {yr} {q}"
+                ).data or []
+            except Exception as e:
+                log.warning(f"  {yr} {q} NaN 후보 조회 실패: {e} → 스킵")
+                nan_candidates = []
             nan_tickers = [
                 r["ticker"] for r in nan_candidates
                 if (r.get("revenue") is None
@@ -535,6 +549,14 @@ def update_financials():
     log.info(f"STEP 2 완료: 신규 +{total_inserted}건, NaN 보충 {total_updated}건, 미공시/skip {total_skipped}건")
 
 
+def _safe_update_financials():
+    """update_financials 래퍼 - 미처리 예외 시 exit 1 방지."""
+    try:
+        update_financials()
+    except Exception as e:
+        log.error(f"STEP 2 예외 발생 - 이후 단계는 계속 진행: {type(e).__name__}: {e}")
+
+
 # ══════════════════════════════════════════════════════
 # STEP 3: stock_warnings 재계산
 #   - 각 ticker 의 최신 (fiscal_year, fiscal_quarter) 기준
@@ -692,7 +714,12 @@ def update_stock_list():
         log.warning("  pykrx 없음 - 종목 리스트 업데이트 스킵")
         return
 
-    existing = set(r["ticker"] for r in fetch_all("stocks", "ticker"))
+    existing_rows = fetch_all("stocks", "ticker")
+    if not existing_rows:
+        log.warning("  Supabase stocks 조회 실패 또는 0건 - 신규 상장 확인 스킵")
+        log.info("STEP 4 완료: Supabase 연결 실패로 스킵")
+        return
+    existing = set(r["ticker"] for r in existing_rows)
     today_str = datetime.now().strftime("%Y%m%d")
     today_iso = datetime.now().strftime("%Y-%m-%d")
     new_records: list = []
@@ -747,14 +774,14 @@ def main():
     if args.price_only:
         update_prices()
     elif args.fin_only:
-        update_financials()
+        _safe_update_financials()
     elif args.warn_only:
         update_warnings()
     else:
         update_stock_list()
         update_prices()
         if not args.no_fin:
-            update_financials()
+            _safe_update_financials()
         update_warnings()
 
     if not args.no_quality:
