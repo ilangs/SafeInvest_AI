@@ -1,11 +1,23 @@
 """
 SafeInvest AI - 데이터 정합성 검사 & 보고서 Supabase 저장
-실행: python data_quality_check.py
-      python data_quality_check.py --quick
-daily_update.py 완료 후 자동 호출됨
+실행:
+  python data_quality_check.py                  # auto: 평일=daily, 일요일=weekly
+  python data_quality_check.py --mode daily     # Tier 1: 증분 검증 + RPC (~30초)
+  python data_quality_check.py --mode weekly    # Tier 2: 풀 검증 + RPC (5~10분)
+  python data_quality_check.py --mode quick     # 레거시: CHECK 3·5 생략
+  python data_quality_check.py --mode full      # weekly 별칭
+daily_update.py 완료 후 자동 호출됨 (--mode auto)
+
+2-Tier 검사 전략:
+  Tier 1 (daily, 평일):
+    - CHECK 1, 2(오늘만), 3(오늘만), 4(RPC), 6(오늘 upsert만), 7
+    - CHECK 8/9 (DB RPC 1초)
+    - CHECK 5 스킵 (주간만)
+  Tier 2 (weekly, 일요일):
+    - 모든 CHECK 풀 검증 (CHECK 4/8/9 만 RPC 가속)
 
 원본(streamlit/SQLite) → Supabase 포팅:
-  - 모든 SQL 을 Supabase REST API + Python 처리로 대체
+  - 모든 SQL 을 Supabase REST API + RPC + Python 처리로 대체
   - 결과는 data_quality_reports / data_quality_items 테이블에 영구 저장
 """
 
@@ -207,16 +219,20 @@ def check_incremental_inflow():
 # ══════════════════════════════════════════════════
 # CHECK 2: OHLCV 논리 검증
 # ══════════════════════════════════════════════════
-def check_ohlcv_logic():
+def check_ohlcv_logic(daily_mode: bool = False):
     G = "CHECK2_OHLCV논리"
     log.info("\n" + "─" * 50 + f"\n{G}")
-    cutoff = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    if daily_mode:
+        cutoff = TODAY                                              # 오늘만
+        scope_label = "오늘"
+    else:
+        cutoff = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        scope_label = "최근 30일"
 
-    # 최근 30일 모든 가격 데이터 가져와서 Python 검증
     recent = fetch_all("stock_prices",
                        "ticker,trade_date,open_price,high_price,low_price,close_price,volume",
                        gte={"trade_date": cutoff})
-    log.info(f"  검증 대상: {len(recent):,}행")
+    log.info(f"  검증 대상 ({scope_label}): {len(recent):,}행")
 
     high_low_err = sum(1 for r in recent
                        if (r.get("high_price") is not None
@@ -231,7 +247,7 @@ def check_ohlcv_logic():
                              or (r.get("close_price") is not None and r["high_price"] < r["close_price"]))))
 
     record(G, "OHLCV_HighLow", "FAIL" if high_low_err > 0 else "PASS",
-           f"High<Low: {high_low_err:,}건 (최근 30일)" if high_low_err > 0 else "High<Low 없음 ✓")
+           f"High<Low: {high_low_err:,}건 ({scope_label})" if high_low_err > 0 else f"High<Low 없음 ({scope_label}) ✓")
     record(G, "OHLCV_CloseZero", "WARN" if close_zero > 0 else "PASS",
            f"종가=0: {close_zero:,}건" if close_zero > 0 else "종가=0 없음 ✓",
            "거래정지 또는 수집 오류" if close_zero > 0 else "")
@@ -245,12 +261,15 @@ def check_ohlcv_logic():
 # ══════════════════════════════════════════════════
 # CHECK 3: 이상치 탐지
 # ══════════════════════════════════════════════════
-def check_outliers():
+def check_outliers(daily_mode: bool = False):
     G = "CHECK3_이상치"
     log.info("\n" + "─" * 50 + f"\n{G}")
 
-    # 최근 7일 음수 가격
-    cutoff7 = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    # 음수 가격 검사 — daily 모드는 오늘만, 주간은 최근 7일
+    if daily_mode:
+        cutoff7 = TODAY
+    else:
+        cutoff7 = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
     recent7 = fetch_all("stock_prices", "open_price,high_price,low_price,close_price",
                         gte={"trade_date": cutoff7})
     neg = sum(1 for r in recent7 if any(
@@ -290,41 +309,74 @@ def check_outliers():
 
 
 # ══════════════════════════════════════════════════
-# CHECK 4: 결측값 검사
+# CHECK 4: 결측값 검사 (DB RPC qc_null_summary 사용)
+#   기존: 컬럼별 N개의 count 쿼리 → DB RPC 1회로 통합
 # ══════════════════════════════════════════════════
 def check_nulls():
     G = "CHECK4_결측값"
     log.info("\n" + "─" * 50 + f"\n{G}")
 
-    tp = count_table("stock_prices") or 1
-    tf = count_table("stock_financials") or 1
-
-    # PostgREST 의 .is_('col', 'null') 활용
-    def null_count(table: str, col: str) -> int:
-        try:
-            res = sb.table(table).select("*", count="exact").is_(col, "null").limit(1).execute()
-            return res.count or 0
-        except Exception as e:
-            log.warning(f"  null count 실패 {table}.{col}: {e}")
-            return 0
-
-    for col in ["open_price", "high_price", "low_price", "close_price", "volume"]:
-        cnt = null_count("stock_prices", col)
-        pct = cnt / tp * 100
-        record(G, f"결측_PRICE_{col}",
-               "FAIL" if pct > 5 else ("WARN" if pct > 1 else "PASS"),
-               f"{col} NULL {cnt:,}건 ({pct:.2f}%)")
-
     fin_thresholds = {
         "revenue": 10, "operating_profit": 20, "net_income": 20,
-        "total_assets": 10, "total_equity": 15, "roe": 25
+        "total_assets": 10, "total_equity": 15, "roe": 25,
     }
-    for col, thr in fin_thresholds.items():
-        cnt = null_count("stock_financials", col)
-        pct = cnt / tf * 100
-        record(G, f"결측_FIN_{col}",
-               "FAIL" if pct > thr * 2 else ("WARN" if pct > thr else "PASS"),
-               f"{col} NULL {cnt:,}건 ({pct:.1f}%)")
+    price_thresholds = {  # 모든 컬럼 동일
+        "open_price": 1, "high_price": 1, "low_price": 1,
+        "close_price": 1, "volume": 1,
+    }
+
+    try:
+        res = _retry_call(lambda: sb.rpc("qc_null_summary").execute(),
+                          label="rpc qc_null_summary")
+        rows = res.data or []
+    except Exception as e:
+        log.error(f"  RPC qc_null_summary 실패 → 풀 fetch fallback: {e}")
+        rows = []
+
+    if not rows:
+        # ── Fallback: 기존 방식 (RPC 미설치 시) ──
+        log.warning("  RPC 결과 비어있음 — 컬럼별 count 쿼리 fallback")
+        tp = count_table("stock_prices") or 1
+        tf = count_table("stock_financials") or 1
+
+        def null_count(table: str, col: str) -> int:
+            try:
+                r = sb.table(table).select("*", count="exact").is_(col, "null").limit(1).execute()
+                return r.count or 0
+            except Exception as ex:
+                log.warning(f"  null count 실패 {table}.{col}: {ex}")
+                return 0
+
+        for col, thr in price_thresholds.items():
+            cnt = null_count("stock_prices", col); pct = cnt / tp * 100
+            record(G, f"결측_PRICE_{col}",
+                   "FAIL" if pct > 5 else ("WARN" if pct > thr else "PASS"),
+                   f"{col} NULL {cnt:,}건 ({pct:.2f}%)")
+        for col, thr in fin_thresholds.items():
+            cnt = null_count("stock_financials", col); pct = cnt / tf * 100
+            record(G, f"결측_FIN_{col}",
+                   "FAIL" if pct > thr * 2 else ("WARN" if pct > thr else "PASS"),
+                   f"{col} NULL {cnt:,}건 ({pct:.1f}%)")
+        return
+
+    # ── RPC 결과 처리 ──
+    for r in rows:
+        tbl  = r.get("table_name")
+        col  = r.get("col_name")
+        cnt  = int(r.get("null_cnt") or 0)
+        tot  = max(int(r.get("total_cnt") or 0), 1)
+        pct  = cnt / tot * 100
+
+        if tbl == "stock_prices":
+            thr = 1
+            grade = "FAIL" if pct > 5 else ("WARN" if pct > thr else "PASS")
+            record(G, f"결측_PRICE_{col}", grade,
+                   f"{col} NULL {cnt:,}건 ({pct:.2f}%)")
+        else:  # stock_financials
+            thr = fin_thresholds.get(col, 20)
+            grade = "FAIL" if pct > thr * 2 else ("WARN" if pct > thr else "PASS")
+            record(G, f"결측_FIN_{col}", grade,
+                   f"{col} NULL {cnt:,}건 ({pct:.1f}%)")
 
 
 # ══════════════════════════════════════════════════
@@ -366,14 +418,29 @@ def check_continuity():
 # ══════════════════════════════════════════════════
 # CHECK 6: 재무 정합성
 # ══════════════════════════════════════════════════
-def check_financial_integrity():
+def check_financial_integrity(daily_mode: bool = False):
     G = "CHECK6_재무정합성"
     log.info("\n" + "─" * 50 + f"\n{G}")
 
-    # 모든 재무행 가져와서 Python 검증
-    fin_rows = fetch_all("stock_financials",
-                         "ticker,fiscal_year,fiscal_quarter,total_assets,total_equity,"
-                         "total_liabilities,capital_impairment,net_income,roe")
+    # daily 모드: 오늘 upsert/갱신된 행만 (updated_at >= today)
+    # weekly 모드: 전체 검증
+    cols = ("ticker,fiscal_year,fiscal_quarter,total_assets,total_equity,"
+            "total_liabilities,capital_impairment,net_income,roe")
+    if daily_mode:
+        try:
+            fin_rows = fetch_all("stock_financials", cols + ",updated_at",
+                                 gte={"updated_at": TODAY})
+            log.info(f"  검증 대상 (오늘 upsert): {len(fin_rows):,}행")
+        except Exception as e:
+            log.warning(f"  daily 모드 fetch 실패 ({e}) → 풀 검증 fallback")
+            fin_rows = fetch_all("stock_financials", cols)
+    else:
+        fin_rows = fetch_all("stock_financials", cols)
+        log.info(f"  검증 대상 (전체): {len(fin_rows):,}행")
+
+    if not fin_rows:
+        record(G, "재무_검증대상", "PASS", "오늘 갱신된 재무 없음 - 검증 스킵" if daily_mode else "재무 데이터 없음")
+        return
     base_pos_assets = sum(1 for r in fin_rows
                           if r.get("total_assets") and r["total_assets"] > 0) or 1
 
@@ -475,59 +542,66 @@ def check_warning_consistency():
 
 
 # ══════════════════════════════════════════════════
-# CHECK 8: 중복 데이터
+# CHECK 8: 중복 데이터 (DB RPC qc_check_duplicates)
+#   기존: stock_prices 전체 fetch (~150만 행, 5분+)
+#   현재: DB SQL 단일 호출 (~1초)
 # ══════════════════════════════════════════════════
 def check_duplicates():
     G = "CHECK8_중복"
     log.info("\n" + "─" * 50 + f"\n{G}")
+    try:
+        res = _retry_call(lambda: sb.rpc("qc_check_duplicates").execute(),
+                          label="rpc qc_check_duplicates")
+        rows = res.data or []
+    except Exception as e:
+        log.error(f"  RPC qc_check_duplicates 실패: {e}")
+        record(G, "중복_RPC", "WARN", f"RPC 실패: {type(e).__name__}",
+               "migration_08 미실행 가능성 - 풀 fetch fallback 미사용")
+        return
 
-    # PK 가 (ticker, trade_date) 이므로 중복은 원천적으로 불가하지만 검증.
-    # 모든 (ticker, trade_date) 쌍을 가져와 set 비교.
-    all_prices = fetch_all("stock_prices", "ticker,trade_date")
-    seen = set()
-    dup_p = 0
-    for r in all_prices:
-        k = (r["ticker"], r["trade_date"])
-        if k in seen:
-            dup_p += 1
-        seen.add(k)
-    record(G, "중복_PRICES", "FAIL" if dup_p > 0 else "PASS",
-           f"주가 중복 {dup_p:,}건")
-
-    all_fin = fetch_all("stock_financials", "ticker,fiscal_year,fiscal_quarter")
-    seen = set()
-    dup_f = 0
-    for r in all_fin:
-        k = (r["ticker"], r["fiscal_year"], r["fiscal_quarter"])
-        if k in seen:
-            dup_f += 1
-        seen.add(k)
-    record(G, "중복_FINANCIALS", "FAIL" if dup_f > 0 else "PASS",
-           f"재무 중복 {dup_f:,}건")
+    label_map = {"stock_prices": "PRICES", "stock_financials": "FINANCIALS"}
+    for r in rows:
+        tbl = r.get("table_name")
+        dup = int(r.get("dup_count") or 0)
+        tot = int(r.get("total_rows") or 0)
+        record(G, f"중복_{label_map.get(tbl, tbl)}",
+               "FAIL" if dup > 0 else "PASS",
+               f"{tbl} 중복 {dup:,}건 (전체 {tot:,}행)")
 
 
 # ══════════════════════════════════════════════════
-# CHECK 9: 참조 무결성
+# CHECK 9: 참조 무결성 (DB RPC qc_check_orphan_tickers)
+#   기존: 4개 테이블 전체 ticker fetch
+#   현재: DB SQL 단일 호출
 # ══════════════════════════════════════════════════
 def check_referential_integrity():
     G = "CHECK9_참조무결성"
     log.info("\n" + "─" * 50 + f"\n{G}")
+    try:
+        res = _retry_call(lambda: sb.rpc("qc_check_orphan_tickers").execute(),
+                          label="rpc qc_check_orphan_tickers")
+        rows = res.data or []
+    except Exception as e:
+        log.error(f"  RPC qc_check_orphan_tickers 실패: {e}")
+        record(G, "무결성_RPC", "WARN", f"RPC 실패: {type(e).__name__}",
+               "migration_08 미실행 가능성")
+        return
 
-    stock_tickers = set(r["ticker"] for r in fetch_all("stocks", "ticker"))
-
-    for table, label in [("stock_prices", "주가"),
-                          ("stock_financials", "재무"),
-                          ("stock_warnings", "경고")]:
-        rows = fetch_all(table, "ticker")
-        orphan_set = set(r["ticker"] for r in rows) - stock_tickers
-        record(G, f"무결성_{label}", "WARN" if orphan_set else "PASS",
-               f"stocks 미등록 ticker: {len(orphan_set):,}개")
-
-    price_tickers = set(r["ticker"] for r in fetch_all("stock_prices", "ticker"))
-    no_price_set  = stock_tickers - price_tickers
-    record(G, "무결성_주가없는종목", "WARN" if no_price_set else "PASS",
-           f"주가 없는 종목: {len(no_price_set):,}개",
-           "신규상장/ETF/SPAC 가능성" if no_price_set else "")
+    label_map = {
+        "prices_orphan":     ("주가", "stocks 미등록 ticker", "WARN"),
+        "financials_orphan": ("재무", "stocks 미등록 ticker", "WARN"),
+        "warnings_orphan":   ("경고", "stocks 미등록 ticker", "WARN"),
+        "no_price_stocks":   ("주가없는종목", "주가 없는 종목", "WARN"),
+    }
+    for r in rows:
+        kind = r.get("issue_type")
+        cnt  = int(r.get("orphan_count") or 0)
+        if kind not in label_map:
+            continue
+        suffix, msg_prefix, grade_if_nonzero = label_map[kind]
+        grade = grade_if_nonzero if cnt > 0 else "PASS"
+        detail = "신규상장/ETF/SPAC 가능성" if (kind == "no_price_stocks" and cnt > 0) else ""
+        record(G, f"무결성_{suffix}", grade, f"{msg_prefix}: {cnt:,}개", detail)
 
 
 # ══════════════════════════════════════════════════
@@ -622,14 +696,38 @@ def _run_check(name: str, fn, *args):
         return None
 
 
+def _resolve_mode(arg_mode: str) -> str:
+    """--mode auto 일 때: 평일(0~5)=daily, 일요일(6)=weekly."""
+    if arg_mode != "auto":
+        return arg_mode
+    return "weekly" if datetime.now().weekday() == 6 else "daily"
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--quick", action="store_true")
+    parser.add_argument(
+        "--mode",
+        choices=["auto", "daily", "weekly", "full", "quick"],
+        default="auto",
+        help="auto(평일=daily, 일요일=weekly) | daily(증분만) | weekly/full(풀 검증) | quick(레거시: CHECK 3·5 스킵)",
+    )
+    # 레거시 호환
+    parser.add_argument("--quick", action="store_true", help="(deprecated) --mode quick 와 동일")
     args = parser.parse_args()
 
+    if args.quick:
+        args.mode = "quick"
+
+    mode = _resolve_mode(args.mode)
+    is_daily   = (mode == "daily")
+    is_weekly  = (mode in ("weekly", "full"))
+    is_quick   = (mode == "quick")
+    weekday_kr = ["월", "화", "수", "목", "금", "토", "일"][datetime.now().weekday()]
+
     log.info("=" * 60)
-    log.info(f"데이터 정합성 검사 시작: {RUN_AT}")
+    log.info(f"데이터 정합성 검사 시작: {RUN_AT} ({weekday_kr}요일)")
+    log.info(f"실행 모드: {mode}  (요청: {args.mode})")
     log.info(f"Supabase: {SUPABASE_URL}")
     log.info("=" * 60)
 
@@ -646,16 +744,22 @@ def main():
     inflow_result = _run_check("CHECK1", check_incremental_inflow)
     today_price_cnt, latest_date = inflow_result if inflow_result else (0, "")
 
-    _run_check("CHECK2", check_ohlcv_logic)
-    if not args.quick:
-        _run_check("CHECK3", check_outliers)
-    _run_check("CHECK4", check_nulls)
-    if not args.quick:
+    # CHECK 2 / 3 / 6 — daily 모드는 오늘 데이터만 검증
+    _run_check("CHECK2", check_ohlcv_logic, is_daily)
+    if not is_quick:
+        _run_check("CHECK3", check_outliers, is_daily)
+
+    _run_check("CHECK4", check_nulls)                       # RPC 1회로 통합
+
+    # CHECK 5 — 연속성 (가벼운 5종목 검사)
+    #   daily 모드는 스킵 (주간만)
+    if (not is_quick) and (not is_daily):
         _run_check("CHECK5", check_continuity)
-    _run_check("CHECK6", check_financial_integrity)
+
+    _run_check("CHECK6", check_financial_integrity, is_daily)
     _run_check("CHECK7", check_warning_consistency)
-    _run_check("CHECK8", check_duplicates)
-    _run_check("CHECK9", check_referential_integrity)
+    _run_check("CHECK8", check_duplicates)                  # RPC
+    _run_check("CHECK9", check_referential_integrity)       # RPC
 
     try:
         overall, p, w, f = save_report_to_supabase(today_price_cnt, latest_date)
@@ -665,7 +769,7 @@ def main():
         overall, p, w, f = "FAIL", 0, 0, 1
 
     icon = {"PASS": "🟢", "WARN": "🟡", "FAIL": "🔴"}.get(overall, "❓")
-    print(f"\n{icon} 최종결과: {overall}  ✅{p} ⚠️{w} ❌{f}  →  Supabase 저장 완료")
+    print(f"\n{icon} 최종결과: {overall}  ✅{p} ⚠️{w} ❌{f}  (mode={mode})  →  Supabase 저장 완료")
     print(f"확인: data_quality_reports 테이블 → {TODAY}")
 
 

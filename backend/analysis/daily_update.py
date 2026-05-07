@@ -100,6 +100,80 @@ BATCH = 500
 
 
 # ══════════════════════════════════════════════════════
+# data_collection_log 헬퍼 (마지막 성공 수집일 추적)
+# ══════════════════════════════════════════════════════
+def get_last_collection_date(collection_type: str, default_days_back: int = 7) -> str:
+    """data_collection_log 에서 마지막 'success' 수집일(YYYY-MM-DD) 반환.
+       기록이 없으면 (오늘 - default_days_back) 일자를 fallback 으로 반환."""
+    try:
+        res = (sb.table("data_collection_log")
+                 .select("finished_at")
+                 .eq("collection_type", collection_type)
+                 .eq("status", "success")
+                 .order("finished_at", desc=True)
+                 .limit(1)
+                 .execute())
+        if res.data:
+            return str(res.data[0]["finished_at"])[:10]
+    except Exception as e:
+        log.warning(f"  collection_log 조회 실패 ({collection_type}): {e}")
+    return (datetime.now() - timedelta(days=default_days_back)).strftime("%Y-%m-%d")
+
+
+def log_collection_result(collection_type: str, status: str,
+                          total: int = 0, success: int = 0, fail: int = 0,
+                          error_msg: str | None = None,
+                          started_at: datetime | None = None):
+    """data_collection_log 에 한 행 기록."""
+    try:
+        sb.table("data_collection_log").insert({
+            "collection_type": collection_type,
+            "status":          status,
+            "total_count":     int(total),
+            "success_count":   int(success),
+            "fail_count":      int(fail),
+            "error_message":   error_msg[:1000] if error_msg else None,
+            "started_at":      started_at.isoformat() if started_at else None,
+        }).execute()
+    except Exception as e:
+        log.warning(f"  collection_log 기록 실패 ({collection_type}): {e}")
+
+
+# ══════════════════════════════════════════════════════
+# DART 정기보고서 메타 파서
+# ══════════════════════════════════════════════════════
+import re
+
+_REPORT_PATTERN = re.compile(r"(\d{4})\.?(\d{2})")
+
+def parse_report_meta(report_nm: str) -> tuple | None:
+    """report_nm → (year, quarter, reprt_code) 또는 None.
+       예: '분기보고서 (2026.03)' → (2026, 'Q1', '11013')
+           '반기보고서 (2026.06)' → (2026, 'Q2', '11012')
+           '분기보고서 (2026.09)' → (2026, 'Q3', '11014')
+           '사업보고서 (2025.12)' → (2025, 'Q4', '11011')"""
+    if not report_nm:
+        return None
+    m = _REPORT_PATTERN.search(report_nm)
+    if not m:
+        return None
+    year, month = int(m.group(1)), int(m.group(2))
+
+    if "분기보고서" in report_nm:
+        if month == 3:
+            return (year, "Q1", "11013")
+        if month == 9:
+            return (year, "Q3", "11014")
+    elif "반기보고서" in report_nm:
+        if month == 6:
+            return (year, "Q2", "11012")
+    elif "사업보고서" in report_nm:
+        if month == 12:
+            return (year, "Q4", "11011")
+    return None
+
+
+# ══════════════════════════════════════════════════════
 # 공통 유틸
 # ══════════════════════════════════════════════════════
 def fetch_all(table: str, columns: str = "*", filters: dict | None = None,
@@ -158,8 +232,16 @@ def upsert_chunked(table: str, records: list, on_conflict: str | None = None):
 #   - upsert (ticker, trade_date) PK 충돌 방지
 # ══════════════════════════════════════════════════════
 def update_prices():
+    started_at = datetime.now()
     log.info("=" * 60)
     log.info("STEP 1: stock_prices 증분 수집 시작")
+
+    # 오늘 이미 수집 완료면 즉시 스킵
+    last_str = get_last_collection_date("prices", default_days_back=30)
+    today_iso = datetime.now().strftime("%Y-%m-%d")
+    if last_str >= today_iso:
+        log.info(f"  ✅ 오늘 이미 수집 완료 (last={last_str}) - 스킵")
+        return
 
     try:
         from pykrx import stock as krx
@@ -262,15 +344,27 @@ def update_prices():
         time.sleep(0.2)   # KRX 부하 방지
 
     log.info(f"STEP 1 완료: +{total_inserted}행 / {skipped}건 스킵 / {errors}건 오류")
+    log_collection_result(
+        "prices",
+        "success" if errors == 0 else "partial",
+        total=len(tickers),
+        success=len(tickers) - errors,
+        fail=errors,
+        started_at=started_at,
+    )
 
 
 # ══════════════════════════════════════════════════════
-# STEP 2: stock_financials 증분 수집 (DART/OpenDartReader)
-#   - 새 분기 INSERT + 기존 NaN 보충 UPDATE
+# STEP 2: stock_financials 범위 기반 통합 증분 수집
+#   - data_collection_log.financials 마지막 success 일자 +1 ~ 오늘 범위
+#     사이에 DART 에 신규 공시된 정기보고서만 가져와 upsert
+#   - 단일 코드 경로로 catch-up(다일치)·daily-delta(당일치) 모두 처리
+#   - 동일 일자에 두 번 실행 시 자동 스킵
 # ══════════════════════════════════════════════════════
 def update_financials():
+    started_at = datetime.now()
     log.info("=" * 60)
-    log.info("STEP 2: stock_financials 증분 수집 시작")
+    log.info("STEP 2: stock_financials 범위 기반 증분 수집 시작")
 
     if not DART_API_KEY:
         log.warning("  DART_API_KEY 없음 - 재무 증분 스킵")
@@ -288,113 +382,86 @@ def update_financials():
         log.error(f"  OpenDartReader 초기화 실패: {e}")
         return
 
-    # 현재 DB 최신 연도/분기
-    latest_rows = fetch_all("stock_financials", "fiscal_year,fiscal_quarter")
-    if latest_rows:
-        latest_year_str = max(r["fiscal_year"] for r in latest_rows if r.get("fiscal_year"))
-        latest_year = int(latest_year_str) if latest_year_str else 2024
-        latest_quarters = [r["fiscal_quarter"] for r in latest_rows
-                           if r.get("fiscal_year") == latest_year_str]
-        latest_quarter = max(latest_quarters) if latest_quarters else "Q4"
-    else:
-        latest_year, latest_quarter = 2024, "Q4"
-    log.info(f"  현재 최신 데이터: {latest_year} {latest_quarter}")
+    # ── 1) 조회 범위 결정 (마지막 성공 수집일 +1 ~ 오늘) ──
+    today_dt = datetime.now().date()
+    last_str = get_last_collection_date("financials", default_days_back=7)
+    try:
+        last_dt = datetime.strptime(last_str, "%Y-%m-%d").date()
+    except ValueError:
+        last_dt = today_dt - timedelta(days=7)
 
-    now = datetime.now()
-    current_year  = now.year
-    current_month = now.month
-
-    quarter_schedule = [
-        ("Q1", {"reprt_code": "11013", "avail_month": 5,  "window_months": 3}),
-        ("Q2", {"reprt_code": "11012", "avail_month": 8,  "window_months": 3}),
-        ("Q3", {"reprt_code": "11014", "avail_month": 11, "window_months": 3}),
-        ("Q4", {"reprt_code": "11011", "avail_month": 3,  "window_months": 4}),
-    ]
-    NAN_THRESHOLD = 0.05
-
-    def is_in_window(yr, q_info):
-        avail = q_info["avail_month"]
-        window = q_info["window_months"]
-        window_start_year = yr + 1 if q_info["reprt_code"] == "11011" else yr
-        if current_year != window_start_year:
-            return False
-        return avail <= current_month < (avail + window)
-
-    def is_quarter_available(yr, q_info):
-        avail = q_info["avail_month"]
-        avail_year = yr + 1 if q_info["reprt_code"] == "11011" else yr
-        if current_year > avail_year:
-            return True
-        if current_year == avail_year and current_month >= avail:
-            return True
-        return False
-
-    # ── 수집 대상 결정 ──
-    # 분기별 (count, NaN 후보) 를 미리 계산
-    log.info("  대상 분기 결정 중...")
-    collect_targets: list[tuple] = []   # (year, quarter, reprt_code, target_tickers|None)
-
-    for yr in range(latest_year - 1, current_year + 1):
-        for q, info in quarter_schedule:
-            if not is_quarter_available(yr, info):
-                continue
-
-            # 해당 분기 row 개수
-            try:
-                cnt_res = _retry_call(
-                    lambda: (sb.table("stock_financials")
-                               .select("ticker", count="exact")
-                               .eq("fiscal_year", str(yr))
-                               .eq("fiscal_quarter", q)
-                               .limit(1)
-                               .execute()),
-                    label=f"count stock_financials {yr} {q}"
-                )
-                exists = cnt_res.count or 0
-            except Exception as e:
-                log.warning(f"  {yr} {q} count 조회 실패: {e} → 신규로 처리")
-                exists = 0
-            if exists == 0:
-                collect_targets.append((yr, q, info["reprt_code"], None))
-                continue
-
-            # NaN 후보 ticker 목록
-            try:
-                nan_candidates = _retry_call(
-                    lambda: (sb.table("stock_financials")
-                               .select("ticker,revenue,operating_profit,net_income,total_assets,data_source")
-                               .eq("fiscal_year", str(yr))
-                               .eq("fiscal_quarter", q)
-                               .execute()),
-                    label=f"nan_candidates {yr} {q}"
-                ).data or []
-            except Exception as e:
-                log.warning(f"  {yr} {q} NaN 후보 조회 실패: {e} → 스킵")
-                nan_candidates = []
-            nan_tickers = [
-                r["ticker"] for r in nan_candidates
-                if (r.get("revenue") is None
-                    or r.get("operating_profit") is None
-                    or r.get("net_income") is None
-                    or r.get("total_assets") is None)
-                and (r.get("data_source") or "") != "financial_skip"
-            ]
-            nan_ratio = len(nan_tickers) / exists if exists else 0
-            in_window = is_in_window(yr, info)
-
-            if (in_window and nan_tickers) or nan_ratio >= NAN_THRESHOLD:
-                collect_targets.append((yr, q, info["reprt_code"], nan_tickers))
-
-    if not collect_targets:
-        log.info("  새로운/누락 분기 데이터 없음 - 스킵")
+    range_start_dt = last_dt + timedelta(days=1)
+    if range_start_dt > today_dt:
+        log.info(f"  ✅ 오늘 이미 수집 완료 (last={last_str}) - 스킵")
         return
 
-    for yr, q, _, tgt in collect_targets:
-        if tgt is None:
-            log.info(f"  수집 대상: {yr} {q} (신규 전체)")
-        else:
-            log.info(f"  수집 대상: {yr} {q} (NaN catch-up {len(tgt)}종목)")
+    bgn_de = range_start_dt.strftime("%Y%m%d")
+    end_de = today_dt.strftime("%Y%m%d")
+    log.info(f"  조회 범위: {bgn_de} ~ {end_de} (last_success={last_str})")
 
+    # ── 2) DART 정기공시 목록 한 번에 조회 ──
+    try:
+        disclosures = _retry_call(
+            lambda: dart.list(start=bgn_de, end=end_de, kind="A"),
+            label="dart.list periodic disclosures",
+        )
+    except Exception as e:
+        log.error(f"  DART list 호출 실패: {type(e).__name__}: {e}")
+        log_collection_result("financials", "error", error_msg=str(e), started_at=started_at)
+        return
+
+    import pandas as pd
+    if disclosures is None or (hasattr(disclosures, "empty") and disclosures.empty):
+        log.info("  해당 범위에 정기공시 없음")
+        log_collection_result("financials", "success", total=0, started_at=started_at)
+        return
+
+    df_disc = disclosures if isinstance(disclosures, pd.DataFrame) else pd.DataFrame(disclosures)
+    if "report_nm" not in df_disc.columns or "stock_code" not in df_disc.columns:
+        log.warning("  DART 응답에 필수 컬럼(report_nm, stock_code) 없음 - 스킵")
+        log_collection_result("financials", "error",
+                              error_msg="missing columns in dart.list response",
+                              started_at=started_at)
+        return
+
+    # ── 3) 분기/반기/사업보고서만 필터, 최신 정정본 우선 ──
+    pattern = r"분기보고서|반기보고서|사업보고서"
+    df_disc = df_disc[df_disc["report_nm"].str.contains(pattern, na=False)].copy()
+    log.info(f"  대상 정기보고서 공시 건수(원본): {len(df_disc)}")
+
+    if df_disc.empty:
+        log_collection_result("financials", "success", total=0, started_at=started_at)
+        return
+
+    if "rcept_dt" in df_disc.columns:
+        df_disc = df_disc.sort_values("rcept_dt", ascending=False)
+
+    # (ticker, year, quarter) 단위 dedup
+    targets: list[tuple] = []
+    seen: set = set()
+    for _, row in df_disc.iterrows():
+        raw_code = row.get("stock_code")
+        if raw_code is None or str(raw_code).strip() in ("", "nan", "None"):
+            continue
+        ticker = str(raw_code).strip().zfill(6)
+        if ticker == "000000":
+            continue
+        meta = parse_report_meta(str(row.get("report_nm", "")))
+        if not meta:
+            continue
+        year, quarter, reprt_code = meta
+        key = (ticker, year, quarter)
+        if key in seen:
+            continue
+        seen.add(key)
+        targets.append((ticker, year, quarter, reprt_code))
+
+    log.info(f"  처리 대상 (ticker × 분기): {len(targets)}건")
+    if not targets:
+        log_collection_result("financials", "success", total=0, started_at=started_at)
+        return
+
+    # ── 4) 재무 항목 추출 헬퍼 ──
     def get_val(df, sj_div_filter, *keywords):
         sub = df if sj_div_filter is None else df[df["sj_div"] == sj_div_filter]
         if sub is None or sub.empty:
@@ -410,156 +477,95 @@ def update_financials():
                         pass
         return None
 
-    total_inserted = 0
-    total_updated  = 0
-    total_skipped  = 0
+    # ── 5) 각 (ticker × 분기) 별 finstate_all + 누적 ──
+    records: list = []
+    success_cnt = no_data_cnt = err_cnt = 0
 
-    # 전체 종목 캐시
-    all_tickers = [r["ticker"] for r in fetch_all("stocks", "ticker", order=("ticker", False))]
+    for idx, (ticker, year, quarter, reprt_code) in enumerate(targets, 1):
+        if idx % 50 == 0:
+            log.info(f"    진행: {idx}/{len(targets)} "
+                     f"(ok={success_cnt}, no_data={no_data_cnt}, err={err_cnt})")
 
-    for year, quarter, reprt_code, target_tickers in collect_targets:
-        log.info(f"  {year} {quarter} 수집 시작 (reprt_code={reprt_code})...")
-        ins_cnt = upd_cnt = skip_cnt = no_data_cnt = err_cnt = 0
-        records_to_upsert: list = []
-
-        if target_tickers is None:
-            tickers = all_tickers
-            mode = "INSERT"
-        else:
-            tickers = target_tickers
-            mode = "UPDATE"
-
-        for idx, ticker in enumerate(tickers, 1):
-            if idx % 100 == 0:
-                log.info(f"    진행: {idx}/{len(tickers)} (ins={ins_cnt}, upd={upd_cnt}, no_data={no_data_cnt})")
-            try:
-                # corp_code 조회
+        try:
+            df_fin = None
+            for fs_div in ("CFS", "OFS"):
                 try:
-                    corp_code = dart.find_corp_code(ticker)
+                    df_fin = dart.finstate_all(ticker, int(year),
+                                               reprt_code=reprt_code, fs_div=fs_div)
+                    if df_fin is not None and len(df_fin) > 0:
+                        break
                 except Exception:
-                    corp_code = None
-                if not corp_code:
-                    skip_cnt += 1
+                    df_fin = None
                     continue
 
-                # 재무제표 조회 (CFS 우선, 실패 시 OFS)
-                df = None
-                for fs_div in ("CFS", "OFS"):
-                    try:
-                        df = dart.finstate_all(ticker, int(year), reprt_code=reprt_code, fs_div=fs_div)
-                        if df is not None and len(df) > 0:
-                            break
-                    except Exception:
-                        df = None
-                        continue
+            if (df_fin is None or len(df_fin) == 0
+                    or "sj_div" not in df_fin.columns
+                    or "account_nm" not in df_fin.columns):
+                no_data_cnt += 1
+                continue
 
-                if df is None or len(df) == 0 or "sj_div" not in df.columns or "account_nm" not in df.columns:
-                    no_data_cnt += 1
-                    continue
+            revenue           = get_val(df_fin, "IS", "매출액", "영업수익", "수익(매출액)")
+            operating_profit  = get_val(df_fin, "IS", "영업이익")
+            net_income        = get_val(df_fin, "IS", "당기순이익", "분기순이익", "반기순이익", "당기순손익")
+            total_assets      = get_val(df_fin, "BS", "자산총계")
+            total_equity      = get_val(df_fin, "BS", "자본총계")
+            total_liabilities = get_val(df_fin, "BS", "부채총계")
 
-                revenue           = get_val(df, "IS", "매출액", "영업수익", "수익(매출액)")
-                operating_profit  = get_val(df, "IS", "영업이익")
-                net_income        = get_val(df, "IS", "당기순이익", "분기순이익", "반기순이익", "당기순손익")
-                total_assets      = get_val(df, "BS", "자산총계")
-                total_equity      = get_val(df, "BS", "자본총계")
-                total_liabilities = get_val(df, "BS", "부채총계")
+            if all(v is None for v in [revenue, operating_profit, net_income, total_assets]):
+                no_data_cnt += 1
+                continue
 
-                debt_ratio = None
-                if total_equity and total_equity != 0 and total_liabilities is not None:
-                    debt_ratio = round(total_liabilities / total_equity * 100, 2)
-                roe = None
-                if total_equity and total_equity != 0 and net_income is not None:
-                    roe = round(net_income / total_equity * 100, 2)
-                capital_impairment = bool(total_equity is not None and total_equity < 0)
+            debt_ratio = (round(total_liabilities / total_equity * 100, 2)
+                          if total_equity and total_equity != 0 and total_liabilities is not None
+                          else None)
+            roe = (round(net_income / total_equity * 100, 2)
+                   if total_equity and total_equity != 0 and net_income is not None
+                   else None)
+            capital_impairment = bool(total_equity is not None and total_equity < 0)
 
-                if all(v is None for v in [revenue, operating_profit, net_income, total_assets]):
-                    no_data_cnt += 1
-                    continue
+            records.append({
+                "ticker":             ticker,
+                "fiscal_year":        str(year),
+                "fiscal_quarter":     quarter,
+                "revenue":            int(revenue)            if revenue            is not None else None,
+                "operating_profit":   int(operating_profit)   if operating_profit   is not None else None,
+                "net_income":         int(net_income)         if net_income         is not None else None,
+                "total_assets":       int(total_assets)       if total_assets       is not None else None,
+                "total_equity":       int(total_equity)       if total_equity       is not None else None,
+                "total_liabilities":  int(total_liabilities)  if total_liabilities  is not None else None,
+                "debt_ratio":         debt_ratio,
+                "roe":                roe,
+                "capital_impairment": capital_impairment,
+                "data_source":        "DART",
+            })
+            success_cnt += 1
 
-                if mode == "INSERT":
-                    records_to_upsert.append({
-                        "ticker":             ticker,
-                        "fiscal_year":        str(year),
-                        "fiscal_quarter":     quarter,
-                        "revenue":            int(revenue)            if revenue            is not None else None,
-                        "operating_profit":   int(operating_profit)   if operating_profit   is not None else None,
-                        "net_income":         int(net_income)         if net_income         is not None else None,
-                        "total_assets":       int(total_assets)       if total_assets       is not None else None,
-                        "total_equity":       int(total_equity)       if total_equity       is not None else None,
-                        "total_liabilities":  int(total_liabilities)  if total_liabilities  is not None else None,
-                        "debt_ratio":         debt_ratio,
-                        "roe":                roe,
-                        "capital_impairment": capital_impairment,
-                        "data_source":        "DART",
-                    })
-                    ins_cnt += 1
-                else:
-                    # NaN catch-up: 기존 행 SELECT 후 NULL 컬럼만 채워서 update
-                    cur = (sb.table("stock_financials")
-                             .select("*")
-                             .eq("ticker", ticker)
-                             .eq("fiscal_year", str(year))
-                             .eq("fiscal_quarter", quarter)
-                             .maybe_single()
-                             .execute())
-                    if not cur or not cur.data:
-                        continue
-                    cur_data = cur.data
-                    patch = {}
-                    candidates = {
-                        "revenue":            int(revenue)            if revenue            is not None else None,
-                        "operating_profit":   int(operating_profit)   if operating_profit   is not None else None,
-                        "net_income":         int(net_income)         if net_income         is not None else None,
-                        "total_assets":       int(total_assets)       if total_assets       is not None else None,
-                        "total_equity":       int(total_equity)       if total_equity       is not None else None,
-                        "total_liabilities":  int(total_liabilities)  if total_liabilities  is not None else None,
-                        "debt_ratio":         debt_ratio,
-                        "roe":                roe,
-                    }
-                    for col, v in candidates.items():
-                        if v is not None and cur_data.get(col) is None:
-                            patch[col] = v
-                    if cur_data.get("capital_impairment") is None:
-                        patch["capital_impairment"] = capital_impairment
-                    if patch:
-                        # data_source 표시
-                        ds = cur_data.get("data_source") or ""
-                        if not ds:
-                            patch["data_source"] = "DART_patched"
-                        elif "DART" in ds:
-                            patch["data_source"] = ds
-                        else:
-                            patch["data_source"] = ds + "+DART"
-                        try:
-                            (sb.table("stock_financials").update(patch)
-                               .eq("ticker", ticker)
-                               .eq("fiscal_year", str(year))
-                               .eq("fiscal_quarter", quarter)
-                               .execute())
-                            upd_cnt += 1
-                        except Exception as e:
-                            err_cnt += 1
-                            log.debug(f"    UPDATE 실패 {ticker} {year}{quarter}: {e}")
+        except Exception as e:
+            err_cnt += 1
+            log.debug(f"    {ticker} {year}{quarter} 오류: {type(e).__name__}: {e}")
 
-            except Exception as e:
-                err_cnt += 1
-                log.debug(f"    {ticker} {year}{quarter} 오류: {type(e).__name__}: {e}")
+        time.sleep(0.3)   # DART rate limit
 
-            time.sleep(0.3)   # DART rate limit
+    # ── 6) 일괄 upsert ──
+    upserted = 0
+    if records:
+        upserted = upsert_chunked(
+            "stock_financials", records,
+            on_conflict="ticker,fiscal_year,fiscal_quarter",
+        )
+        log.info(f"  upsert 완료: {upserted}건")
 
-        # INSERT 모드는 모은 records 일괄 upsert
-        if mode == "INSERT" and records_to_upsert:
-            n = upsert_chunked("stock_financials", records_to_upsert,
-                               on_conflict="ticker,fiscal_year,fiscal_quarter")
-            log.info(f"  {year} {quarter} 신규 upsert: +{n}건")
-            total_inserted += n
-        else:
-            total_updated += upd_cnt
-
-        log.info(f"  {year} {quarter} 완료: ins={ins_cnt}, upd={upd_cnt}, no_data={no_data_cnt}, skip={skip_cnt}, err={err_cnt}")
-        total_skipped += (skip_cnt + no_data_cnt)
-
-    log.info(f"STEP 2 완료: 신규 +{total_inserted}건, NaN 보충 {total_updated}건, 미공시/skip {total_skipped}건")
+    # ── 7) collection_log 기록 ──
+    overall = "success" if err_cnt == 0 else "partial"
+    log_collection_result(
+        "financials", overall,
+        total=len(targets),
+        success=success_cnt,
+        fail=no_data_cnt + err_cnt,
+        started_at=started_at,
+    )
+    log.info(f"STEP 2 완료: 처리 {len(targets)}건 / upsert {upserted}건 "
+             f"/ no_data {no_data_cnt}건 / err {err_cnt}건")
 
 
 def _safe_update_financials():
@@ -575,10 +581,15 @@ def _safe_update_financials():
 #   - 각 ticker 의 최신 (fiscal_year, fiscal_quarter) 기준
 # ══════════════════════════════════════════════════════
 def update_warnings():
+    started_at = datetime.now()
     log.info("=" * 60)
     log.info("STEP 3: stock_warnings 재계산 시작")
 
     today = datetime.now().strftime("%Y-%m-%d")
+    last_str = get_last_collection_date("warnings", default_days_back=7)
+    if last_str >= today:
+        log.info(f"  ✅ 오늘 이미 재계산 완료 (last={last_str}) - 스킵")
+        return
 
     # 모든 재무 데이터 가져와서 Python 에서 최신 분기 결정
     log.info("  재무 데이터 로딩...")
@@ -712,14 +723,27 @@ def update_warnings():
             pass
 
     log.info(f"STEP 3 완료: 신규 +{new_warnings}건 / 메시지 갱신 {msg_updated}건 / 해소 {released_count}건")
+    log_collection_result(
+        "warnings", "success",
+        total=new_warnings + msg_updated + released_count,
+        success=new_warnings + msg_updated + released_count,
+        started_at=started_at,
+    )
 
 
 # ══════════════════════════════════════════════════════
 # STEP 4: stocks 신규 상장 종목 추가
 # ══════════════════════════════════════════════════════
 def update_stock_list():
+    started_at = datetime.now()
     log.info("=" * 60)
     log.info("STEP 4: stocks 신규 상장 종목 확인")
+
+    today_iso = datetime.now().strftime("%Y-%m-%d")
+    last_str = get_last_collection_date("stocks", default_days_back=7)
+    if last_str >= today_iso:
+        log.info(f"  ✅ 오늘 이미 확인 완료 (last={last_str}) - 스킵")
+        return
 
     try:
         from pykrx import stock as krx
@@ -761,8 +785,12 @@ def update_stock_list():
     if new_records:
         n = upsert_chunked("stocks", new_records, on_conflict="ticker")
         log.info(f"STEP 4 완료: 신규 종목 +{n}개")
+        log_collection_result("stocks", "success",
+                              total=n, success=n, started_at=started_at)
     else:
         log.info("STEP 4 완료: 신규 상장 종목 없음")
+        log_collection_result("stocks", "success",
+                              total=0, success=0, started_at=started_at)
 
 
 # ══════════════════════════════════════════════════════
@@ -799,12 +827,14 @@ def main():
 
     if not args.no_quality:
         log.info("\n" + "=" * 60)
-        log.info("증분 수집 완료 → 데이터 정합성 검사 자동 시작")
+        log.info("증분 수집 완료 → 데이터 정합성 검사 자동 시작 (--mode auto)")
         log.info("=" * 60)
         import subprocess
         subprocess.run(
-            [sys.executable, str(Path(__file__).parent / "data_quality_check.py")],
-            cwd=str(Path(__file__).parent)
+            [sys.executable,
+             str(Path(__file__).parent / "data_quality_check.py"),
+             "--mode", "auto"],
+            cwd=str(Path(__file__).parent),
         )
 
     elapsed = (datetime.now() - start).seconds
