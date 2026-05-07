@@ -73,6 +73,8 @@ log = logging.getLogger(__name__)
 
 # ── Supabase 클라이언트 (service_role 키로 RLS 우회) ──
 from supabase import create_client, Client
+from supabase.lib.client_options import ClientOptions
+import httpx
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -80,7 +82,13 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     log.error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 환경변수가 없습니다.")
     sys.exit(1)
 
-sb: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# HTTP/2 StreamReset 방지: HTTP/1.1 강제
+_http1_client = httpx.Client(http2=False)
+sb: Client = create_client(
+    SUPABASE_URL, SUPABASE_KEY,
+    options=ClientOptions(postgrest_client_timeout=30, storage_client_timeout=30)
+)
+sb.postgrest.session = _http1_client
 
 # 배치 크기 (Supabase upsert 제한 회피)
 BATCH = 500
