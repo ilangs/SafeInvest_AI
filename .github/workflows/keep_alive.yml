@@ -1,0 +1,56 @@
+name: Keep Render Backend Alive
+
+# ───────────────────────────────────────────────────────────
+# Render Free 플랜의 15분 idle sleep 방지를 위한 주기적 ping.
+# UptimeRobot 같은 외부 서비스 없이 GitHub Actions로 자체 운영.
+#
+# 주의:
+#  - GitHub Actions 스케줄은 부하 시 5~30분 지연될 수 있음
+#  - 안전 여유를 위해 12분 간격 사용 (Render sleep 15분보다 짧게)
+#  - Public repo: 완전 무료 / Private repo: 월 2,000분 한도 초과 가능
+# ───────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    # 12분마다 실행 — Render 15분 sleep 전에 깨우기 (지연 여유 3분)
+    - cron: "*/12 * * * *"
+  workflow_dispatch:                # 수동 실행 버튼 (테스트용)
+
+# 동시 실행 방지
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Ping /health endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 2               # ping은 1분 이내에 끝나야 정상
+
+    env:
+      # Render 서비스 URL — 변경 시 여기만 수정
+      BACKEND_URL: https://safeinvest-ai.onrender.com
+
+    steps:
+      - name: Ping backend with retry
+        run: |
+          MAX_RETRIES=3
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "🔄 Attempt $i/$MAX_RETRIES — pinging $BACKEND_URL/health"
+            HTTP_CODE=$(curl -sS -o /tmp/response.txt -w "%{http_code}" \
+              --max-time 60 \
+              "$BACKEND_URL/health" || echo "000")
+            echo "   HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Backend is alive"
+              cat /tmp/response.txt
+              exit 0
+            fi
+            if [ $i -lt $MAX_RETRIES ]; then
+              echo "⏳ Retry in 10s..."
+              sleep 10
+            fi
+          done
+          echo "::warning::Backend ping failed after $MAX_RETRIES attempts (HTTP $HTTP_CODE)"
+          # warning만 띄우고 exit 0 — 일시적 장애로 워크플로우가 빨갛게 표시되지 않도록
+          exit 0
