@@ -29,8 +29,14 @@ openai==1.109.1
 langchain-core==0.3.84
 langchain-openai==0.2.14
 
-# --- Data collection (analysis/daily_update.py, data_quality_check.py) ---
+# --- Data collection (daily_update.py, data_quality_check.py) ---
 pykrx>=1.0.45
 OpenDartReader
 finance-datareader>=0.9.90
 schedule>=1.2.0
+
+# --- RAG & Langgraph ---
+beautifulsoup4 
+langchain-text-splitters 
+tqdm
+langgraph
