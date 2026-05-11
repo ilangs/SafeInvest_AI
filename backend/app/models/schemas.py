@@ -81,6 +81,7 @@ class ChatResponse(BaseModel):
     sources: list[str]    = Field(default_factory=list, description="참조된 지식 출처")
     source_url: str | None = Field(None, description="외부 링크 버튼용 URL")
     answered_at: datetime
+    route: str | None     = Field(None, description="응답 경로: 'rag' | 'fallback' | 'error'")
 
 
 # ── Watchlist (관심종목) ───────────────────────────────────────────────────────
