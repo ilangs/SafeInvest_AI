@@ -239,11 +239,71 @@ def _now_hms_kst() -> str:
     return datetime.now(tz=timezone(timedelta(hours=9))).strftime("%H%M%S")
 
 
+# KRX 휴장일 캘린더 — holidays 패키지의 한국 공휴일 + KRX 추가 휴장일
+# (offline·경량. 매년 자동 갱신. 설치: pip install holidays)
+try:
+    import holidays as _holidays_lib
+    _KR_HOLIDAYS = _holidays_lib.country_holidays("KR")
+except ImportError:
+    _KR_HOLIDAYS = None  # 패키지 미설치 시 공휴일 체크는 우회 (주말/시간만 체크)
+
+
+_MARKET_CLOSED_MSG = (
+    "주식시장 거래시간이 아닙니다 "
+    "(정규장: 평일 09:00 ~ 15:30 KST, 주말·공휴일 휴장)."
+)
+
+
+def _is_krx_holiday(d) -> bool:
+    """
+    KRX 휴장일 여부.
+    - 한국 공공 공휴일 (holidays 패키지)
+    - KRX 연말 휴장: 12월 31일 (평일이어도 휴장)
+    """
+    if _KR_HOLIDAYS is not None and d in _KR_HOLIDAYS:
+        return True
+    if d.month == 12 and d.day == 31:
+        return True
+    return False
+
+
+def _is_market_open() -> tuple[bool, str]:
+    """
+    한국 주식시장 정규장 거래 가능 여부.
+
+    체크 순서: 주말 → 공휴일/KRX 휴장일 → 정규장 시간(09:00 ~ 15:30 KST)
+    하나라도 만족하지 못하면 동일한 안내 메시지 반환.
+
+    Returns
+    -------
+    (open?, message)
+    """
+    now = datetime.now(tz=timezone(timedelta(hours=9)))
+    # 주말
+    if now.weekday() >= 5:
+        return False, _MARKET_CLOSED_MSG
+    # 공휴일 / KRX 휴장일
+    if _is_krx_holiday(now.date()):
+        return False, _MARKET_CLOSED_MSG
+    # 정규장 시간 (09:00 ~ 15:30)
+    hm = now.hour * 100 + now.minute
+    if hm < 900 or hm > 1530:
+        return False, _MARKET_CLOSED_MSG
+    return True, ""
+
+
 def _record_local_order(
     user_id: str, is_mock: bool, symbol: str,
     order_type: str, quantity: int, price: int | None, order_id: str,
+    status: str = "접수",
 ):
-    """주문 성공 시 Supabase + 메모리 캐시에 기록."""
+    """
+    주문 성공 시 Supabase + 메모리 캐시에 기록.
+
+    status 기본값은 '접수' — KIS 가 주문을 받아들였다는 의미일 뿐,
+    실제 체결 여부는 inquire-daily-ccld 결과로 별도 확인되어야 함.
+    체결 확인 시 _sync_local_with_kis_fills() 가 '체결'로 업데이트.
+    """
     today = _today_kst()
     now   = _now_hms_kst()
     record = {
@@ -251,9 +311,9 @@ def _record_local_order(
         "stock_name":  _stock_name(symbol),
         "order_type":  "매수" if order_type == "buy" else "매도",
         "quantity":    int(quantity),
-        "filled_qty":  int(quantity),
+        "filled_qty":  int(quantity) if status == "체결" else 0,
         "price":       int(price or 0),
-        "status":      "체결",
+        "status":      status,
         "order_time":  now,
         "order_id":    order_id,
     }
@@ -268,7 +328,7 @@ def _record_local_order(
             "order_type":   order_type,
             "quantity":     int(quantity),
             "price":        int(price or 0),
-            "status":       "체결",
+            "status":       status,
             "order_id_ext": order_id,
             "order_date":   today,
             "order_time":   now,
@@ -278,6 +338,33 @@ def _record_local_order(
     # 2) 메모리 캐시에 추가 (즉시 다음 GET에 반영)
     key = (user_id, is_mock, today)
     _LOCAL_ORDER_CACHE.setdefault(key, []).append(record)
+
+
+def _sync_local_with_kis_fills(user_id: str, is_mock: bool, kis_filled_orders: list) -> None:
+    """
+    KIS 체결 확인된 주문의 로컬 status 를 '접수' → '체결' 로 업데이트.
+    get_today_orders 가 KIS 응답을 받은 직후 호출됨.
+    """
+    if not kis_filled_orders:
+        return
+    filled_ids = {o.get("order_id") for o in kis_filled_orders if o.get("order_id")}
+    if not filled_ids:
+        return
+    try:
+        from app.core.supabase import supabase_admin
+        supabase_admin.table("user_orders") \
+            .update({"status": "체결"}) \
+            .eq("user_id", user_id) \
+            .eq("is_mock", is_mock) \
+            .in_("order_id_ext", list(filled_ids)) \
+            .neq("status", "체결") \
+            .execute()
+        # 캐시 무효화 → 다음 호출 시 최신 상태 재조회
+        today = _today_kst()
+        _LOCAL_ORDER_CACHE.pop((user_id, is_mock, today), None)
+        _HOLDINGS_CACHE.pop((user_id, is_mock), None)
+    except Exception as e:
+        print(f"[order sync 실패] {e}")
 
 
 def _local_order_bucket(user_id: str, is_mock: bool) -> list:
@@ -767,6 +854,60 @@ def _fallback_holdings(user_id: str, is_mock: bool) -> list:
     return _HOLDINGS_CACHE.get((user_id, is_mock), [])
 
 
+def _merge_holdings_with_local(holdings: list, user_id: str, is_mock: bool) -> list:
+    """
+    KIS 보유종목 + Supabase user_orders 당일 주문 병합.
+    KIS inquire-balance 가 갓 체결된 주문을 즉시 반영하지 않는 문제 보완.
+
+    동작:
+      매수 → 종목 없으면 신규 추가 / 있으면 수량 누적 + 평단가 가중평균
+      매도 → 수량 차감 / 0 이하면 제거
+    """
+    local_orders = _local_order_bucket(user_id, is_mock)
+    if not local_orders:
+        return holdings
+
+    # 종목코드 → holding 인덱스 맵 (얕은 복사로 원본 보호)
+    h_map = {h["stock_code"]: dict(h) for h in holdings}
+
+    for o in local_orders:
+        # ★ 체결된 주문만 반영 — '접수' 상태는 KIS 확인 전이므로 보유종목 미반영
+        if o.get("status") != "체결":
+            continue
+        code   = o["stock_code"]
+        qty    = int(o["quantity"])
+        price  = int(o["price"])
+        is_buy = (o["order_type"] == "매수")
+
+        cur = h_map.get(code)
+        if is_buy:
+            if cur:
+                # 가중평균 평단가
+                total_qty = cur["quantity"] + qty
+                cur["avg_price"] = int(
+                    (cur["avg_price"] * cur["quantity"] + price * qty) / total_qty
+                ) if total_qty > 0 else price
+                cur["quantity"] = total_qty
+            else:
+                h_map[code] = {
+                    "stock_code":       code,
+                    "stock_name":       o["stock_name"],
+                    "quantity":         qty,
+                    "avg_price":        price,
+                    "current_price":    price,   # 시세 미상 → 매수가로 fallback
+                    "profit_loss":      0,
+                    "profit_loss_rate": 0.0,
+                }
+        else:  # 매도
+            if cur:
+                cur["quantity"] -= qty
+                if cur["quantity"] <= 0:
+                    h_map.pop(code, None)
+                # 평단가 유지, 손익 재계산은 KIS 다음 호출 때 정확해짐
+
+    return list(h_map.values())
+
+
 async def get_holdings(user_id: str, is_mock: bool = False) -> list:
     """보유종목 조회. 실계좌 우선 → 모의계좌. KIS 실패 시 직전 캐시 또는 빈 배열."""
     actual_is_mock = is_mock
@@ -816,10 +957,12 @@ async def get_holdings(user_id: str, is_mock: bool = False) -> list:
                     "profit_loss":      int(item.get("evlu_pfls_amt", 0) or 0),
                     "profit_loss_rate": float(item.get("evlu_pfls_rt", 0) or 0),
                 })
-        _HOLDINGS_CACHE[(user_id, actual_is_mock)] = holdings
-        return holdings
+        merged = _merge_holdings_with_local(holdings, user_id, actual_is_mock)
+        _HOLDINGS_CACHE[(user_id, actual_is_mock)] = merged
+        return merged
     except Exception:
-        return _fallback_holdings(user_id, actual_is_mock)
+        fallback = _fallback_holdings(user_id, actual_is_mock)
+        return _merge_holdings_with_local(fallback, user_id, actual_is_mock)
 
 
 # ── 당일 주문내역 ──────────────────────────────────────────────────────────────
@@ -969,6 +1112,9 @@ async def get_today_orders(
                 "status":      "체결" if order_status == "ccld" else "미체결",
                 "order_time":  item.get("ord_tmd", ""),
             })
+        # ★ KIS 체결 확인된 주문의 로컬 status를 '접수' → '체결' 동기화
+        if order_status == "ccld":
+            _sync_local_with_kis_fills(user_id, is_mock, orders)
         return _merge_with_local(orders, user_id, is_mock, order_status)
     except Exception:
         return _merge_with_local([], user_id, is_mock, order_status)
@@ -1006,6 +1152,19 @@ async def place_order(
     is_mock: bool = True,
 ) -> dict:
     """주문 실행."""
+    # ★ 거래시간 체크 — 장 마감 / 주말 / 공휴일에는 주문 거부 (가짜 체결 방지)
+    market_open, market_msg = _is_market_open()
+    if not market_open:
+        return {
+            "order_id":   "",
+            "symbol":     symbol,
+            "order_type": order_type,
+            "quantity":   quantity,
+            "price":      price,
+            "status":     "rejected",
+            "message":    f"주문 거부 — {market_msg}",
+        }
+
     try:
         creds = await get_user_token(user_id, is_mock)
     except KISNotConnectedError as e:
@@ -1047,15 +1206,14 @@ async def place_order(
             "status":     "accepted",
             "message":    f"{'모의' if is_mock else '실거래'} 주문 접수 완료",
         }
-    except Exception:
-        order_id = f"MOCK-{symbol}-{datetime.now().strftime('%H%M%S')}"
-        _record_local_order(user_id, is_mock, symbol, order_type, quantity, price, order_id)
+    except Exception as e:
+        # ★ KIS 통신 실패 — 가짜 체결 기록 금지. 사용자에게 명시적 거부 메시지.
         return {
-            "order_id":   order_id,
+            "order_id":   "",
             "symbol":     symbol,
             "order_type": order_type,
             "quantity":   quantity,
             "price":      price,
-            "status":     "accepted",
-            "message":    "모의 주문 접수 완료 (KIS 미연결 환경)",
+            "status":     "rejected",
+            "message":    f"KIS 주문 전송 실패 — {str(e)[:120]}",
         }

@@ -34,6 +34,7 @@ pykrx>=1.0.45
 OpenDartReader
 finance-datareader>=0.9.90
 schedule>=1.2.0
+holidays>=0.50    # KRX 휴장일 캘린더 (한국 공공 공휴일, 오프라인)
 
 # --- RAG & Langgraph ---
 beautifulsoup4 
