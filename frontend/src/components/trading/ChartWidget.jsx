@@ -28,13 +28,28 @@ function buildBollinger(candles, length = 20, multiplier = 2) {
   for (let i = length - 1; i < candles.length; i += 1) {
     const window = candles.slice(i - length + 1, i + 1)
     const closes = window.map((c) => c.close)
+
     const mean = closes.reduce((sum, v) => sum + v, 0) / length
-    const variance = closes.reduce((sum, v) => sum + (v - mean) ** 2, 0) / length
+
+    const variance =
+      closes.reduce((sum, v) => sum + (v - mean) ** 2, 0) / length
+
     const stdDev = Math.sqrt(variance)
 
-    upper.push({ time: candles[i].time, value: Number((mean + multiplier * stdDev).toFixed(2)) })
-    middle.push({ time: candles[i].time, value: Number(mean.toFixed(2)) })
-    lower.push({ time: candles[i].time, value: Number((mean - multiplier * stdDev).toFixed(2)) })
+    upper.push({
+      time: candles[i].time,
+      value: Number((mean + multiplier * stdDev).toFixed(2)),
+    })
+
+    middle.push({
+      time: candles[i].time,
+      value: Number(mean.toFixed(2)),
+    })
+
+    lower.push({
+      time: candles[i].time,
+      value: Number((mean - multiplier * stdDev).toFixed(2)),
+    })
   }
 
   return { upper, middle, lower }
@@ -48,8 +63,10 @@ export default function ChartWidget({ symbol }) {
 
   const containerRef = useRef(null)
   const chartRef = useRef(null)
+
   const candleRef = useRef(null)
   const volumeRef = useRef(null)
+
   const bbUpperRef = useRef(null)
   const bbMiddleRef = useRef(null)
   const bbLowerRef = useRef(null)
@@ -59,19 +76,32 @@ export default function ChartWidget({ symbol }) {
 
     const chart = createChart(containerRef.current, {
       autoSize: true,
+
       layout: {
-        background: { type: ColorType.Solid, color: '#ffffff' },
+        background: {
+          type: ColorType.Solid,
+          color: '#ffffff',
+        },
         textColor: '#334155',
       },
+
       grid: {
         vertLines: { color: '#e2e8f0' },
         horzLines: { color: '#e2e8f0' },
       },
-      crosshair: { mode: CrosshairMode.Normal },
+
+      crosshair: {
+        mode: CrosshairMode.Normal,
+      },
+
       rightPriceScale: {
         borderColor: '#cbd5e1',
-        scaleMargins: { top: 0.08, bottom: 0.28 },
+        scaleMargins: {
+          top: 0.08,
+          bottom: 0.28,
+        },
       },
+
       timeScale: {
         borderColor: '#cbd5e1',
         timeVisible: false,
@@ -116,7 +146,10 @@ export default function ChartWidget({ symbol }) {
     })
 
     chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.78, bottom: 0 },
+      scaleMargins: {
+        top: 0.78,
+        bottom: 0,
+      },
       borderVisible: false,
     })
 
@@ -124,9 +157,11 @@ export default function ChartWidget({ symbol }) {
 
     return () => {
       chart.remove()
+
       chartRef.current = null
       candleRef.current = null
       volumeRef.current = null
+
       bbUpperRef.current = null
       bbMiddleRef.current = null
       bbLowerRef.current = null
@@ -140,7 +175,9 @@ export default function ChartWidget({ symbol }) {
     setError('')
 
     try {
-      const { data } = await api.get(`/api/v1/market/chart?symbol=${targetSymbol}&period=${targetPeriod}`)
+      const { data } = await api.get(
+        `/api/v1/market/chart?symbol=${targetSymbol}&period=${targetPeriod}`
+      )
 
       const candles = (data?.candles ?? [])
         .map((c) => ({
@@ -151,7 +188,14 @@ export default function ChartWidget({ symbol }) {
           close: Number(c.close),
           volume: Number(c.volume ?? 0),
         }))
-        .filter((c) => c.time && Number.isFinite(c.open) && Number.isFinite(c.high) && Number.isFinite(c.low) && Number.isFinite(c.close))
+        .filter(
+          (c) =>
+            c.time &&
+            Number.isFinite(c.open) &&
+            Number.isFinite(c.high) &&
+            Number.isFinite(c.low) &&
+            Number.isFinite(c.close)
+        )
         .sort((a, b) => a.time.localeCompare(b.time))
 
       candleRef.current.setData(candles)
@@ -160,16 +204,21 @@ export default function ChartWidget({ symbol }) {
         candles.map((c) => ({
           time: c.time,
           value: c.volume,
-          color: c.close >= c.open ? 'rgba(239,68,68,0.4)' : 'rgba(59,130,246,0.4)',
-        })),
+          color:
+            c.close >= c.open
+              ? 'rgba(239,68,68,0.4)'
+              : 'rgba(59,130,246,0.4)',
+        }))
       )
 
       const bands = buildBollinger(candles, 20, 2)
+
       bbUpperRef.current.setData(bands.upper)
       bbMiddleRef.current.setData(bands.middle)
       bbLowerRef.current.setData(bands.lower)
 
       chartRef.current?.timeScale().fitContent()
+
       setIsMock(Boolean(data?.is_mock))
     } catch {
       setError('차트 데이터를 불러오지 못했습니다.')
@@ -180,8 +229,9 @@ export default function ChartWidget({ symbol }) {
 
   useEffect(() => {
     if (!symbol) return
+
     loadChart(symbol, period)
-    // symbol 변경 시 1회만 로드. 자동 순환 로딩은 하지 않음.
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol])
 
@@ -191,12 +241,43 @@ export default function ChartWidget({ symbol }) {
   }
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <div className="card-header" style={{ marginBottom: '4px', flexShrink: 0 }}>
+    <div
+      className="card"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 0,
+        border: 'none',
+        boxShadow: 'none',
+      }}
+    >
+      <div
+        className="card-header"
+        style={{
+          marginBottom: '4px',
+          flexShrink: 0,
+          borderBottom: 'none',
+          boxShadow: 'none',
+          background: 'transparent',
+        }}
+      >
         <span>
           주가 차트
-          {isMock && <span style={{ fontSize: '10px', color: '#64748b', marginLeft: '6px' }}>mock</span>}
+
+          {isMock && (
+            <span
+              style={{
+                fontSize: '10px',
+                color: '#64748b',
+                marginLeft: '6px',
+              }}
+            >
+              mock
+            </span>
+          )}
         </span>
+
         <div style={{ display: 'flex', gap: '4px' }}>
           {PERIODS.map((item) => (
             <button
@@ -206,12 +287,29 @@ export default function ChartWidget({ symbol }) {
                 padding: '2px 10px',
                 borderRadius: '4px',
                 border: '1px solid',
-                borderColor: period === item.key ? '#3b82f6' : '#cbd5e1',
+
+                borderColor:
+                  period === item.key
+                    ? '#2f6f4f'
+                    : '#cbd5e1',
+
                 cursor: 'pointer',
                 fontSize: '12px',
-                fontWeight: period === item.key ? 700 : 500,
-                background: period === item.key ? '#3b82f6' : '#ffffff',
-                color: period === item.key ? '#ffffff' : '#1e293b',
+
+                fontWeight:
+                  period === item.key
+                    ? 700
+                    : 500,
+
+                background:
+                  period === item.key
+                    ? '#2f6f4f'
+                    : '#ffffff',
+
+                color:
+                  period === item.key
+                    ? '#ffffff'
+                    : '#1e293b',
               }}
             >
               {item.label}
@@ -220,10 +318,38 @@ export default function ChartWidget({ symbol }) {
         </div>
       </div>
 
-      {loading && <div style={{ color: '#64748b', fontSize: '12px', padding: '4px 0' }}>차트 로딩 중...</div>}
-      {error && <div style={{ color: '#ef4444', fontSize: '12px', padding: '4px 0' }}>{error}</div>}
+      {loading && (
+        <div
+          style={{
+            color: '#64748b',
+            fontSize: '12px',
+            padding: '4px 0',
+          }}
+        >
+          차트 로딩 중...
+        </div>
+      )}
 
-      <div ref={containerRef} style={{ flex: '1 1 0', minHeight: 0, width: '100%' }} />
+      {error && (
+        <div
+          style={{
+            color: '#ef4444',
+            fontSize: '12px',
+            padding: '4px 0',
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      <div
+        ref={containerRef}
+        style={{
+          flex: '1 1 0',
+          minHeight: 0,
+          width: '100%',
+        }}
+      />
     </div>
   )
 }

@@ -112,7 +112,7 @@ export default function MyPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F4F7FB', fontFamily: "'IBM Plex Sans KR', -apple-system, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#f5f7f4', fontFamily: "'IBM Plex Sans KR', -apple-system, sans-serif" }}>
       <Navbar />
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px' }}>
@@ -209,7 +209,7 @@ export default function MyPage() {
                       발급받은 <strong>APP KEY</strong> / <strong>APP SECRET</strong> 을 입력합니다.
                     </li>
                     <li>
-                      계좌번호는 하이픈 포함 형식도 입력할 수 있습니다. 예: <code>50123456-01</code>
+                      계좌번호는 하이픈 포함 형식도 입력할 수 있습니다. 예 : <code>50123456-01</code>
                     </li>
                   </ol>
                   <div
@@ -222,7 +222,7 @@ export default function MyPage() {
                       color: '#92400E',
                     }}
                   >
-                    APP SECRET은 암호화되어 DB에 저장됩니다. 화면에는 복원해 보여주지만, 서버에는 암호문으로 보관합니다.
+                    APP SECRET은 암호화되어 DB에 저장됩니다. 화면에는 복원되고, 서버에는 암호문으로 보관합니다.
                   </div>
                 </div>
               )}
@@ -236,7 +236,7 @@ export default function MyPage() {
 
 function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }) {
   const label = isMock ? '모의투자' : '실거래'
-  const btnColor = isMock ? '#0A3D62' : '#DC2626'
+  const btnColor = isMock ? '#0A3D62' : '#b83b3b'
 
   return (
     <div
@@ -255,7 +255,7 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: status.is_connected ? '#22C55E' : '#94A3B8',
+              background: status.is_connected ? '#166534' : '#94A3B8',
             }}
           />
           <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
@@ -264,12 +264,12 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
           {status.is_connected && (
             <span
               style={{
-                fontSize: 11,
-                background: status.token_valid ? '#DCFCE7' : '#FEF3C7',
+                fontSize: 12,
+                background: status.token_valid ? '#d7e7db' : '#FEF3C7',
                 color: status.token_valid ? '#166534' : '#92400E',
-                padding: '2px 8px',
+                padding: '5px 12px',
                 borderRadius: 20,
-                fontWeight: 500,
+                fontWeight: 600,
               }}
             >
               {status.token_valid ? '연결됨' : '토큰 갱신 필요'}
@@ -279,10 +279,10 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
         {!isMock && (
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               background: '#FEE2E2',
               color: '#991B1B',
-              padding: '3px 10px',
+              padding: '5px 12px',
               borderRadius: 20,
               fontWeight: 600,
             }}

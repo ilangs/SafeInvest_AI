@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react'
 import { api, getGrade, gradeMessage, fmtPrice, fmtPercent, priceChangeColor } from '../../services/analysisApi.js'
-import ExplainBox   from './shared/ExplainBox.jsx'
 import GradeBadge   from './shared/GradeBadge.jsx'
 import TabOverview  from './tabs/TabOverview.jsx'
 import TabSafety    from './tabs/TabSafety.jsx'
 import TabFinancial from './tabs/TabFinancial.jsx'
 import TabPrice     from './tabs/TabPrice.jsx'
 import TabTechnical from './tabs/TabTechnical.jsx'
-import TabBeginner  from './tabs/TabBeginner.jsx'
 import TabAI        from './tabs/TabAI.jsx'
 
-const TABS = ['① 종합진단','② 안전점검','③ 재무분석','④ 가격추이','⑤ 기술적분석','⑥ 초보자 설명','⑦ AI분석']
+const TABS = ['① 종합진단','② 안전점검','③ 재무분석','④ 가격추이','⑤ 기술적분석','⑥ AI분석']
 
 export default function AnalysisDetail({ ticker, stocks, onBack }) {
   const [activeTab, setActiveTab] = useState(0)
@@ -34,8 +32,23 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
   }, [ticker])
 
   if (!stock) return (
-    <div>
-      <button className="an-btn-back" onClick={onBack}>← 홈으로 돌아가기</button>
+    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+      <button
+        className="an-btn-back"
+        onClick={onBack}
+        style={{
+          background: '#fdfdfd',
+          color: '#2f5f43',
+          border: '1px solid rgba(47, 95, 67, 0.22)',
+          borderRadius: 10,
+          padding: '10px 16px',
+          fontWeight: 600,
+          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
+          marginBottom: 10,
+        }}
+      >
+        ← Market Home
+      </button>
       <div className="an-warning-box">종목 정보를 찾을 수 없습니다.</div>
     </div>
   )
@@ -50,33 +63,73 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
   const sign  = diff > 0 ? '▲' : diff < 0 ? '▼' : '-'
   const col   = priceChangeColor(diff)
 
-  return (
-    <div>
-      <button className="an-btn-back" onClick={onBack}>← 홈으로 돌아가기</button>
+  const stockName = stock.stock_name || stock.name || ticker
 
-      <div className="an-glass-card" style={{ marginBottom: 18 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+  return (
+    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+      <button
+        className="an-btn-back"
+        onClick={onBack}
+        style={{
+          background: '#fdfdfd',
+          color: '#2f5f43',
+          border: '1px solid rgba(47, 95, 67, 0.22)',
+          borderRadius: 10,
+          padding: '10px 16px',
+          fontWeight: 600,
+          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
+          marginBottom: 10,
+        }}
+      >
+        ← Market Home
+      </button>
+
+      <div
+        className="an-glass-card"
+        style={{
+          marginBottom: 18,
+          background: 'transparent',
+          border: 'none',
+          boxShadow: 'none',
+          padding: '23px 24px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 16,
+            flexWrap: 'wrap',
+          }}
+        >
           <div>
-            <div style={{ fontSize: 34, fontWeight: 900, color: '#fff' }}>
-              {stock.stock_name}
-              {grade && <GradeBadge label={grade.label} style={{ fontSize: 15, marginLeft: 10 }} />}
+            <div style={{ fontSize: 38, fontWeight: 800, color: '#000000', letterSpacing: '-0.02em' }}>
+              <span style={{ letterSpacing: '0.02em' }}>{stockName}</span>
+              {grade && <GradeBadge label={grade.label} style={{ fontSize: 15, marginLeft: 10, padding: '5px 10px',}} />}
             </div>
-            <div style={{ fontSize: 14, color: '#93a7cb', marginTop: 6 }}>
+
+            <div style={{ fontSize: 14, color: '#5f6f86', marginTop: 8, fontWeight: 700 }}>
               코드 {ticker} &nbsp;|&nbsp; {stock.market} &nbsp;|&nbsp; {stock.sector ?? '-'}
             </div>
-            <div style={{ marginTop: 14 }}>
-              <span style={{ fontSize: 28, fontWeight: 900, color: '#f8fbff' }}>{fmtPrice(close)}</span>
+
+            <div style={{ marginTop: 9, display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 34, fontWeight: 950, color: '#1f2937', letterSpacing: '-0.03em' }}>
+                {fmtPrice(close)}
+              </span>
+
               {diff != null && (
-                <span style={{ fontSize: 15, color: col, fontWeight: 800, marginLeft: 10 }}>
+                <span style={{ fontSize: 16, color: col, fontWeight: 900 }}>
                   {sign} {fmtPrice(Math.abs(diff))} ({fmtPercent(pct)})
                 </span>
               )}
             </div>
           </div>
+
           {score && (
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ color: '#9cb0d3', fontSize: 13, fontWeight: 700 }}>안전점수</div>
-              <div style={{ fontSize: 52, fontWeight: 950, color: grade.color, lineHeight: 1 }}>
+            <div style={{ textAlign: 'right', minWidth: 120 }}>
+              <div style={{ color: '#5f6f86', fontSize: 13, fontWeight: 800 }}>안전점수</div>
+              <div style={{ fontSize: 54, fontWeight: 950, color: grade.color, lineHeight: 1 }}>
                 {score.final_score.toFixed(0)}
               </div>
               <div style={{ color: grade.color, fontSize: 18, fontWeight: 900 }}>점 / 100점</div>
@@ -86,18 +139,35 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
       </div>
 
       {score && (
-        <ExplainBox
-          title="📌 한 줄 요약"
-          body={gradeMessage(score.final_score, stock.stock_name)}
-          type={score.final_score >= 65 ? 'good' : score.final_score < 45 ? 'warning' : 'info'}
-        />
-      )}
+        <div
+          style={{
+            background: '#f2faf4',
+            border: '1px solid rgba(47, 95, 67, 0.18)',
+            borderRadius: 14,
+            padding: '18px 20px',
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <img
+              src="/logo-tab.png"
+              alt="Ju-Dy"
+              style={{
+                width: 22,
+                height: 22,
+                objectFit: 'contain',
+              }}
+            />
+            <strong style={{ color: '#2f5f43', fontSize: 15 }}>
+              Check Point
+            </strong>
+          </div>
 
-      <ExplainBox
-        title="⚠️ 투자 유의사항"
-        body="이 앱은 투자 추천 서비스가 아닙니다. 안전점수는 재무·거래 위험의 참고 지표일 뿐이며, 점수가 높아도 손실이 날 수 있고 점수가 낮아도 상승할 수 있습니다. 최종 투자 결정은 본인의 책임입니다."
-        type="warning"
-      />
+          <div style={{ color: '#26352c', fontSize: 15, lineHeight: 1.7 }}>
+            <strong>{stockName}</strong> : {gradeMessage(score.final_score, stockName).replace(`<b>${stockName}</b>:`, '').replace(`${stockName}:`, '').trim()}
+          </div>
+        </div>
+      )}
 
       <div className="an-tab-bar" style={{ marginTop: 24 }}>
         {TABS.map((t, i) => (
@@ -116,8 +186,7 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
           {activeTab === 2 && <TabFinancial  financials={financials} />}
           {activeTab === 3 && <TabPrice      prices={prices}    score={score} />}
           {activeTab === 4 && <TabTechnical  prices={prices} />}
-          {activeTab === 5 && <TabBeginner />}
-          {activeTab === 6 && <TabAI         ticker={ticker}    stock={stock} score={score} />}
+          {activeTab === 5 && <TabAI         ticker={ticker}    stock={stock} score={score} />}
         </div>
       )}
     </div>

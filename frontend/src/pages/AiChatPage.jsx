@@ -3,28 +3,43 @@ import ChatWidget from '../components/ai/ChatWidget'
 
 export default function AiChatPage() {
   return (
-    <div className="app-layout">
+    <div className="app-layout" style={{ background: '#f5f5f5', minHeight: '100vh' }}>
       <Navbar />
-      <main style={{ padding: '40px 24px 56px' }}>
-        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 28 }}>
-            <div style={{ fontSize: 42, marginBottom: 12 }}>💬 AI 금융 튜터</div>
-            <div style={{ color: '#64748B', fontSize: 16, lineHeight: 1.6 }}>
-              금감원 공식 자료를 바탕으로 질문에 답하는 AI에게 궁금한 점을 물어보세요.
+
+      <main style={{ padding: '44px 24px 64px' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+
+          {/* 타이틀 영역 */}
+          <div style={{ textAlign: 'center', marginTop: 10, marginBottom: 30 }}>
+            <div
+              style={{
+                fontSize: 40,
+                marginBottom: 10,
+                fontWeight: 800,
+                letterSpacing: '-0.03em',
+                color: '#286346',
+              }}
+            >
+              Financial AI Tutor
+            </div>
+            <div style={{ color: '#6B7280', fontSize: 16, lineHeight: 1.6 }}>
+              투자 학습과 주식 기초 질문을 쉽고 명확하게 도와드립니다.
             </div>
           </div>
 
+          {/* 챗봇 카드 */}
           <div
             style={{
-              background: 'white',
-              border: '1px solid #E2E8F0',
-              borderRadius: 24,
-              boxShadow: '0 10px 30px rgba(15, 23, 42, 0.06)',
+              background: '#ffffff',
+              border: '1px solid #dbe5de',
+              borderRadius: 18,
+              boxShadow: '0 30px 80px rgba(31, 79, 58, 0.4)',
               overflow: 'hidden',
             }}
           >
             <ChatWidget />
           </div>
+
         </div>
       </main>
     </div>

@@ -39,7 +39,7 @@ export default function QuoteWidget({ onSymbolChange, onAnalyse, onPriceUpdate }
     try {
       await api.post('/api/v1/watchlist', {
         stock_code: symbol,
-        stock_name: quote.name || cachedName || symbol,
+        stock_name: quote.stock_name || cachedName || symbol,
       })
       setAddMsg('관심종목에 추가했습니다.')
     } catch (e) {
@@ -78,7 +78,7 @@ export default function QuoteWidget({ onSymbolChange, onAnalyse, onPriceUpdate }
         {quote && (
           <>
             <div style={{ flexShrink: 0 }}>
-              <span style={{ fontWeight: 700, fontSize: '15px', color: '#0f172a' }}>{quote.name || cachedName || symbol}</span>
+              <span style={{ fontWeight: 700, fontSize: '15px', color: '#0f172a' }}>{quote.stock_name || cachedName || symbol}</span>
               <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '6px' }}>({symbol})</span>
             </div>
 

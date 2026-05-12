@@ -9,7 +9,7 @@ export default function ExplainBox({ title, body, type = 'info', style }) {
 
   return (
     <div className={cls} style={style}>
-      <b>{title}</b>
+      <span style={{ fontWeight: 500 }}>{title}</span>
       {body && <><br /><span dangerouslySetInnerHTML={{ __html: body }} /></>}
     </div>
   )

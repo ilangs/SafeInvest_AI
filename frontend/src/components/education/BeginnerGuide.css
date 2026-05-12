@@ -1,0 +1,25 @@
+.beginner-guide button,
+.beginner-guide button:hover,
+.beginner-guide button:focus,
+.beginner-guide button:focus-visible,
+.beginner-guide button:active {
+  outline: 0 !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.beginner-guide *:focus,
+.beginner-guide *:focus-visible {
+  outline: 0 !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+.beginner-guide > div:last-child {
+  background: #f7f7f7 !important;
+}
+
+.white-accordion-btn {
+  background: #fdfdfd !important;
+}

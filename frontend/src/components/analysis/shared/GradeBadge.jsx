@@ -3,7 +3,7 @@ import { getGrade } from '../../../services/analysisApi'
 export default function GradeBadge({ score, label, style }) {
   const g = label ? { label, cls: _labelToCls(label) } : getGrade(score ?? 0)
   return (
-    <span className={`an-grade-badge ${g.cls}`} style={style}>
+    <span className={`an-grade-badge ${g.cls}`} style={{ ...style, letterSpacing: '0.05em' }}>
       {g.label}
     </span>
   )

@@ -272,20 +272,22 @@ export default function CandleChart({ symbol, currentPrice, isMockMode = true })
       {/* 헤더 (shrink 고정) */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+          <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)' }}>
             {currentPrice ? currentPrice.toLocaleString() : '-'}
           </span>
-          <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>원</span>
-          {isMock && (
-            <span style={{
-              fontSize: 10,
-              background: 'var(--color-background-warning)',
-              color: 'var(--color-text-warning)',
-              padding: '1px 6px', borderRadius: 4,
-            }}>
-              모의데이터
-            </span>
-          )}
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 400,
+              background: '#E8F3EE',
+              color: '#2f6f4f',
+              border: '1px solid #C7DED3',
+              padding: '3px 10px',
+              borderRadius: 6,
+            }}
+          >
+            Mock Data
+          </span>
           {loading && (
             <span style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>로딩 중...</span>
           )}
@@ -314,7 +316,7 @@ export default function CandleChart({ symbol, currentPrice, isMockMode = true })
               key={p.key}
               onClick={() => handlePeriod(p.key)}
               style={{
-                padding: '3px 10px', fontSize: 11,
+                padding: '3px 10px', fontSize: 12,
                 borderRadius: 'var(--border-radius-md)',
                 background: period === p.key ? '#0F6E56' : 'var(--color-background-secondary)',
                 color:      period === p.key ? '#fff' : 'var(--color-text-secondary)',
@@ -335,3 +337,4 @@ export default function CandleChart({ symbol, currentPrice, isMockMode = true })
     </div>
   )
 }
+

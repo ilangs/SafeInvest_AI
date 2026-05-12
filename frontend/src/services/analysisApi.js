@@ -70,8 +70,8 @@ export function fmtVolume(v) {
 }
 
 export function getGrade(score) {
-  if (score >= 80) return { label: '우수', color: '#22c55e', cls: 'an-badge-excellent' }
-  if (score >= 65) return { label: '양호', color: '#3b82f6', cls: 'an-badge-good' }
+  if (score >= 80) return { label: '우수', color: '#179e49', cls: 'an-badge-excellent' }
+  if (score >= 65) return { label: '양호', color: '#225eec', cls: 'an-badge-good' }
   if (score >= 45) return { label: '보통', color: '#eab308', cls: 'an-badge-normal' }
   if (score >= 25) return { label: '주의', color: '#f97316', cls: 'an-badge-caution' }
   return               { label: '위험', color: '#ef4444', cls: 'an-badge-danger' }

@@ -12,15 +12,15 @@ import { useAuth } from '../hooks/useAuth'
 
 function isMarketOpen() {
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
-  const day = kst.getUTCDay() // 0=Sun, 6=Sat
+  const day = kst.getUTCDay()
   if (day === 0 || day === 6) return false
   const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes()
   return minutes >= 9 * 60 && minutes < 15 * 60 + 30
 }
 
-const DEFAULT_SYMBOL = '005930'   // 미로그인/저장기록 없을 때 기본값 (삼성전자)
+const DEFAULT_SYMBOL = '005930'
 
-// 사용자별 마지막 조회 종목 키 (localStorage)
+// 사용자별 마지막 조회 종목 키
 const lastSymbolKey = (userId) => `safeinvest:lastSymbol:${userId || 'guest'}`
 
 function readLastSymbol(userId) {
@@ -40,7 +40,7 @@ export default function TradePage() {
   const { user } = useAuth()
   const userId = user?.id || null
 
-  // 초기값: 사용자별 마지막 조회 종목 → 없으면 삼성전자
+  // 화면 상태값
   const [symbol,        setSymbol]        = useState(() => readLastSymbol(userId) || DEFAULT_SYMBOL)
   const [inputSymbol,   setInputSymbol]   = useState('')
   const [currentPrice,  setCurrentPrice]  = useState(null)
@@ -54,47 +54,60 @@ export default function TradePage() {
   const [kisMode,       setKisMode]       = useState(true)
   const [suggestions,   setSuggestions]   = useState([])
   const [showSugg,      setShowSugg]      = useState(false)
+  const [activeSuggIndex, setActiveSuggIndex] = useState(-1)
   const [marketOpen,    setMarketOpen]    = useState(isMarketOpen)
 
   const searchRef   = useRef(null)
   const searchTimer = useRef(null)
-  // 종목 변경 시 in-flight 요청을 무효화하기 위한 요청 ID
+
+  // 이전 시세 요청 무효화용 ID
   const quoteReqId  = useRef(0)
 
-  // 종목 변경 시 즉시 초기화 + 이전 요청 무효화 + 사용자별 localStorage 저장
+  // 종목 변경 시 기존 시세값 초기화
   useEffect(() => {
     quoteReqId.current += 1
     setCurrentPrice(null)
     setChangeRate(null)
     setChange(null)
-    if (symbol && /^\d{6}$/.test(symbol)) saveLastSymbol(userId, symbol)
+
+    if (symbol && /^\d{6}$/.test(symbol)) {
+      saveLastSymbol(userId, symbol)
+    }
   }, [symbol, userId])
 
-  // 로그인 정보 로드 후 저장된 마지막 조회 종목으로 복원
-  // (useAuth가 비동기라 초기 렌더 시 userId가 null일 수 있음 — 로드 후 재적용)
+  // 로그인 후 사용자별 마지막 조회 종목 복원
   useEffect(() => {
     if (!userId) return
+
     const saved = readLastSymbol(userId)
     if (saved && saved !== symbol) {
       setSymbol(saved)
       setStockName('')
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
   // 현재가 조회
   const fetchQuote = useCallback(async () => {
     if (!symbol) return
+
     const myReq = ++quoteReqId.current
     setQuoteLoading(true)
+
     try {
       const res = await api.get(`/api/v1/market/quote?symbol=${symbol}&is_mock=${kisMode}`)
-      // 최신 요청만 반영 (이전 종목 응답 무시)
+
+      // 최신 요청만 화면에 반영
       if (myReq !== quoteReqId.current) return
+
       setCurrentPrice(res.data.current_price)
-      // KIS API가 올바른 종목명을 반환할 때만 업데이트 (티커코드 반환 시 무시)
-      const apiName = res.data.name
-      if (apiName && apiName !== symbol && !/^\d{6}$/.test(apiName)) setStockName(apiName)
+
+      const apiName = res.data.stock_name
+      if (apiName && apiName !== symbol && !/^\d{6}$/.test(apiName)) {
+        setStockName(apiName)
+      }
+
       setChangeRate(res.data.change_rate)
       setChange(res.data.change)
     } catch (e) {
@@ -106,77 +119,139 @@ export default function TradePage() {
 
   useEffect(() => { fetchQuote() }, [fetchQuote])
 
-  // 장 시간 인식 폴링: 장중 5초, 장외 60초
+  // 장중/장외 갱신 주기 관리
   useEffect(() => {
     const INTERVAL = marketOpen ? 5000 : 60000
+
     const id = setInterval(() => {
       const open = isMarketOpen()
       setMarketOpen(open)
+
       if (open) fetchQuote()
     }, INTERVAL)
+
     return () => clearInterval(id)
   }, [fetchQuote, marketOpen])
 
   // 자동완성 검색
   const handleSearchInput = (val) => {
     setInputSymbol(val)
+    setActiveSuggIndex(-1)
     clearTimeout(searchTimer.current)
-    if (!val.trim()) { setSuggestions([]); setShowSugg(false); return }
+
+    if (!val.trim()) {
+      setSuggestions([])
+      setShowSugg(false)
+      return
+    }
+
     searchTimer.current = setTimeout(async () => {
       try {
         const res = await api.get(`/api/v1/market/search?q=${encodeURIComponent(val)}&limit=8`)
         setSuggestions(res.data || [])
         setShowSugg(true)
-      } catch { setSuggestions([]) }
+        setActiveSuggIndex(-1)
+      } catch {
+        setSuggestions([])
+      }
     }, 250)
   }
 
+  // 자동완성 종목 선택
   const handleSelectSugg = (stock) => {
     setSuggestions([])
     setShowSugg(false)
+    setActiveSuggIndex(-1)
     setInputSymbol('')
     setSymbol(stock.code)
-    setStockName(stock.name)
+    setStockName(stock.stock_name)
     setSelectedPrice(null)
     setCurrentPrice(null)
   }
 
+  // 종목 코드 직접 검색
   const handleSearch = () => {
     const code = inputSymbol.trim().padStart(6, '0')
+
     if (/^\d{6}$/.test(code)) {
       setSymbol(code)
       setInputSymbol('')
       setShowSugg(false)
+      setActiveSuggIndex(-1)
       setSelectedPrice(null)
       setStockName('')
       setCurrentPrice(null)
     }
   }
 
+  // 자동완성 키보드 조작
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+
+      if (!showSugg || suggestions.length === 0) return
+
+      setActiveSuggIndex(prev =>
+        prev < suggestions.length - 1 ? prev + 1 : 0
+      )
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+
+      if (!showSugg || suggestions.length === 0) return
+
+      setActiveSuggIndex(prev =>
+        prev > 0 ? prev - 1 : suggestions.length - 1
+      )
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+
+      if (showSugg && activeSuggIndex >= 0 && suggestions[activeSuggIndex]) {
+        handleSelectSugg(suggestions[activeSuggIndex])
+      } else {
+        handleSearch()
+      }
+    }
+
+    if (e.key === 'Escape') {
+      setShowSugg(false)
+      setActiveSuggIndex(-1)
+    }
+  }
+
+  // 주문 완료 후 관련 위젯 갱신
   const handleOrderComplete = () => {
-    // 즉시 1차 갱신 (로컬 주문 로그 + 모의 즉시 반영)
     setRefreshTick(t => t + 1)
     fetchQuote()
-    // KIS API 처리 지연 보완: 1.5초 후 2차 갱신 (잔고/보유종목 정확화)
+
+    // 주문 반영 지연 보완용 2차 갱신
     setTimeout(() => setRefreshTick(t => t + 1), 1500)
   }
 
-  // 검색창 외부 클릭 시 드롭다운 닫기
+  // 검색창 외부 클릭 시 자동완성 닫기
   useEffect(() => {
     const handler = (e) => {
-      if (searchRef.current && !searchRef.current.contains(e.target)) setShowSugg(false)
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSugg(false)
+        setActiveSuggIndex(-1)
+      }
     }
+
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // KIS 연결 상태 확인 (마운트 시 1회)
+  // KIS 연결 상태 확인
   useEffect(() => {
     api.get('/api/v1/credentials/status')
       .then(res => {
         const realConn = res.data.find(c => c.is_mock === false && c.is_connected)
         const mockConn = res.data.find(c => c.is_mock === true && c.is_connected)
         const activeConn = realConn || mockConn || null
+
         setKisConnected(!!activeConn)
         setKisMode(activeConn ? activeConn.is_mock : true)
       })
@@ -189,158 +264,365 @@ export default function TradePage() {
   return (
     <div className="app-layout">
       <Navbar />
-      <div style={{ padding: '12px 16px', background: 'var(--color-background-tertiary)', flex: 1 }}>
 
-        {/* ── KIS 미연결 배너 ── */}
-        {!kisConnected && (
-          <div style={{
-            background: '#FEF3C7', border: '0.5px solid #F59E0B',
-            borderRadius: 'var(--border-radius-md)', padding: '8px 14px',
-            marginBottom: 8, display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between', fontSize: 13,
-          }}>
-            <span>⚠️ KIS 계좌가 연결되지 않았습니다. 모의 데이터로 표시 중입니다.</span>
-            <a href="/mypage" style={{ color: '#92400E', fontWeight: 600, textDecoration: 'none' }}>
-              계좌 연결하기 →
-            </a>
-          </div>
-        )}
+      {/* TradePage 전용 레이아웃 스타일 */}
+      <style>{`
+  .trade-page-shell {
+    flex: 1;
+    min-height: 100vh;
+    padding: 18px 20px 24px;
 
-        {/* ── 종목 검색 / 현재가 바 ── */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          background: 'var(--color-background-primary)',
-          borderRadius: 'var(--border-radius-md)',
-          padding: '8px 14px', marginBottom: 10,
-          border: '0.5px solid var(--color-border-tertiary)',
-        }}>
-          {/* 자동완성 드롭다운 래퍼 */}
-          <div ref={searchRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
-              value={inputSymbol}
-              onChange={e => handleSearchInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              placeholder="종목명 또는 코드 검색"
-              style={{
-                width: 180, background: 'transparent', border: 'none',
-                fontSize: 14, color: 'var(--color-text-primary)', outline: 'none',
-              }}
-            />
-            <button
-              onClick={handleSearch}
-              style={{
-                padding: '4px 14px', background: '#0F6E56', color: '#fff',
-                border: 'none', borderRadius: 'var(--border-radius-md)',
-                fontSize: 13, cursor: 'pointer',
-              }}
-            >조회</button>
+    /* 다른 메뉴들과 맞추기 위한 기본 배경 */
+    background: #f5f5f5;
+  }
 
-            {/* 드롭다운 */}
-            {showSugg && suggestions.length > 0 && (
-              <div style={{
-                position: 'absolute', top: '100%', left: 0, zIndex: 200,
-                background: 'var(--color-background-primary)',
-                border: '1px solid var(--color-border-tertiary)',
-                borderRadius: 'var(--border-radius-md)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
-                minWidth: 280, marginTop: 4,
-              }}>
-                {suggestions.map(s => (
-                  <div
-                    key={s.code}
-                    onMouseDown={() => handleSelectSugg(s)}
-                    style={{
-                      padding: '8px 12px', cursor: 'pointer', display: 'flex',
-                      justifyContent: 'space-between', alignItems: 'center', fontSize: 13,
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-background-tertiary)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>{s.name}</span>
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: 11, fontFamily: 'monospace' }}>
-                      {s.code} <span style={{ color: '#94a3b8', marginLeft: 4 }}>{s.market}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
+  .trade-dashboard {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .trade-top-panel {
+    background: var(--color-background-primary);
+    border: 1px solid var(--color-border-tertiary);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  }
+
+  .trade-warning-banner {
+    background: #FEF3C7;
+    border: 1px solid #F59E0B;
+    border-radius: var(--border-radius-md);
+    padding: 9px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  .trade-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: var(--border-radius-md);
+    padding: 9px 14px;
+    margin-bottom: 12px;
+  }
+
+  .trade-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-areas:
+      "chart sideTop"
+      "bottom bottom";
+    gap: 12px;
+    align-items: start;
+  }
+
+  .trade-chart-area {
+    grid-area: chart;
+    min-width: 0;
+    min-height: 470px;
+  }
+
+  .trade-chart-area > * {
+    min-height: 470px;
+  }
+
+  .trade-side-top {
+    grid-area: sideTop;
+    display: grid;
+    grid-template-rows: 0.9fr 0.65fr;
+    gap: 12px;
+    min-width: 0;
+    min-height: 470px;
+  }
+
+  .trade-bottom-wide {
+    grid-area: bottom;
+    display: grid;
+    grid-template-columns: 300px 320px minmax(0, 1fr);
+    gap: 12px;
+    align-items: stretch;
+    min-width: 0;
+
+    /* 하단 전체 높이 */
+    height: 520px;
+  }
+
+  .trade-bottom-right {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 12px;
+    min-width: 0;
+    height: 520px;
+  }
+
+  .trade-widget-frame {
+    min-width: 0;
+    height: 100%;
+    background: var(--color-background-primary);
+    border: 1px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+  }
+
+  .trade-widget-frame > * {
+    height: 100%;
+  }
+
+  @media (max-width: 1100px) {
+    .trade-main-grid {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "chart"
+        "sideTop"
+        "bottom";
+    }
+
+    .trade-side-top {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto;
+      min-height: auto;
+    }
+
+    .trade-bottom-wide {
+      grid-template-columns: 1fr 1fr;
+      height: auto;
+    }
+
+    .trade-bottom-right {
+      grid-column: 1 / -1;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto;
+      height: auto;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .trade-page-shell {
+      padding: 12px;
+    }
+
+    .trade-search-bar {
+      flex-wrap: wrap;
+    }
+
+    .trade-side-top {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .trade-bottom-wide {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .trade-bottom-right {
+      grid-column: 1 / -1;
+      grid-template-columns: 1fr;
+    }
+  }
+`}</style>
+
+      <div className="trade-page-shell">
+        <div className="trade-dashboard">
+
+          {/* KIS 미연결 배너 */}
+          {!kisConnected && (
+            <div className="trade-warning-banner">
+              <span>KIS 계좌가 연결되지 않았습니다. 모의 데이터로 표시 중입니다.</span>
+              <a href="/mypage" style={{ color: '#92400E', fontWeight: 600, textDecoration: 'none' }}>
+                계좌 연결하기 →
+              </a>
+            </div>
+          )}
+
+          {/* 종목 검색 / 현재가 바 */}
+          <div className="trade-top-panel trade-search-bar">
+            {/* 자동완성 드롭다운 래퍼 */}
+            <div ref={searchRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                value={inputSymbol}
+                onChange={e => handleSearchInput(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="종목명 또는 코드 검색"
+                style={{
+                  width: 180,
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: 14,
+                  color: 'var(--color-text-primary)',
+                  outline: 'none',
+                }}
+              />
+
+              <button
+                onClick={handleSearch}
+                style={{
+                  padding: '4px 14px',
+                  background: '#2f6f4f',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 'var(--border-radius-md)',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                조회
+              </button>
+
+              {/* 자동완성 드롭다운 */}
+              {showSugg && suggestions.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  zIndex: 200,
+                  background: 'var(--color-background-primary)',
+                  border: '1px solid var(--color-border-tertiary)',
+                  borderRadius: 'var(--border-radius-md)',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                  minWidth: 280,
+                  marginTop: 4,
+                }}>
+                  {suggestions.map((s, idx) => (
+                    <div
+                      key={s.code}
+                      onMouseDown={() => handleSelectSugg(s)}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: 13,
+                        background: activeSuggIndex === idx
+                          ? '#E8F3EE'
+                          : 'transparent',
+                      }}
+                      onMouseEnter={e => {
+                        setActiveSuggIndex(idx)
+                        e.currentTarget.style.background = '#E8F3EE'
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = activeSuggIndex === idx
+                          ? '#E8F3EE'
+                          : 'transparent'
+                      }}
+                    >
+                      <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>{s.name}</span>
+                      <span style={{ color: 'var(--color-text-secondary)', fontSize: 12, fontFamily: 'monospace' }}>
+                        {s.code} <span style={{ color: '#94a3b8', marginLeft: 4 }}>{s.market}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 구분선 */}
+            <div style={{ width: 1, height: 28, background: 'var(--color-border-tertiary)' }} />
+
+            {/* 종목명 표시 */}
+            {stockName && (
+              <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                {stockName}
+              </span>
             )}
+
+            <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', fontFamily: 'monospace' }}>
+              {symbol}
+            </span>
+
+            {/* 현재가 표시 */}
+            {currentPrice != null && (
+              <>
+                <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                  {currentPrice.toLocaleString()}원
+                </span>
+
+                <span style={{ fontSize: 13, color: rateColor, fontWeight: 500 }}>
+                  {isUp ? '▲' : '▼'}&nbsp;
+                  {change != null ? `${Math.abs(change).toLocaleString()}원` : ''}
+                  &nbsp;({isUp ? '+' : ''}{(changeRate ?? 0).toFixed(2)}%)
+                </span>
+              </>
+            )}
+
+            {/* 장 운영 상태 표시 */}
+            <span style={{ fontSize: 13, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{
+                display: 'inline-block',
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: marketOpen ? '#22c55e' : '#94a3b8',
+              }} />
+
+              <span style={{ color: marketOpen ? '#22c55e' : 'var(--color-text-secondary)' }}>
+                {quoteLoading ? '갱신 중...' : marketOpen ? '장 운영 중 · 5초 갱신' : '장 마감 · 1분 갱신'}
+              </span>
+            </span>
           </div>
 
-          {/* 구분선 */}
-          <div style={{ width: 1, height: 28, background: 'var(--color-border-tertiary)' }} />
+          {/* 대시보드 전체 배치 */}
+          <div className="trade-main-grid">
 
-          {/* 종목명 표시 (코드보다 이름 강조) */}
-          {stockName && (
-            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>
-              {stockName}
-            </span>
-          )}
-          <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', fontFamily: 'monospace' }}>
-            {symbol}
-          </span>
+            {/* 왼쪽 상단: 그래프 */}
+            <div className="trade-chart-area trade-widget-frame">
+              <CandleChart symbol={symbol} currentPrice={currentPrice} isMockMode={kisMode} />
+            </div>
 
-          {currentPrice != null && (
-            <>
-              <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                {currentPrice.toLocaleString()}원
-              </span>
-              <span style={{ fontSize: 13, color: rateColor, fontWeight: 500 }}>
-                {isUp ? '▲' : '▼'}&nbsp;
-                {change != null ? `${Math.abs(change).toLocaleString()}원` : ''}
-                &nbsp;({isUp ? '+' : ''}{(changeRate ?? 0).toFixed(2)}%)
-              </span>
-            </>
-          )}
+            {/* 오른쪽 상단: 투자정보 + 잔고현황 */}
+            <div className="trade-side-top">
+              <div className="trade-widget-frame">
+                <StockInfoWidget symbol={symbol} currentPrice={currentPrice} isMock={kisMode} />
+              </div>
 
-          <span style={{ fontSize: 11, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-              display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
-              background: marketOpen ? '#22c55e' : '#94a3b8',
-            }} />
-            <span style={{ color: marketOpen ? '#22c55e' : 'var(--color-text-secondary)' }}>
-              {quoteLoading ? '갱신 중...' : marketOpen ? '장 운영 중 · 5초 갱신' : '장 마감 · 1분 갱신'}
-            </span>
-          </span>
+              <div className="trade-widget-frame">
+                <BalanceWidget refreshTrigger={refreshTick} isMock={kisMode} />
+              </div>
+            </div>
+
+            {/* 왼쪽 하단 전체: 호가창 + 주문창 + 보유종목/매매내역 */}
+            <div className="trade-bottom-wide">
+
+              {/* 호가창 */}
+              <div className="trade-widget-frame">
+                <Orderbook
+                  symbol={symbol}
+                  currentPrice={currentPrice}
+                  onPriceSelect={setSelectedPrice}
+                  isMock={kisMode}
+                />
+              </div>
+
+              {/* 매수/매도창 */}
+              <div className="trade-widget-frame">
+                <OrderForm
+                  symbol={symbol}
+                  currentPrice={currentPrice}
+                  defaultPrice={selectedPrice}
+                  onOrderComplete={handleOrderComplete}
+                  isMock={kisMode}
+                />
+              </div>
+
+              {/* 보유종목 + 매매내역 */}
+              <div className="trade-bottom-right">
+                <div className="trade-widget-frame">
+                  <HoldingsWidget refreshTrigger={refreshTick} isMock={kisMode} />
+                </div>
+
+                <div className="trade-widget-frame">
+                  <TodayOrdersWidget refreshTrigger={refreshTick} isMock={kisMode} />
+                </div>
+              </div>
+
+            </div>
+
+          </div>
         </div>
-
-        {/* ── 메인 그리드: 차트 | 호가창 | 주문창 ── */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 190px 280px',
-          gap: 10, marginBottom: 10,
-          alignItems: 'stretch',
-        }}>
-          {/* 좌: 차트 */}
-          <CandleChart symbol={symbol} currentPrice={currentPrice} isMockMode={kisMode} />
-
-          {/* 중: 호가창 */}
-          <Orderbook
-            symbol={symbol}
-            currentPrice={currentPrice}
-            onPriceSelect={setSelectedPrice}
-            isMock={kisMode}
-          />
-
-          {/* 우: 주문창 */}
-          <OrderForm
-            symbol={symbol}
-            currentPrice={currentPrice}
-            defaultPrice={selectedPrice}
-            onOrderComplete={handleOrderComplete}
-            isMock={kisMode}
-          />
-        </div>
-
-        {/* ── 하단 1행: 투자정보 | 잔고 | 보유종목 ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 2fr', gap: 10, marginBottom: 10 }}>
-          <StockInfoWidget symbol={symbol} currentPrice={currentPrice} isMock={kisMode} />
-          <BalanceWidget  refreshTrigger={refreshTick} isMock={kisMode} />
-          <HoldingsWidget refreshTrigger={refreshTick} isMock={kisMode} />
-        </div>
-
-        {/* ── 하단 2행: 당일 주문내역 ── */}
-        <TodayOrdersWidget refreshTrigger={refreshTick} isMock={kisMode} />
-
       </div>
     </div>
   )

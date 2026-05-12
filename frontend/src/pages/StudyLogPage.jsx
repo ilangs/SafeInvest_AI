@@ -16,29 +16,36 @@ export default function StudyLogPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const [selectedLog, setSelectedLog] = useState(null)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState(null)
   const [writing, setWriting] = useState(false)
-  const [saving, setSaving] = useState(false)
 
-  const [writeForm, setWriteForm] = useState({ title: '', tag: '', mood: '', content: '' })
-
-  // ── 목록 로드 ──────────────────────────────────────────────────────────────
+  const [writeForm, setWriteForm] = useState({
+    title: '',
+    tag: '',
+    content: '',
+  })
 
   const fetchLogs = async (targetPage = page) => {
     setLoading(true)
+
     try {
       const { data } = await api.get('/api/v1/study-logs', {
-        params: { page: targetPage, size: PAGE_SIZE },
+        params: {
+          page: targetPage,
+          size: PAGE_SIZE,
+        },
       })
-      setLogs(data.logs)
-      setTotal(data.total)
-      setTodayCount(data.today_count)
-      setTotalPages(data.total_pages)
-    } catch {
-      // 에러 시 빈 목록 유지
+
+      setLogs(data.logs || [])
+      setTotal(data.total || 0)
+      setTodayCount(data.today_count || 0)
+      setTotalPages(data.total_pages || 1)
+    } catch (error) {
+      console.error('스터디 로그 불러오기 실패:', error)
     } finally {
       setLoading(false)
     }
@@ -49,73 +56,11 @@ export default function StudyLogPage() {
   }, [page])
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
   }, [selectedLog, editing, writing, page])
-
-  // ── 작성 ──────────────────────────────────────────────────────────────────
-
-  const handleWriteSave = async () => {
-    if (!writeForm.title.trim() || !writeForm.content.trim()) return
-    setSaving(true)
-    try {
-      await api.post('/api/v1/study-logs', {
-        title:   writeForm.title   || '새 스터디 로그',
-        content: writeForm.content,
-        tag:     writeForm.tag     || '학습기록',
-        mood:    writeForm.mood    || '기록',
-      })
-      setWriteForm({ title: '', tag: '', mood: '', content: '' })
-      setWriting(false)
-      setPage(1)
-      await fetchLogs(1)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // ── 수정 ──────────────────────────────────────────────────────────────────
-
-  const handleEditStart = () => {
-    setEditForm({ ...selectedLog })
-    setEditing(true)
-  }
-
-  const handleEditSave = async () => {
-    setSaving(true)
-    try {
-      const { data } = await api.put(`/api/v1/study-logs/${editForm.id}`, {
-        title:   editForm.title,
-        content: editForm.content,
-        tag:     editForm.tag,
-        mood:    editForm.mood,
-      })
-      const updated = data
-      setLogs((prev) => prev.map((l) => (l.id === updated.id ? updated : l)))
-      setSelectedLog(updated)
-      setEditing(false)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // ── 삭제 ──────────────────────────────────────────────────────────────────
-
-  const handleDelete = async () => {
-    try {
-      await api.delete(`/api/v1/study-logs/${selectedLog.id}`)
-      goToList()
-      const newTotal = total - 1
-      const maxPage = Math.max(Math.ceil(newTotal / PAGE_SIZE), 1)
-      const targetPage = page > maxPage ? maxPage : page
-      setPage(targetPage)
-      await fetchLogs(targetPage)
-    } catch {
-      // 실패 시 목록 재조회
-      await fetchLogs(page)
-    }
-  }
-
-  // ── 네비게이션 ────────────────────────────────────────────────────────────
 
   const goToList = () => {
     setSelectedLog(null)
@@ -123,16 +68,106 @@ export default function StudyLogPage() {
     setWriting(false)
   }
 
-  // ── 작성 화면 ─────────────────────────────────────────────────────────────
+  const handleWriteSave = async () => {
+    if (!writeForm.title.trim() || !writeForm.content.trim()) {
+      alert('제목과 내용을 입력해 주세요.')
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      await api.post('/api/v1/study-logs', {
+        title: writeForm.title || '새 스터디 로그',
+        content: writeForm.content,
+        tag: writeForm.tag || '학습기록',
+        mood: '기록',
+      })
+
+      setWriteForm({
+        title: '',
+        tag: '',
+        content: '',
+      })
+
+      setWriting(false)
+      setPage(1)
+      await fetchLogs(1)
+    } catch (error) {
+      console.error('스터디 로그 저장 실패:', error)
+      alert('저장에 실패했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleEditStart = () => {
+    setEditForm({ ...selectedLog })
+    setEditing(true)
+  }
+
+  const handleEditSave = async () => {
+    if (!editForm.title.trim() || !editForm.content.trim()) {
+      alert('제목과 내용을 입력해 주세요.')
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      const { data } = await api.put(`/api/v1/study-logs/${editForm.id}`, {
+        title: editForm.title,
+        content: editForm.content,
+        tag: editForm.tag || '학습기록',
+        mood: editForm.mood || '기록',
+      })
+
+      setLogs((prev) =>
+        prev.map((log) => (log.id === data.id ? data : log))
+      )
+
+      setSelectedLog(data)
+      setEditing(false)
+    } catch (error) {
+      console.error('스터디 로그 수정 실패:', error)
+      alert('수정에 실패했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm('이 기록을 삭제할까요?')) return
+
+    try {
+      await api.delete(`/api/v1/study-logs/${selectedLog.id}`)
+
+      goToList()
+
+      const newTotal = total - 1
+      const maxPage = Math.max(Math.ceil(newTotal / PAGE_SIZE), 1)
+      const targetPage = page > maxPage ? maxPage : page
+
+      setPage(targetPage)
+      await fetchLogs(targetPage)
+    } catch (error) {
+      console.error('스터디 로그 삭제 실패:', error)
+      alert('삭제에 실패했습니다.')
+      await fetchLogs(page)
+    }
+  }
 
   if (writing) {
     return (
       <div className="app-layout">
         <Navbar />
+
         <main style={styles.page}>
           <section style={styles.header}>
             <h1 style={styles.title}>Study Log</h1>
-            <p style={styles.subtitle}>주식 공부 기록과 투자 학습 일기를 자유롭게 남깁니다.</p>
+            <p style={styles.subtitle}>
+              주식 공부 기록과 투자 학습 일기를 자유롭게 남깁니다.
+            </p>
           </section>
 
           <section style={styles.writeCard}>
@@ -143,20 +178,12 @@ export default function StudyLogPage() {
               onChange={(e) => setWriteForm({ ...writeForm, title: e.target.value })}
             />
 
-            <div style={styles.rowInputs}>
-              <input
-                style={{ ...styles.editInputSmall, flex: 1 }}
-                placeholder="태그 예: 차트공부"
-                value={writeForm.tag}
-                onChange={(e) => setWriteForm({ ...writeForm, tag: e.target.value })}
-              />
-              <input
-                style={{ ...styles.editInputSmall, flex: 1 }}
-                placeholder="오늘의 상태 예: 복습, 반성, 연습"
-                value={writeForm.mood}
-                onChange={(e) => setWriteForm({ ...writeForm, mood: e.target.value })}
-              />
-            </div>
+            <input
+              style={styles.editInputSmall}
+              placeholder="태그를 입력하세요. 예 : 차트공부"
+              value={writeForm.tag}
+              onChange={(e) => setWriteForm({ ...writeForm, tag: e.target.value })}
+            />
 
             <textarea
               style={styles.editTextarea}
@@ -165,7 +192,9 @@ export default function StudyLogPage() {
               onChange={(e) => setWriteForm({ ...writeForm, content: e.target.value })}
             />
 
-            <p style={styles.aiNote}>💬 AI 코멘트는 저장 후 자동으로 생성됩니다.</p>
+            <p style={styles.aiNote}>
+              AI 코멘트는 저장 후 자동으로 생성됩니다.
+            </p>
 
             <div style={styles.buttonRow}>
               <button style={styles.greenBtn} onClick={handleWriteSave} disabled={saving}>
@@ -181,16 +210,17 @@ export default function StudyLogPage() {
     )
   }
 
-  // ── 상세 / 수정 화면 ──────────────────────────────────────────────────────
-
   if (selectedLog) {
     return (
       <div className="app-layout">
         <Navbar />
+
         <main style={styles.page}>
           <section style={styles.header}>
             <h1 style={styles.title}>Study Log</h1>
-            <p style={styles.subtitle}>주식 공부 기록과 투자 학습 일기를 자유롭게 남깁니다.</p>
+            <p style={styles.subtitle}>
+              주식 공부 기록과 투자 학습 일기를 자유롭게 남깁니다.
+            </p>
           </section>
 
           <section style={editing ? styles.writeCard : styles.detailCard}>
@@ -199,28 +229,26 @@ export default function StudyLogPage() {
                 <input
                   style={styles.editInput}
                   value={editForm.title}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, title: e.target.value })
+                  }
                 />
 
-                <div style={styles.rowInputs}>
-                  <input
-                    style={{ ...styles.editInputSmall, flex: 1 }}
-                    placeholder="태그"
-                    value={editForm.tag || ''}
-                    onChange={(e) => setEditForm({ ...editForm, tag: e.target.value })}
-                  />
-                  <input
-                    style={{ ...styles.editInputSmall, flex: 1 }}
-                    placeholder="오늘의 상태"
-                    value={editForm.mood || ''}
-                    onChange={(e) => setEditForm({ ...editForm, mood: e.target.value })}
-                  />
-                </div>
+                <input
+                  style={styles.editInputSmall}
+                  placeholder="태그"
+                  value={editForm.tag || ''}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, tag: e.target.value })
+                  }
+                />
 
                 <textarea
                   style={styles.editTextarea}
                   value={editForm.content}
-                  onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, content: e.target.value })
+                  }
                 />
 
                 <div style={styles.buttonRow}>
@@ -241,9 +269,13 @@ export default function StudyLogPage() {
 
                 <h2 style={styles.detailTitle}>{selectedLog.title}</h2>
 
-                <p style={styles.mood}>오늘의 상태 : {selectedLog.mood}</p>
+                <p style={styles.mood}>
+                  오늘의 상태 : {selectedLog.mood || '기록'}
+                </p>
 
-                <div style={styles.contentBox}>{selectedLog.content}</div>
+                <div style={styles.contentBox}>
+                  {selectedLog.content}
+                </div>
 
                 {selectedLog.ai_comment && (
                   <div style={styles.aiBox}>
@@ -253,9 +285,15 @@ export default function StudyLogPage() {
                 )}
 
                 <div style={styles.buttonRow}>
-                  <button style={styles.greenBtn} onClick={handleEditStart}>수정</button>
-                  <button style={styles.redBtn} onClick={handleDelete}>삭제</button>
-                  <button style={styles.grayBtn} onClick={goToList}>목록으로</button>
+                  <button style={styles.greenBtn} onClick={handleEditStart}>
+                    수정
+                  </button>
+                  <button style={styles.redBtn} onClick={handleDelete}>
+                    삭제
+                  </button>
+                  <button style={styles.grayBtn} onClick={goToList}>
+                    목록으로
+                  </button>
                 </div>
               </>
             )}
@@ -265,29 +303,32 @@ export default function StudyLogPage() {
     )
   }
 
-  // ── 목록 화면 ─────────────────────────────────────────────────────────────
-
   return (
     <div className="app-layout">
       <Navbar />
+
       <main style={styles.page}>
         <section style={styles.header}>
           <h1 style={styles.title}>Study Log</h1>
-          <p style={styles.subtitle}>주식 공부 기록과 투자 학습 일기를 자유롭게 남깁니다.</p>
+          <p style={styles.subtitle}>
+            주식 공부 기록과 투자 학습 일기를 자유롭게 남깁니다.
+          </p>
         </section>
 
         <section style={styles.summaryGrid}>
           <div style={styles.summaryCard}>
-            <strong>오늘의 기록</strong>
-            <span>{todayCount}개</span>
+            <strong style={{ fontSize: 15.5 }}>오늘의 기록</strong>
+            <span style={{ fontSize: 15.5 }}>{todayCount}개</span>
           </div>
+
           <div style={styles.summaryCard}>
-            <strong>전체 기록</strong>
-            <span>{total}개</span>
+            <strong style={{ fontSize: 15.5 }}>전체 기록</strong>
+            <span style={{ fontSize: 15.5 }}>{total}개</span>
           </div>
+
           <button style={styles.writeSummaryCard} onClick={() => setWriting(true)}>
-            <strong>글쓰기</strong>
-            <span>Click</span>
+            <strong style={{ fontSize: 15.5 }}>글쓰기</strong>
+            <span style={{ fontSize: 15.5 }}>Click</span>
           </button>
         </section>
 
@@ -313,13 +354,16 @@ export default function StudyLogPage() {
 
         {totalPages > 1 && (
           <div style={styles.pagination}>
-            {Array.from({ length: totalPages }, (_, i) => (
+            {Array.from({ length: totalPages }, (_, index) => (
               <button
-                key={i + 1}
-                style={{ ...styles.pageBtn, ...(page === i + 1 ? styles.pageBtnActive : {}) }}
-                onClick={() => setPage(i + 1)}
+                key={index + 1}
+                style={{
+                  ...styles.pageBtn,
+                  ...(page === index + 1 ? styles.pageBtnActive : {}),
+                }}
+                onClick={() => setPage(index + 1)}
               >
-                {i + 1}
+                {index + 1}
               </button>
             ))}
           </div>
@@ -342,7 +386,7 @@ const styles = {
   title: {
     fontSize: 40,
     fontWeight: 800,
-    color: '#2f6f4f',
+    color: '#286346',
     marginBottom: 10,
   },
   subtitle: {
@@ -442,6 +486,8 @@ const styles = {
     color: '#2f6f4f',
     fontWeight: 700,
     cursor: 'pointer',
+    outline: 'none',
+    boxShadow: 'none',
   },
   pageBtnActive: {
     background: '#2f6f4f',
@@ -536,11 +582,6 @@ const styles = {
     fontWeight: 700,
     cursor: 'pointer',
   },
-  rowInputs: {
-    display: 'flex',
-    gap: 12,
-    marginBottom: 12,
-  },
   editInput: {
     width: '100%',
     padding: 14,
@@ -553,10 +594,12 @@ const styles = {
     boxSizing: 'border-box',
   },
   editInputSmall: {
+    width: '100%',
     padding: 12,
     borderRadius: 10,
     border: '1px solid #d1d5db',
     fontSize: 15,
+    marginBottom: 12,
     background: '#ffffff',
     boxSizing: 'border-box',
   },
