@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 import BeginnerGuide from '../components/education/BeginnerGuide'
+import StockDictionary from '../components/education/StockDictionary'
 
 const EDU_API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -208,14 +209,7 @@ export default function EducationPage() {
           </>
         )}
 
-        {activeSection === 'guide' && (
-          <section style={styles.emptyCard}>
-            <h2 style={styles.emptyTitle}>주식 백과사전</h2>
-            <p style={styles.emptyText}>
-              주식 초보자를 위한 텍스트 가이드가 이곳에 들어갈 예정입니다.
-            </p>
-          </section>
-        )}
+        {activeSection === 'guide' && <StockDictionary />}
 
         {activeSection === 'ready' && <BeginnerGuide />}
       </main>
