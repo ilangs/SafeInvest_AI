@@ -1,14 +1,25 @@
 """
-main.py
-────────
-FastAPI 앱 진입점 및 오케스트레이션 허브.
+main.py — SafeInvest AI 백엔드의 시작점
+═══════════════════════════════════════════════════════════════════════
+[이 파일이 하는 일]
+  FastAPI 앱을 만들고, 모든 라우터(엔드포인트)를 등록하고, CORS·정적파일·
+  헬스체크까지 한 곳에서 조립하는 "조립 공장" 역할.
 
-실행:
-  개발  : uvicorn main:app --reload --port 8000
-  운영  : gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker
+[처음 보는 분께]
+  - SafeInvest AI는 ① 한국 주식 매매(KIS API) ② AI 투자 챗봇(LangGraph)
+    ③ 시장분석 ④ 교육센터 ⑤ 학습기록 의 5대 모듈로 구성됩니다.
+  - 각 모듈은 app/routers/*.py 에 분리되어 있고, 이 파일에서 통합됩니다.
+  - 인증은 Supabase JWT를 사용 (app/core/security.py의 verify_jwt).
+  - DB는 Supabase Postgres + pgvector(임베딩) + RLS(행 단위 보안).
 
-Render.com 배포 시 Start Command:
-  uvicorn main:app --host 0.0.0.0 --port $PORT
+[실행]
+  개발 : uvicorn main:app --reload --port 8000
+  운영 : Render.com 배포 (Procfile + render.yaml)
+
+[URL]
+  /docs            Swagger UI (모든 엔드포인트 인터랙티브 테스트)
+  /health          서버 상태 (.github/workflows/keep_alive.yml 이 12분마다 호출 — Render Free tier 15분 idle sleep 방지)
+  /api/v1/...      API 본체 (인증 필요한 엔드포인트 다수)
 """
 
 from contextlib import asynccontextmanager
@@ -86,13 +97,14 @@ if _static_dir.exists():
     app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 
 
-# ── 헬스체크 (UptimeRobot 대상) ───────────────────────────────────────────────
+# ── 헬스체크 (GitHub Actions keep_alive.yml 워크플로우가 12분마다 호출) ─────
 
 @app.get("/health", tags=["system"], summary="서버 상태 확인")
 async def health_check():
     """
-    UptimeRobot 이 10분마다 이 엔드포인트를 호출합니다.
-    Render.com Free tier 의 Sleep 을 방지합니다.
+    GitHub Actions 워크플로우 `.github/workflows/keep_alive.yml` 이 12분마다
+    이 엔드포인트를 호출하여 Render.com Free tier 의 15분 idle Sleep 을 방지합니다.
+    (이전에 사용하던 UptimeRobot 은 중단)
     인증 불필요.
     """
     return JSONResponse({

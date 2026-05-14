@@ -1,17 +1,56 @@
 """
-SafeInvest AI - 일일 증분 데이터 수집 (Supabase 버전)
-실행: python -m backend.analysis.daily_update
-      또는 cd backend/analysis && python daily_update.py
+analysis/daily_update.py — 시장분석을 위한 일일 데이터 수집 파이프라인
+═══════════════════════════════════════════════════════════════════════
+[이 파일이 하는 일]
+  한국 거래소(KRX), DART(금융감독원 전자공시), 그리고 KIS API에서
+  매일 새로운 데이터를 받아와 Supabase에 적재. 이 데이터가 있어야
+  시장분석 페이지의 종목 목록·가격 차트·재무·경고·AI 스코어가 동작.
 
-원본(streamlit/SQLite) → Supabase 포팅:
-  - STOCKS / STOCK_PRICES / STOCK_FINANCIALS / STOCK_WARNINGS 모두 Supabase 테이블 사용
-  - 컬럼명 매핑: name→stock_name, date→trade_date, open→open_price,
-                 year→fiscal_year, quarter→fiscal_quarter, net_profit→net_income
-  - boolean 타입: is_active / capital_impairment 모두 PostgreSQL BOOLEAN 사용
-  - migration_06 의 total_assets/total_equity/total_liabilities/data_source 컬럼 활용
+[처음 보는 분께 데이터 흐름]
+                              ┌─ KRX 신규상장
+   외부 데이터 소스 ───────────┼─ KIS API (일별 시세)
+                              └─ DART OpenAPI (재무제표)
+                                       │
+                                       ▼
+   ┌────────────────── daily_update.py ─────────────────┐
+   │  STEP 4: 신규상장 추가  → stocks 테이블 INSERT     │
+   │  STEP 1: 일별 주가 수집 → stock_prices INSERT      │
+   │  STEP 2: 분기 재무 수집 → stock_financials INSERT  │
+   │  STEP 3: 경고 재계산   → stock_warnings UPDATE    │
+   └────────────────────────────────────────────────────┘
+                                       │
+                                       ▼
+                          data_quality_check.py 자동 호출
+                          (2-Tier 품질검증 — 결측·이상값 잡기)
+                                       │
+                                       ▼
+                  시장분석 UI (MarketAnalysisPage) 에 노출
 
-기본 실행 순서: STEP4 신규상장 → STEP1 주가 → STEP2 재무 → STEP3 경고 재계산
-완료 후 자동으로 data_quality_check.py 호출.
+[실행]
+  - 수동:    cd backend/analysis && python daily_update.py
+  - 모듈:    python -m backend.analysis.daily_update
+  - 운영 스케줄: GitHub Actions `.github/workflows/daily_update.yml` 가
+    평일 18:30 KST (cron `30 9 * * 1-5`) 에 자동 실행
+    → 4 STEP 수집 후 data_quality_check.py 까지 자동 호출
+
+[Supabase 테이블 매핑]
+  - stocks            (종목 마스터)
+  - stock_prices      (일별 OHLCV)
+  - stock_financials  (분기 재무제표)
+  - stock_warnings    (자본잠식·연속적자·고부채·매출부족)
+
+[컬럼명 변환 메모 (원본 SQLite → Supabase 포팅)]
+  - name           → stock_name
+  - date           → trade_date
+  - open           → open_price
+  - year, quarter  → fiscal_year, fiscal_quarter
+  - net_profit     → net_income
+  - boolean 타입: is_active / capital_impairment 모두 PostgreSQL BOOLEAN
+
+[안정성 장치]
+  - DART API: 분기당 5만 호출 한도 → time.sleep으로 페이싱
+  - 일부 종목 실패 시 다음 종목으로 계속 진행 (전체 실패 방지)
+  - 완료 후 data_quality_check.py로 2-Tier 검증
 """
 
 import os

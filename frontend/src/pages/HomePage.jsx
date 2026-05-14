@@ -96,7 +96,7 @@ export default function HomePage() {
 
         <div className="footer-info">
           <p>Ju-Dy는 AI 기반으로 설계된 개인 맞춤형 투자 교육 서비스입니다.</p>
-          <p>Dong-A [ AI Agent Final Project – Team 4 ]</p>
+          <p>Dong-A [ AI Agent Final Project ]</p>
         </div>
 
         <div className="footer-copy">

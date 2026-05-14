@@ -69,7 +69,7 @@ export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = tr
           alignItems: 'center',
           justifyContent: 'space-between',
           background: '#2f6f4f',
-          padding: '16px 14px',
+          padding: '14px 14px',
           margin: '-16px -16px 7px -16px',
           borderBottom: 'none',
         }}

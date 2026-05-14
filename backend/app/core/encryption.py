@@ -1,12 +1,28 @@
 """
-app/core/encryption.py
-───────────────────────
-AES-256 (Fernet) 암호화/복호화.
-KIS API 키를 DB에 저장할 때 반드시 암호화합니다.
+app/core/encryption.py — 🔐 KIS 자격증명 암호화 (AES-256 / Fernet)
+═══════════════════════════════════════════════════════════════════════
+[이 파일이 하는 일]
+  사용자가 등록한 KIS(한국투자증권) API 키·시크릿·계좌번호를
+  Supabase user_kis_credentials 테이블에 저장하기 전에 AES-256으로 암호화.
 
-ENCRYPTION_KEY 형식:
-  - Fernet 표준: URL-safe base64 인코딩 32바이트 (권장)
-  - 16진수 문자열: 64자리 hex → 자동으로 Fernet 키로 변환
+[왜 필요한가]
+  KIS API 키가 유출되면 = 사용자 실계좌에서 매매 가능. 절대 평문 저장 X.
+  DB가 유출되어도 ENCRYPTION_KEY 없이는 키 복원 불가하도록 설계.
+
+[Fernet 이란]
+  Python cryptography 라이브러리의 AES-256 CBC + HMAC-SHA256 표준 구현.
+  - 인증된 암호화 (변조 감지 가능)
+  - URL-safe base64 출력
+
+[ENCRYPTION_KEY 보관]
+  - .env 파일의 ENCRYPTION_KEY 환경변수
+  - 절대 git에 커밋 금지 (.gitignore 확인)
+  - 생성: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+  - 형식 자동 인식: Fernet 표준 base64 또는 hex 64자
+
+[사용 예시]
+  enc = encrypt("PSxxxxxxxxxxxxxx")     # 평문 → 암호문 (DB 저장용)
+  dec = decrypt(enc)                    # 암호문 → 평문 (KIS API 호출 직전)
 """
 import base64
 from cryptography.fernet import Fernet

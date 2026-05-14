@@ -1,3 +1,23 @@
+// ════════════════════════════════════════════════════════════════════
+// MarketAnalysisPage.jsx — 시장분석 페이지 (종목 안전성 평가)
+// ════════════════════════════════════════════════════════════════════
+// [이 페이지가 하는 일]
+//   사용자가 관심 종목을 고르면 ① 재무 안정성 ② 수익성 ③ 거래 활성도
+//   를 종합한 "안전성 스코어"를 보여주고, 위험 신호(자본잠식·연속적자·
+//   고부채·매출부족)를 한 화면에 정리.
+//
+// [데이터 소스]
+//   - analysis/daily_update.py가 매일 KRX/DART/KIS에서 수집해 적재한
+//     Supabase의 stocks/stock_prices/stock_financials/stock_warnings
+//
+// [구성]
+//   - AnalysisHome   : 종목 목록·최근 조회·시장 통계
+//   - AnalysisDetail : 선택 종목의 상세 (스코어, 차트, 재무, 경고, AI 분석)
+//
+// [최근 조회 기능]
+//   recent_searches 테이블에 사용자별로 저장 — 페이지 재진입 시 빠르게
+//   이전 관심 종목으로 돌아갈 수 있음.
+// ════════════════════════════════════════════════════════════════════
 import { useState, useEffect } from 'react'
 import Navbar         from '../components/layout/Navbar'
 import AnalysisHome   from '../components/analysis/AnalysisHome.jsx'

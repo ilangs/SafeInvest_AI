@@ -1,17 +1,49 @@
 """
-backend/app/services/chatbot_graph.py
-──────────────────────────────────────
-LangGraph 0.x 기반 FSS RAG 챗봇 그래프.
+app/services/chatbot_graph.py — LangGraph 기반 멀티스텝 AI 챗봇
+═══════════════════════════════════════════════════════════════════════
+[이 파일이 하는 일]
+  사용자 질문 한 건을 받아 여러 단계의 노드를 거쳐 답변을 생성하는
+  "상태 기반(stateful) 워크플로우". 단일 LCEL 체인보다 분기·조건부 처리에 강함.
 
-흐름:
-  질문
-   └─► [retrieve]         match_knowledge_fss RPC 로 FSS 문서 검색
-         └─► [route_decision]   source_docs 유무로 route 결정
-               └─► (조건부 엣지: should_fallback)
-                     ├─ "rag"      → [generate_rag]       LCEL 체인, 참조 자료 포함
-                     └─ "fallback" → [generate_fallback]  LCEL 체인, 일반지식 기반
-                                           └─► [save_history]  chat_history 저장
-                                                 └─► END
+[처음 보는 분께 LangGraph란]
+  LangChain의 상위 라이브러리. 노드(node)와 엣지(edge)로 그래프를 그리고
+  각 노드가 상태(state)를 읽고 갱신하며 다음 노드로 넘어가는 구조.
+  - 일반 체인: A→B→C 단방향
+  - 그래프 : A→(조건)→B 또는 C→D→END  ← 분기/병합 가능
+
+[이 챗봇의 그래프 흐름]
+
+      [START]
+         │
+         ▼
+   [retrieve]              ── FSS 금융교육 문서 RPC 검색
+   ① match_knowledge_fss
+         │
+         ▼
+   [route_decision]        ── 검색 결과 유무로 라우팅 결정
+   ② source_docs 검사
+         │
+    조건부 엣지(should_fallback)
+         ├──"rag"──────────► [generate_rag]      참조 자료 인용 답변
+         │                       │
+         └──"fallback"────► [generate_fallback]  일반 금융 상식 기반
+                                 │
+                                 ▼
+                          [save_history]         chat_history DB 저장
+                                 │
+                                 ▼
+                               [END]
+
+[왜 이렇게 설계했나]
+  - FSS 데이터에 없는 질문에도 답변 필요 → fallback 노드
+  - 답변은 출처 명시 가능해야 함 → rag 노드에서 source_url 첨부
+  - 대화 히스토리는 분석·개선용으로 저장 → save_history 노드
+
+[rag_chain.py와의 차이]
+  - rag_chain.py    : 단일 LCEL 체인 (질문 → 답변)
+  - chatbot_graph.py: 멀티 노드 그래프 (이 파일, 더 정교한 분기)
+  - 엔드포인트 /api/v1/ai/chat 가 이 그래프를 호출
+
 
 ⚠️  LangChain 버전 원칙:
   - 사용 금지: from langchain.chains import RetrievalQA

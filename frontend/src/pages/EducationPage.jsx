@@ -129,7 +129,7 @@ export default function EducationPage() {
             }}
             onClick={() => setActiveSection('guide')}
           >
-            주식 백과사전
+            주디 백과사전
           </button>
         </section>
 

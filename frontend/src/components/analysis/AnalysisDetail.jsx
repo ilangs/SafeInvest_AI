@@ -6,9 +6,9 @@ import TabSafety    from './tabs/TabSafety.jsx'
 import TabFinancial from './tabs/TabFinancial.jsx'
 import TabPrice     from './tabs/TabPrice.jsx'
 import TabTechnical from './tabs/TabTechnical.jsx'
-import TabAI        from './tabs/TabAI.jsx'
 
-const TABS = ['① 종합진단','② 안전점검','③ 재무분석','④ 가격추이','⑤ 기술적분석','⑥ AI분석']
+
+const TABS = ['① 종합진단','② 안전점검','③ 재무분석','④ 가격추이 ','⑤ 기술적분석']
 
 export default function AnalysisDetail({ ticker, stocks, onBack }) {
   const [activeTab, setActiveTab] = useState(0)

@@ -85,7 +85,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
           alignItems: 'center',
           justifyContent: 'space-between',
           background: '#2f6f4f',
-          padding: '16px 14px',
+          padding: '15px 14px',
           margin: '-16px -16px 5px -16px',
           borderBottom: 'none',
           flexShrink: 0,

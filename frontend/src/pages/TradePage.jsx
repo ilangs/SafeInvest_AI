@@ -1,3 +1,32 @@
+// ════════════════════════════════════════════════════════════════════
+// TradePage.jsx — 매매 페이지 (프론트엔드의 가장 종합적인 화면)
+// ════════════════════════════════════════════════════════════════════
+// [이 페이지가 보여주는 것]
+//   ① 상단 검색바    — 종목 자동완성·코드 검색·현재가·등락률
+//   ② 캔들 차트      — KIS OHLCV + MA5/20/60 이동평균선
+//   ③ 투자정보       — 시가총액·상한가/하한가·PER·52주범위
+//   ④ 잔고현황       — 예수금·매수가능·평가금액·총손익
+//   ⑤ 호가창        — 매수/매도 10단계 호가 + 클릭으로 가격 자동입력
+//   ⑥ 모의투자 폼   — 매수/매도 + 지정가/시장가 + 거래시간 외 차단
+//   ⑦ 보유종목       — KIS 보유 + 로컬 미반영분 병합 표시
+//   ⑧ 매매내역       — 기간별 주문 이력 (체결/접수 상태 표시)
+//
+// [핵심 데이터 흐름]
+//   - useAuth() 로 사용자 ID 확보 → kisReady 플래그 후 위젯들이 일제히 호출
+//   - credentials/status API로 실거래/모의 환경 결정 (kisMode)
+//   - 종목 변경 시: localStorage 저장 + stocks API로 시장/업종 메타 fetch
+//   - 보유종목 첫 로드 시: 최상단 종목으로 symbol 자동 선택 (1회만)
+//
+// [관련 컴포넌트]
+//   - CandleChart, Orderbook, OrderForm, BalanceWidget, HoldingsWidget,
+//     StockInfoWidget, TodayOrdersWidget  (모두 components/trading/)
+//
+// [백엔드 의존성]
+//   /api/v1/market/{quote,orderbook,chart,info,search}
+//   /api/v1/account/{balance,holdings}
+//   /api/v1/order, /api/v1/orders/{today,history}
+//   /api/v1/credentials/status, /api/v1/stocks/{ticker}
+// ════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Navbar            from '../components/layout/Navbar'
 import CandleChart       from '../components/trading/CandleChart'

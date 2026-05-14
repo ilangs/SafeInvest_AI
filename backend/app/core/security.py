@@ -1,12 +1,26 @@
 """
-app/core/security.py
-─────────────────────
-JWT 검증 단일 진입점 (SSOT).
+app/core/security.py — 🔐 인증의 핵심 (JWT 검증 단일 진입점, SSOT)
+═══════════════════════════════════════════════════════════════════════
+[이 파일이 하는 일]
+  프론트엔드가 Supabase 로그인 후 보내오는 JWT(Access Token)를
+  서버에서 검증하고, 안의 user_id·email·role을 꺼내 dependency에 주입.
 
-Supabase 프로젝트가 ES256(비대칭키)을 사용하는 경우:
-  - 사용자 access_token: ES256 (eyJhbGciOiJFUzI1NiIs...)
-  - anon/service_role key: HS256 (eyJhbGciOiJIUzI1NiIs...)
-  - 공개키는 JWKS 엔드포인트에서 자동 취득
+[왜 SSOT(Single Source of Truth)인가]
+  JWT 검증 로직을 여러 곳에 흩뿌리면 보안 사고 위험이 큼.
+  이 파일의 verify_jwt() 만 신뢰 — 다른 라우터는 모두
+  `from app.dependencies import get_current_user` 를 통해 사용.
+
+[Supabase JWT의 특이점]
+  Supabase는 두 종류의 JWT를 발행:
+    1) 사용자 access_token  — 알고리즘 ES256 (비대칭키, 공개키로 검증)
+    2) anon / service_role  — 알고리즘 HS256 (대칭키, SUPABASE_JWT_SECRET)
+  이 파일은 토큰 헤더의 alg를 보고 자동 분기, 둘 다 검증 가능.
+  공개키는 JWKS 엔드포인트에서 lru_cache로 1회 fetch 후 재사용.
+
+[보안 체크]
+  - exp (만료시각) 확인 → 만료된 토큰 거부
+  - iss (발급자) 확인 → 다른 프로젝트의 토큰 거부
+  - 서명 검증 → 변조된 토큰 거부
 """
 
 from datetime import datetime, timezone

@@ -1,9 +1,24 @@
 """
-app/routers/order.py
-─────────────────────
-주문 엔드포인트.
+app/routers/order.py — 주식 매수/매도 주문 엔드포인트
+═══════════════════════════════════════════════════════════════════════
+[이 파일이 하는 일]
+  프론트엔드의 주문 폼 제출 → 이 API → kis_client.place_order() 호출.
+  비즈니스 로직은 services/kis_client.py 에 위임하고, 이 파일은 얇은 라우터.
 
-POST /api/v1/order   주문 요청 (body.is_mock 으로 모의/실거래 분기)
+[보안·안전 장치 (kis_client에서 수행)]
+  1) JWT 인증 필수 (Depends(get_current_user))
+  2) 거래시간 외 주문 거부 (주말·공휴일·정규장 외)
+  3) KIS 통신 실패 시 status="rejected" 명시 응답 — 가짜 체결 기록 금지
+  4) 주문 성공 시 user_orders 테이블에 "접수" 상태로 기록 (체결은 별도 확인)
+
+[엔드포인트]
+  POST /api/v1/order
+    body: { symbol, order_type: "buy"|"sell", quantity, price?, is_mock }
+    response: { order_id, status: "accepted"|"rejected", message, ... }
+
+[프론트 처리]
+  OrderForm.jsx가 응답의 status 필드를 보고 ✅/❌ 메시지 분기.
+  단순 HTTP 200만 보고 성공 판단하면 안 됨 (거래시간 거부도 200으로 옴).
 """
 
 from datetime import datetime, timezone

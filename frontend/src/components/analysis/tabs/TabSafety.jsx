@@ -1,4 +1,3 @@
-import ExplainBox from '../shared/ExplainBox.jsx'
 import { warnKorean, warnDesc } from '../../../services/analysisApi.js'
 
 // Supabase BOOLEAN → JS true/false, 과거 SQLite 0/1, 문자열 "true"/"1" 모두 활성으로 인식
@@ -6,93 +5,361 @@ const isActiveTruthy = (v) =>
   v === true || v === 1 || v === '1' || v === 'true' || v === 'TRUE'
 
 export default function TabSafety({ score, warnings }) {
-  const active   = (warnings ?? []).filter(w => isActiveTruthy(w.is_active))
+  const active = (warnings ?? []).filter(w => isActiveTruthy(w.is_active))
   const inactive = (warnings ?? []).filter(w => !isActiveTruthy(w.is_active))
+
+  const activePointColor = active.length > 0 ? '#c8a64a' : '#6957ef'
 
   return (
     <div>
-      <h2 style={{ marginBottom: 16 }}>안전점검</h2>
+      {/* 라인형 탭 가이드 */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          marginTop: 28,
+          marginBottom: 33,
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            height: 1,
+            background: '#d7e4d5',
+          }}
+        />
 
-      <ExplainBox
-        title="안전점검이란?"
-        body="이 탭은 재무 데이터 기반으로 확인된 <b>공식 위험 경고</b>를 보여줍니다. 경고가 있다면 투자 전 반드시 DART 전자공시를 직접 확인하세요."
-        type="info"
-      />
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 590,
+            color: '#3b3e43',
+            whiteSpace: 'nowrap',
+            letterSpacing: '-0.03em',
+          }}
+        >
+          이 탭은 재무 데이터 기반으로 확인된 공식 위험 경고를 보여줍니다.
+        </div>
 
-      <div className="an-grid-2" style={{ marginTop: 16 }}>
-        <div className="an-metric-card" style={{ borderLeft: `4px solid ${active.length > 0 ? '#ef4444' : '#22c55e'}` }}>
-          <div className="an-metric-label">활성 경고</div>
-          <div className="an-metric-value" style={{ color: active.length > 0 ? '#ef4444' : '#22c55e' }}>
+        <div
+          style={{
+            flex: 1,
+            height: 1,
+            background: '#d7e4d5',
+          }}
+        />
+      </div>
+
+      {/* 상단 카드 3개 */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 2.6fr',
+          gap: 10,
+          marginBottom: -10,
+          maxWidth: 900,
+          margin: '0 auto',
+        }}
+      >
+        {/* 활성 경고 */}
+        <div
+          className="an-glass-card"
+          style={{
+            borderLeft: `5px solid ${active.length > 0 ? '#c85a5a' : '#4caf6a'}`,
+            padding: '18px 22px',
+            borderRadius: 18,
+            background: '#ffffff',
+            minHeight: 90,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: '#111827',
+              marginBottom: 8,
+            }}
+          >
+            활성 경고
+          </div>
+
+          <div
+            style={{
+              fontSize: 30,
+              fontWeight: 900,
+              color: active.length > 0 ? '#c85a5a' : '#4caf6a',
+              lineHeight: 1,
+              letterSpacing: '-0.05em',
+            }}
+          >
             {active.length}건
           </div>
         </div>
-        <div className="an-metric-card" style={{ borderLeft: '4px solid #94a3b8' }}>
-          <div className="an-metric-label">해제된 경고</div>
-          <div className="an-metric-value" style={{ color: '#94a3b8' }}>{inactive.length}건</div>
-        </div>
-      </div>
 
-      <h3 style={{ marginTop: 24, marginBottom: 12 }}>
-        {active.length > 0 ? '🔴 활성 위험 경고' : '✅ 현재 활성 경고 없음'}
-      </h3>
-
-      {active.length === 0 ? (
-        <ExplainBox
-          title="경고 없음"
-          body="현재 데이터 기준 활성화된 투자 경고가 없습니다. 경고가 없다고 해서 투자가 안전하다는 의미는 아닙니다."
-          type="good"
-        />
-      ) : (
-        active.map((w, i) => <WarnCard key={i} warn={w} active />)
-      )}
-
-      {inactive.length > 0 && (
-        <>
-          <h3 style={{ marginTop: 28, marginBottom: 12 }}>⬜ 해제된 경고 이력</h3>
-          {inactive.map((w, i) => <WarnCard key={i} warn={w} active={false} />)}
-        </>
-      )}
-
-      <hr className="an-hr" />
-      <h3 style={{ marginBottom: 12 }}>📖 위험 유형 설명</h3>
-      {[
-        { type: 'CAPITAL_IMPAIRMENT', sev: '매우 심각', sevColor: '#ef4444',
-          detail: '누적 손실이 자본금을 잠식한 상태입니다. 자본잠식률 50% 이상이면 관리종목 지정, 완전자본잠식이면 상장폐지 위험이 있습니다.' },
-        { type: 'CONTINUOUS_LOSS', sev: '심각', sevColor: '#f97316',
-          detail: '최근 3년 동안 계속 순손실이 발생했습니다. 사업 지속 가능성을 점검해야 합니다.' },
-        { type: 'HIGH_DEBT', sev: '주의', sevColor: '#eab308',
-          detail: '자본 대비 빚이 매우 큰 상태입니다. 금리 상승 시 이자 부담으로 경영이 어려워질 수 있습니다.' },
-        { type: 'LOW_REVENUE', sev: '주의', sevColor: '#eab308',
-          detail: '연간 매출이 작아 사업 안정성이 낮을 수 있습니다.' },
-      ].map(({ type, sev, sevColor, detail }) => (
-        <div key={type} className="an-glass-card" style={{ marginTop: 12 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', marginBottom: 8 }}>
-            <span style={{ fontWeight: 800, color: '#dbeafe' }}>{warnKorean(type)}</span>
-            <span style={{ color: sevColor, fontWeight: 700, fontSize: 13 }}>{sev}</span>
+        {/* 해제된 경고 */}
+        <div
+          className="an-glass-card"
+          style={{
+            borderLeft: '5px solid #98a2b3',
+            padding: '18px 22px',
+            borderRadius: 18,
+            background: '#ffffff',
+            minHeight: 90,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: '#111827',
+              marginBottom: 8,
+            }}
+          >
+            해제된 경고
           </div>
-          <p style={{ color: '#94a3b8', fontSize: 14 }}>{warnDesc(type)}</p>
-          <p style={{ color: '#d9e2f2', fontSize: 14, marginTop: 6 }}>{detail}</p>
-        </div>
-      ))}
-    </div>
-  )
-}
 
-function WarnCard({ warn, active }) {
-  const korean = warnKorean(warn.warning_type)
-  const desc   = warnDesc(warn.warning_type)
-  return (
-    <div className={active ? 'an-warning-box' : 'an-easy-box'} style={{ marginTop: 10 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', marginBottom: 6 }}>
-        <b>{active ? '🔴' : '⬜'} {korean}</b>
-        <span style={{ fontSize: 12, color: active ? '#ffd0d0' : '#64748b' }}>
-          {active ? '활성' : '해제'}
-        </span>
+          <div
+            style={{
+              fontSize: 30,
+              fontWeight: 900,
+              color: '#98a2b3',
+              lineHeight: 1,
+              letterSpacing: '-0.05em',
+            }}
+          >
+            {inactive.length}건
+          </div>
+        </div>
+
+        {/* 활성 위험 경고 */}
+        <div
+          className="an-glass-card"
+          style={{
+            borderLeft: `5px solid ${activePointColor}`,
+            padding: '18px 22px',
+            borderRadius: 18,
+            background: '#ffffff',
+            minHeight: 90,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: '#111827',
+              marginBottom: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span
+              style={{
+                width: 13,
+                height: 13,
+                borderRadius: '50%',
+                background: activePointColor,
+                display: 'inline-block',
+                flexShrink: 0,
+              }}
+            />
+            {active.length > 0 ? '활성 위험 경고' : '활성 경고 없음'}
+          </div>
+
+          {active.length > 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              {active.map((w, i) => (
+                <div key={i}>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 900,
+                      color: '#7a3b2a',
+                      marginBottom: 3,
+                    }}
+                  >
+                    {warnKorean(w.warning_type)}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 14,
+                      lineHeight: 1.5,
+                      color: '#475569',
+                    }}
+                  >
+                    {warnDesc(w.warning_type)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#64748b',
+                lineHeight: 1.5,
+              }}
+            >
+              현재 데이터 기준 활성화된 투자 경고가 없습니다.
+            </div>
+          )}
+        </div>
       </div>
-      <p style={{ fontSize: 14 }}>{desc}</p>
-      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>
-        {warn.start_date && <span>시작: {warn.start_date}</span>}
-        {warn.end_date   && <span style={{ marginLeft: 12 }}>종료: {warn.end_date}</span>}
+
+      {/* 위험 유형 설명 */}
+      <div
+        style={{
+          marginTop: 12,
+          padding: '24px 26px',
+          borderRadius: 20,
+        }}
+      >
+        <h3
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: '#111827',
+            marginBottom: 18,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            letterSpacing: '-0.03em',
+          }}
+        >
+          <img
+            src="/logo-tab.png"
+            alt="Ju-Dy"
+            style={{
+              width: 24,
+              height: 24,
+              objectFit: 'contain',
+            }}
+          />
+          위험 유형 설명
+        </h3>
+
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: 12,
+            overflow: 'hidden',
+            border: '1px solid #d7e4d5',
+          }}
+        >
+          {[
+            {
+              type: 'CAPITAL_IMPAIRMENT',
+              sev: '매우 심각',
+              sevColor: '#d95c5c',
+              dot: '#d95c5c',
+              detail:
+                '누적 손실로 자본이 감소한 상태이며, 심할 경우 관리종목 또는 상장폐지 위험이 있습니다.',
+            },
+            {
+              type: 'CONTINUOUS_LOSS',
+              sev: '심각',
+              sevColor: '#e38b2c',
+              dot: '#e38b2c',
+              detail:
+                '최근 3년 동안 계속 순손실이 발생했습니다. 사업 지속 가능성을 점검해야 합니다.',
+            },
+            {
+              type: 'HIGH_DEBT',
+              sev: '주의',
+              sevColor: '#d7b325',
+              dot: '#e7c63b',
+              detail:
+                '자본 대비 빚이 매우 큰 상태입니다. 금리 상승 시 이자 부담으로 경영이 어려워질 수 있습니다.',
+            },
+            {
+              type: 'LOW_REVENUE',
+              sev: '주의',
+              sevColor: '#d7b325',
+              dot: '#e7c63b',
+              detail:
+                '연간 매출이 작아 사업 안정성이 낮을 수 있습니다.',
+            },
+          ].map(({ type, sev, sevColor, dot, detail }, idx, arr) => (
+            <div
+              key={type}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '200px 1fr 100px',
+                alignItems: 'center',
+                gap: -1,
+                padding: '9px 22px',
+                borderBottom:
+                  idx === arr.length - 1 ? 'none' : '1px solid #e3ece1',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 11,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: '#111827',
+                  letterSpacing: '-0.03em',
+                }}
+              >
+                <span
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    background: dot,
+                    display: 'inline-block',
+                    flexShrink: 0,
+                  }}
+                />
+                {warnKorean(type)}
+              </div>
+
+              <div
+                style={{
+                  fontSize: 15,
+                  lineHeight: 1.6,
+                  color: '#374151',
+                  marginLeft: -40,
+                }}
+              >
+                {detail}
+              </div>
+
+              <div
+                style={{
+                  justifySelf: 'end',
+                  color: sevColor,
+                  fontWeight: 700,
+                  fontSize: 13,
+                  background: `${sevColor}12`,
+                  border: `1px solid ${sevColor}55`,
+                  padding: '5px 12px',
+                  borderRadius: 999,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {sev}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -1,12 +1,27 @@
 """
-app/routers/credentials.py
-───────────────────────────
-KIS 계좌 연결 관리 엔드포인트.
+app/routers/credentials.py — 🔐 KIS 계좌 자격증명 관리 API
+═══════════════════════════════════════════════════════════════════════
+[이 파일이 하는 일]
+  사용자가 MyPage에서 KIS API 키·시크릿·계좌번호를 입력 → 이 API가
+  ① AES-256 암호화 후 user_kis_credentials 테이블에 저장
+  ② KIS API에 토큰 발급 요청 → 키 유효성 즉시 검증
+  ③ 모의(Mock) / 실거래(Real) 환경을 분리 관리 (is_mock 컬럼)
 
-GET    /api/v1/credentials/status         연결 상태 조회 (모의/실거래 각각)
-GET    /api/v1/credentials/profile        저장된 키 복원 (폼 자동완성용)
-POST   /api/v1/credentials/connect        키 등록 + KIS 연결 테스트
-DELETE /api/v1/credentials/{is_mock}      연결 해제
+[보안 흐름]
+  사용자 입력 → POST /connect
+    ├─ encryption.encrypt() 로 즉시 암호화
+    ├─ Supabase admin 클라이언트로 INSERT/UPDATE
+    └─ 응답에는 마스킹된 일부 정보만 (예: "PS****1234")
+
+[엔드포인트]
+  GET    /api/v1/credentials/status      모의/실거래 연결 상태
+  GET    /api/v1/credentials/profile     폼 자동완성용 마스킹된 정보
+  POST   /api/v1/credentials/connect     키 등록 + 즉시 검증
+  DELETE /api/v1/credentials/{is_mock}   연결 해제 (DB row 삭제)
+
+[프론트 사용처]
+  - MyPage: 계좌 연결 폼
+  - TradePage: 초기 진입 시 connected 상태 + is_mock 결정에 사용
 """
 
 from datetime import datetime, timezone, timedelta

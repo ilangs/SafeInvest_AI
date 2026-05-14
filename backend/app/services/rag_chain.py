@@ -1,16 +1,39 @@
 """
-app/services/rag_chain.py
-──────────────────────────
-LangChain 0.3.x LCEL 방식 RAG 체인.
+app/services/rag_chain.py — AI 챗봇의 단일 질의 RAG 체인
+═══════════════════════════════════════════════════════════════════════
+[이 파일이 하는 일]
+  사용자 질문을 임베딩 → Supabase pgvector에서 유사 문서 검색 → 검색된
+  문서를 컨텍스트로 GPT에게 전달 → 안전한 투자 답변 생성.
 
-⚠️  LangChain 버전 원칙 (반드시 준수):
-  - 사용 금지 : from langchain.chains import RetrievalQA  ← 구버전
+[처음 보는 분께 RAG란]
+  RAG = Retrieval-Augmented Generation (검색 증강 생성)
+  - 순수 LLM은 환각(거짓 답변) 위험 + 최신 정보 부재
+  - RAG는 신뢰할 수 있는 외부 문서를 먼저 찾아오고, 그 문서를 근거로
+    답변 생성 → 환각 ↓ + 출처 추적 가능
+
+[처리 흐름]
+  질문 → text-embedding-3-small (1536-dim 벡터)
+       → supabase_admin.rpc('match_knowledge', query_embedding, threshold)
+       → 유사도 상위 K개 청크 회수
+       → LCEL 파이프: { context, question } | prompt | gpt-4o-mini | parser
+       → 답변 (출처 URL 포함)
+
+[안전 튜터 페르소나]
+  프롬프트에 "특정 종목 매수/매도 추천 금지, 위험 고지 포함" 명시
+  → 금융 사기·과도 매수 조장 방지
+
+[LangChain 버전 원칙 (반드시 준수)]
+  - 사용 금지 : from langchain.chains import RetrievalQA   (구버전)
   - 사용 필수 : LCEL (RunnablePassthrough, | 파이프 연산자)
 
-⚠️  SupabaseVectorStore 비호환 주의:
+[SupabaseVectorStore 비호환 주의]
   langchain_community.vectorstores.SupabaseVectorStore 는
   supabase-py 2.x 와 호환되지 않습니다 (params 속성 오류).
-  대신 supabase_admin.rpc('match_knowledge') 를 직접 호출합니다.
+  → supabase_admin.rpc('match_knowledge') 직접 호출로 우회.
+
+[멀티스텝 챗봇과의 차이]
+  - rag_chain.py    : 단일 질의 → 단일 답변 (이 파일)
+  - chatbot_graph.py: LangGraph 멀티 노드 (retrieve → route → generate → save)
 
 흐름:
   질문 → OpenAI 임베딩 → Supabase RPC 검색 → GPT-4o 답변 → chat_history 저장

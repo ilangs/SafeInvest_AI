@@ -187,15 +187,13 @@ export default function AnalysisHome({ stocks, recentTickers, onSelect, onRefres
           </div>
 
           <div style={styles.noticeGrid}>
-            <ExplainBox
-              title="✅ 검색 안내 - 종목명 또는 종목코드로 검색할 수 있으며 최근 검색 종목이 자동 저장됩니다."
-              type="info"
-            />
+            <div className="an-search-guide">
+              <p>✅ 검색 안내 - 종목명 또는 종목코드로 검색할 수 있으며 최근 검색 종목이 자동 저장됩니다.</p>
+            </div>
 
-            <ExplainBox
-              title="⚠️ 중요 안내 - Ju-Dy는 투자 추천 서비스가 아니며 최종 투자 책임은 본인에게 있습니다."
-              type="warning"
-            />
+             <div className="an-search-warning">
+              <p>⚠️ 중요 안내 - Ju-Dy는 투자 추천 서비스가 아니며 최종 투자 책임은 본인에게 있습니다.</p>
+            </div>
           </div>
 
           {recentStocks.length > 0 && (
@@ -367,8 +365,12 @@ const styles = {
   },
 
   recentGrid: {
+  display: 'grid',
     gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
     gap: 10,
+    maxHeight: 144,
+    overflowY: 'auto',
+    paddingRight: 14,
   },
 
   searchWrap: {

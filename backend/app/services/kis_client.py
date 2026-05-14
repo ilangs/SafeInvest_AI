@@ -1,16 +1,57 @@
 """
-app/services/kis_client.py
-───────────────────────────
-한국투자증권 KIS Developers API 클라이언트.
+app/services/kis_client.py — 한국투자증권 KIS API 통합 (가장 복잡한 파일)
+═══════════════════════════════════════════════════════════════════════
+[이 파일이 하는 일]
+  실제 증권사(한국투자증권)의 REST API를 호출해서
+    - 현재가/호가/차트/투자정보 조회
+    - 계좌 잔고/보유종목 조회
+    - 매수/매도 주문 전송
+    - 매매내역 조회
+  하는 백엔드의 "거래소 어댑터" 역할.
 
-변경사항 (v3):
+[처음 보는 분께 핵심 개념]
+  1) 모의(Mock) vs 실거래(Real) — 두 환경의 URL과 TR-ID가 다름
+     - 모의: openapivts.koreainvestment.com:29443
+     - 실거래: openapi.koreainvestment.com:9443
+     - is_mock 파라미터로 자동 분기
+
+  2) 사용자별 키 — KIS는 사용자마다 APP_KEY/SECRET이 다름
+     - user_kis_credentials 테이블에서 암호화된 키를 불러와 복호화
+     - get_user_token() 이 access_token까지 자동 갱신 (24시간 캐시)
+
+  3) 거래시간 보호 — _is_market_open()
+     - 주말·공휴일(holidays 패키지)·정규장 외 시간엔 주문 거부
+     - 모의 환경에서 "장 외 강제 매수" 같은 잔고 오염 사고 방지
+
+  4) 옵티미스틱 잔고 패턴 — KIS의 매매내역 API는 체결 직후엔 반영이 지연됨
+     - 주문 성공 시 _record_local_order(status="접수") 로 Supabase에 임시 기록
+     - get_holdings 호출 시 _merge_holdings_with_local() 로 KIS+로컬 병합
+     - KIS가 체결 확인하면 _sync_local_with_kis_fills() 로 status="체결" 갱신
+     - 즉, 사용자 화면에선 즉시 반영되고, KIS 응답 도착 후 정합성 맞춰짐
+
+  5) Fallback 캐시 — KIS API 일시 장애 시 사용자가 빈 화면 보지 않도록
+     - _QUOTE_CACHE, _BALANCE_CACHE, _HOLDINGS_CACHE 메모리 캐시
+     - 또는 Supabase의 stock_prices 최근 종가 활용
+
+[핵심 함수 인덱스]
+  get_user_token()        — KIS 토큰 발급/갱신 (DB 자격증명 사용)
+  get_quote()             — 현재가
+  get_orderbook()         — 호가
+  get_chart()             — OHLCV
+  get_stock_info()        — 시가총액·PER·52주 등 확장 시세
+  get_balance()           — 예수금·평가금액·총손익
+  get_holdings()          — 보유종목 + 로컬 미반영분 병합
+  place_order()           — 매수/매도 (거래시간 체크 내장)
+  get_today_orders()      — 당일 주문내역 + KIS 체결 동기화
+  get_order_history()     — 기간 매매내역
+
+[변경 이력 (v3)]
   - get_user_token → dict 반환 (token, app_key, app_secret, cano, acnt_prdt_cd, …)
   - 모든 KIS API 호출에 appkey / appsecret / custtype 헤더 추가
   - get_balance / get_holdings 에 CANO / ACNT_PRDT_CD 파라미터 추가
-  - get_stock_info (시가총액·상한가·PER·52주 범위 등) 신규 추가
-  - get_today_orders (당일 주문내역) 신규 추가
+  - get_stock_info, get_today_orders 신규 추가
   - 토큰 갱신 실패 → KISNotConnectedError 로 래핑 (500 방지)
-  - 2차 토큰 저장: upsert → update 로 변경 (NOT NULL 위반 방지)
+  - 거래시간 외 주문 거부 + 매매내역 로컬 동기화 로직 추가
 """
 
 import re

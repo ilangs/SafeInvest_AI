@@ -98,9 +98,9 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
 
   const rowStyle = {
     display: 'grid',
-    gridTemplateColumns: '60px 1fr 55px',
+    gridTemplateColumns: '68px 1.4fr 30px',
     alignItems: 'center',
-    gap: 4,
+    gap: 10,
     padding: '4px 0',
     cursor: 'pointer',
     borderRadius: 3,
@@ -182,9 +182,9 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
             fontWeight: 500,
           }}
         >
-          <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'left', paddingLeft: 36, }}>호가</span>
+          <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'left', paddingLeft: 25, }}>호가</span>
           <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center' }}>잔량</span>
-          <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'right' }}>수량</span>
+          <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'right',paddingRight: 9 }}>수량</span>
         </div>
 
         <div
@@ -203,7 +203,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '60px 1fr',
+                gridTemplateColumns: '70px 1fr',
                 alignItems: 'center',
                 gap: 4,
                 padding: '5px 0',
@@ -245,7 +245,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
                 />
               </div>
 
-              <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', textAlign: 'right' }}>
+              <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', textAlign: 'right', paddingRight: 12 }}>
                 {formatVolume(ask.volume)}
               </span>
             </div>
@@ -295,7 +295,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
                 />
               </div>
 
-              <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', textAlign: 'right' }}>
+              <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', textAlign: 'right', paddingRight: 12 }}>
                 {formatVolume(bid.volume)}
               </span>
             </div>
@@ -305,7 +305,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '61px 1fr',
+                gridTemplateColumns: '70px 1fr',
                 alignItems: 'center',
                 gap: 4,
                 padding: '5px 0',

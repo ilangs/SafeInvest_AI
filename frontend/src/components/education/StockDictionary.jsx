@@ -1,17 +1,36 @@
-// frontend/src/components/education/StockDictionary.jsx
-// ============================================================
-// safeInvest 주식용어 백과사전 모듈
+// ════════════════════════════════════════════════════════════════════
+// StockDictionary.jsx — 주디 백과사전 (총 230개 주식·투자 용어)
+// ════════════════════════════════════════════════════════════════════
+// [이 컴포넌트가 하는 일]
+//   교육센터의 한 탭에 들어가는 주식·투자 용어 사전.
+//   Supabase stock_terms 테이블에서 직접 조회 (1회 fetch 후 클라이언트
+//   필터링) → 검색·카테고리·초성탭이 즉각 반응.
 //
-// 데이터 소스: Supabase `stock_terms` 테이블
-// 의존성: @supabase/supabase-js (이미 설치됨)
+// [핵심 기능]
+//   ① 17개 카테고리 색상 칩 필터
+//      (가치평가/재무분석/시장기초/시장흐름/거시경제/실적뉴스/투자전략/
+//       위험관리/투자심리/매매기초/차트분석/계좌기초/투자유의/펀드ETF/
+//       채권금리상품/파생상품/연금은퇴)
+//   ② 한글 초성탭 (ㄱ~ㅎ, #) + 영문 알파벳탭 (A~Z) 토글
+//   ③ 통합 검색:
+//      - 일반: term, term_ko, description, easy_desc, tags 부분일치
+//      - 초성: "ㄱㄹ" → "금리" 매칭 (toChosung 유틸로 음절→초성 변환)
+//   ④ 카드 클릭 → 상세 모달 (정의·쉬운설명·계산식·주의사항·태그·연관용어)
 //
-// 환경변수: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
-// ============================================================
+// [데이터]
+//   - Supabase 'stock_terms' 테이블 (RLS: public_read 정책으로 누구나 조회)
+//   - 230개: 원본 95개 + LLM 큐레이션 135개 (gpt-4o + 카테고리 타깃 방식)
+//   - 백업: backend/scripts/stock_terms.json (Supabase 미러)
+//
+// [생성 파이프라인 참고]
+//   - extract_terms_by_category.py: 카테고리별 LLM 일괄 생성
+//   - upsert_new_terms.py         : dryrun JSON → Supabase 반영
+//   - export_stock_terms.py       : Supabase → JSON 백업
+// ════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '../../services/supabase'
 
-// ── 한글 초성 추출 유틸 ────────────────────────────────────────
 const CHO_LIST = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ',
                   'ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
 
@@ -29,7 +48,6 @@ function toChosung(str) {
   return out
 }
 
-// 쿼리가 전부 한글 자음(ㄱ~ㅎ 영역)인지 판단 → 초성 검색 모드
 function isChosungQuery(q) {
   if (!q) return false
   for (const ch of q) {
@@ -39,56 +57,51 @@ function isChosungQuery(q) {
   return true
 }
 
-// ── 카테고리 설정 (색상 포함)
 const CATEGORIES = [
-  { label: '전체',         color: '#64748b' },
-  { label: '가치평가',      color: '#6366f1' },
-  { label: '재무분석',      color: '#0ea5e9' },
-  { label: '시장기초',      color: '#10b981' },
-  { label: '시장흐름',      color: '#f59e0b' },
-  { label: '거시경제',      color: '#8b5cf6' },
-  { label: '실적뉴스',      color: '#ec4899' },
-  { label: '투자전략',      color: '#14b8a6' },
-  { label: '위험관리',      color: '#ef4444' },
-  { label: '투자심리',      color: '#f97316' },
-  { label: '매매기초',      color: '#3b82f6' },
-  { label: '차트분석',      color: '#84cc16' },
-  { label: '계좌기초',      color: '#06b6d4' },
-  { label: '투자유의',      color: '#dc2626' },
-  { label: '펀드/ETF',     color: '#7c3aed' },
-  { label: '채권/금리상품', color: '#0891b2' },
-  { label: '파생상품',      color: '#be123c' },
-  { label: '연금/은퇴',     color: '#65a30d' },
+  { label: '전체', color: '#2f6f4f' },
+  { label: '가치평가', color: '#6f7ee8' },
+  { label: '재무분석', color: '#4aa9df' },
+  { label: '시장기초', color: '#47b881' },
+  { label: '시장흐름', color: '#e8b64f' },
+  { label: '거시경제', color: '#9b7ae6' },
+  { label: '실적뉴스', color: '#df6fa4' },
+  { label: '투자전략', color: '#42b7a5' },
+  { label: '위험관리', color: '#df6b63' },
+  { label: '투자심리', color: '#e28b55' },
+  { label: '매매기초', color: '#5f8fe8' },
+  { label: '차트분석', color: '#8dbf4f' },
+  { label: '계좌기초', color: '#4db9c8' },
+  { label: '투자유의', color: '#d85b66' },
+  { label: '펀드/ETF', color: '#9271e8' },
+  { label: '채권/금리상품', color: '#4b9fb5' },
+  { label: '파생상품', color: '#c75b78' },
+  { label: '연금/은퇴', color: '#82ad4e' },
 ]
 
 const CAT_COLOR = Object.fromEntries(CATEGORIES.map(c => [c.label, c.color]))
 
-// ── 초성 탭
 const KO_TABS = ['전체','ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','#']
 const EN_TABS = ['전체','A','B','C','D','E','F','G','H','I','J','K','L','M',
                  'N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-// ── 별점 렌더
 const Stars = ({ n }) => (
   <span style={{ fontSize: 11, letterSpacing: 1 }}>
     {[1,2,3,4,5].map(i => (
-      <span key={i} style={{ color: i <= n ? '#f59e0b' : '#d1d5db' }}>★</span>
+      <span key={i} style={{ color: i <= n ? '#e8b64f' : '#d1d5db' }}>★</span>
     ))}
   </span>
 )
 
-// ── 태그 칩
 const Tag = ({ label }) => (
   <span style={{
-    display:'inline-block', fontSize:11, padding:'2px 7px',
-    borderRadius:20, background:'#f1f5f9', color:'#475569',
+    display:'inline-block', fontSize:11, padding:'4px 8px',
+    borderRadius:20, background:'#eef6f0', color:'#475569',
     marginRight:4, marginBottom:4,
   }}>
     #{label}
   </span>
 )
 
-// ── 카테고리 배지
 const CatBadge = ({ label }) => (
   <span style={{
     display:'inline-block', fontSize:11, padding:'2px 8px',
@@ -101,10 +114,8 @@ const CatBadge = ({ label }) => (
   </span>
 )
 
-// ── 중요도 라벨
 const IMP_LABEL = { 5:'핵심필수', 4:'중요', 3:'기본', 2:'심화', 1:'참고' }
 
-// ── 용어 상세 모달
 function TermModal({ term, allTerms, onClose, onRelated }) {
   const related = useMemo(
     () => (term.related_ids ?? [])
@@ -112,7 +123,8 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
       .filter(Boolean),
     [term, allTerms]
   )
-  const accentColor = CAT_COLOR[term.category] ?? '#2563eb'
+
+  const accentColor = CAT_COLOR[term.category] ?? '#2f6f4f'
 
   useEffect(() => {
     const fn = e => { if (e.key === 'Escape') onClose() }
@@ -132,7 +144,7 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background:'#fff', borderRadius:16, width:'100%', maxWidth:540,
+          background:'#fff', borderRadius:16, width:'100%', maxWidth:600,
           maxHeight:'85vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(0,0,0,0.2)',
         }}
       >
@@ -174,8 +186,7 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
         </div>
 
         <div style={{ padding:'20px 24px' }}>
-
-          <Section title="정의">
+          <Section title="📘 정의">
             <p style={{ margin:0, fontSize:15, color:'#1e293b', lineHeight:1.7 }}>
               {term.description}
             </p>
@@ -184,7 +195,7 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
           {term.easy_desc && (
             <Section title="💡 쉽게 이해하기">
               <div style={{
-                background:'#f8fafc', borderLeft:`3px solid ${accentColor}`,
+                background:'#f8faf9', borderLeft:`3px solid ${accentColor}`,
                 borderRadius:'0 8px 8px 0', padding:'10px 14px',
                 fontSize:14, color:'#334155', lineHeight:1.7,
               }}>
@@ -196,8 +207,14 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
           {term.formula && (
             <Section title="📐 계산식">
               <div style={{
-                background:'#0f172a', borderRadius:8, padding:'10px 14px',
-                fontFamily:'monospace', fontSize:13, color:'#e2e8f0',
+                background:'#eef6f0',
+                border:'1px solid #dbe5de',
+                borderRadius:8,
+                padding:'10px 14px',
+                fontSize:14,
+                fontWeight:600,
+                color:'#1e593c',
+                width:'100%',
               }}>
                 {term.formula}
               </div>
@@ -207,9 +224,9 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
           {term.caution && (
             <Section title="⚠️ 주의사항">
               <div style={{
-                background:'#fff7ed', border:'1px solid #fed7aa',
+                background:'#fff8ef', border:'1px solid #f2d1a6',
                 borderRadius:8, padding:'10px 14px',
-                fontSize:13, color:'#9a3412', lineHeight:1.7,
+                fontSize:13, color:'#374151', lineHeight:1.7,
               }}>
                 {term.caution}
               </div>
@@ -217,7 +234,7 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
           )}
 
           {term.tags?.length > 0 && (
-            <Section title="태그">
+            <Section title="🏷️ 태그">
               <div>{term.tags.map(t => <Tag key={t} label={t} />)}</div>
             </Section>
           )}
@@ -252,7 +269,6 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
               </div>
             </Section>
           )}
-
         </div>
       </div>
     </div>
@@ -262,8 +278,14 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
 function Section({ title, children }) {
   return (
     <div style={{ marginBottom:18 }}>
-      <p style={{ margin:'0 0 6px', fontSize:11, fontWeight:700,
-                  color:'#94a3b8', textTransform:'uppercase', letterSpacing:1 }}>
+      <p style={{
+        margin:'0 0 6px',
+        fontSize:13,
+        fontWeight:600,
+        color:'#000000',
+        textTransform:'uppercase',
+        letterSpacing:1,
+      }}>
         {title}
       </p>
       {children}
@@ -281,20 +303,20 @@ function TermCard({ term, onClick }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? '#f8fafc' : '#fff',
-        borderTop:    hovered ? `1px solid ${accentColor}60` : '1px solid #e2e8f0',
-        borderRight:  hovered ? `1px solid ${accentColor}60` : '1px solid #e2e8f0',
+        background: hovered ? '#f8faf9' : '#fff',
+        borderTop: hovered ? `1px solid ${accentColor}60` : '1px solid #e2e8f0',
+        borderRight: hovered ? `1px solid ${accentColor}60` : '1px solid #e2e8f0',
         borderBottom: hovered ? `1px solid ${accentColor}60` : '1px solid #e2e8f0',
-        borderLeft:   `3px solid ${accentColor}`,
-        borderRadius:12, padding:'14px 16px',
+        borderLeft: `3px solid ${accentColor}`,
+        borderRadius:12,
+        padding:'14px 16px',
         cursor:'pointer',
         transition:'all .15s',
         transform: hovered ? 'translateY(-1px)' : 'none',
         boxShadow: hovered ? `0 4px 12px ${accentColor}18` : 'none',
       }}
     >
-      <div style={{ display:'flex', justifyContent:'space-between',
-                    alignItems:'flex-start', marginBottom:6 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
         <div>
           <span style={{ fontSize:15, fontWeight:700, color:'#0f172a' }}>
             {term.term}
@@ -309,15 +331,19 @@ function TermCard({ term, onClick }) {
       </div>
 
       <p style={{
-        margin:'0 0 8px', fontSize:13, color:'#475569',
-        lineHeight:1.6, display:'-webkit-box',
-        WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden',
+        margin:'0 0 8px',
+        fontSize:13,
+        color:'#475569',
+        lineHeight:1.6,
+        display:'-webkit-box',
+        WebkitLineClamp:2,
+        WebkitBoxOrient:'vertical',
+        overflow:'hidden',
       }}>
         {term.description}
       </p>
 
-      <div style={{ display:'flex', justifyContent:'space-between',
-                    alignItems:'center' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <div>
           {(term.tags ?? []).slice(0, 2).map(t => <Tag key={t} label={t} />)}
         </div>
@@ -328,18 +354,17 @@ function TermCard({ term, onClick }) {
 }
 
 export default function StockDictionary() {
-  const [allTerms,       setAllTerms]       = useState([])
-  const [isLoading,      setIsLoading]      = useState(true)
-  const [error,          setError]          = useState(null)
-  const [searchQuery,    setSearchQuery]    = useState('')
-  const [debouncedQ,     setDebouncedQ]     = useState('')
-  const [selectedCat,    setSelectedCat]    = useState('전체')
-  const [indexLang,      setIndexLang]      = useState('ko')
-  const [selectedInit,   setSelectedInit]   = useState('전체')
-  const [selectedTerm,   setSelectedTerm]   = useState(null)
+  const [allTerms, setAllTerms] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
+  const [selectedCat, setSelectedCat] = useState('전체')
+  const [indexLang, setIndexLang] = useState('ko')
+  const [selectedInit, setSelectedInit] = useState('전체')
+  const [selectedTerm, setSelectedTerm] = useState(null)
   const debounceRef = useRef(null)
 
-  // ── 데이터 로드 (Supabase)
   useEffect(() => {
     const load = async () => {
       setIsLoading(true)
@@ -376,12 +401,11 @@ export default function StockDictionary() {
 
     if (debouncedQ.trim()) {
       const qRaw = debouncedQ.trim()
-      const q    = qRaw.toLowerCase()
+      const q = qRaw.toLowerCase()
       const chosungMode = isChosungQuery(qRaw)
 
       result = result.filter(t => {
         if (chosungMode) {
-          // 초성 검색: 'ㄱㄹ' → '금리' 매칭
           return (
             toChosung(t.term).includes(qRaw) ||
             toChosung(t.term_ko ?? '').includes(qRaw)
@@ -430,36 +454,72 @@ export default function StockDictionary() {
     setSelectedTerm(relTerm)
   }, [])
 
+  const resetFilters = () => {
+    setSelectedCat('전체')
+    setSelectedInit('전체')
+    setSearchQuery('')
+  }
+
   return (
     <div style={{
       fontFamily: "'IBM Plex Sans KR', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif",
-      background: '#ffffff', borderRadius: 20, overflow: 'hidden',
+      background: '#f8faf9',
+      borderRadius: 20,
+      overflow: 'hidden',
       border: '1px solid #dbe5de',
       boxShadow: '0 18px 44px rgba(47,111,79,0.10)',
     }}>
-
       <div style={{
         background: 'linear-gradient(135deg, #1f4f3a 0%, #2f6f4f 55%, #3e8e63 100%)',
-        padding: '28px 20px 24px', color: '#fff',
+        padding: '28px 20px 24px',
+        color: '#fff',
       }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <p style={{ margin:'0 0 4px', fontSize:12, color:'rgba(255,255,255,0.78)',
-                      textTransform:'uppercase', letterSpacing:2 }}>
-            safeInvest 교육센터
-          </p>
-          <h1 style={{ margin:'0 0 16px', fontSize:22, fontWeight:800, letterSpacing:-0.5 }}>
-            📖 주식용어 백과사전
+        <div style={{ width: '90%', margin: '0 auto' }}>
+          <h1 style={{
+            margin:'0 0 16px',
+            fontSize:22,
+            fontWeight:800,
+            letterSpacing:-0.5,
+            display:'flex',
+            alignItems:'center',
+            gap:8,
+          }}>
+            <img
+              src="/logo-tab.png"
+              alt="Ju-Dy"
+              style={{
+                width:28,
+                height:28,
+                objectFit:'contain',
+              }}
+            />
+            주식용어 백과사전
           </h1>
 
           <div style={{ position:'relative' }}>
             <style>{`
-              .sd-search::placeholder { color: #cbd5e1; opacity: 1; }
-              .sd-search:focus { background: #ffffff !important; color: #0f172a !important; }
-              .sd-search:focus::placeholder { color: #94a3b8; }
+              .sd-search::placeholder {
+                color: #64748b;
+                opacity: 1;
+                font-weight: 400;
+              }
+              .sd-search:focus {
+                background: #ffffff !important;
+                color: #0f172a !important;
+              }
+              .sd-search:focus::placeholder {
+                color: #64748b;
+              }
             `}</style>
             <span style={{
-              position:'absolute', left:14, top:'50%', transform:'translateY(-50%)',
-              fontSize:16, color:'#0f172a', pointerEvents:'none', zIndex:1,
+              position:'absolute',
+              left:14,
+              top:'50%',
+              transform:'translateY(-50%)',
+              fontSize:16,
+              color:'#0f172a',
+              pointerEvents:'none',
+              zIndex:1,
             }}>
               🔍
             </span>
@@ -470,22 +530,32 @@ export default function StockDictionary() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               style={{
-                width:'100%', boxSizing:'border-box',
+                width:'100%',
+                boxSizing:'border-box',
                 padding:'12px 40px 12px 40px',
-                border:'1px solid rgba(255,255,255,0.25)', borderRadius:10,
-                fontSize:14, fontWeight:500,
+                border:'1px solid rgba(255,255,255,0.25)',
+                borderRadius:10,
+                fontSize:14,
+                fontWeight:400,
                 background:'rgba(255,255,255,0.95)',
-                color:'#0f172a', outline:'none',
+                color:'#0f172a',
+                outline:'none',
               }}
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
                 style={{
-                  position:'absolute', right:12, top:'50%',
+                  position:'absolute',
+                  right:12,
+                  top:'50%',
                   transform:'translateY(-50%)',
-                  background:'none', border:'none', cursor:'pointer',
-                  fontSize:16, color:'#94a3b8', padding:4,
+                  background:'none',
+                  border:'none',
+                  cursor:'pointer',
+                  fontSize:16,
+                  color:'#94a3b8',
+                  padding:4,
                 }}
               >
                 ✕
@@ -504,26 +574,32 @@ export default function StockDictionary() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 16px 24px' }}>
-
+      <div style={{ width: '90%', margin: '0 auto', padding: '0 0 24px' }}>
         <div style={{
-          display:'flex', flexWrap:'wrap', gap:6,
-          padding:'14px 0 10px',
+          display:'flex',
+          flexWrap:'wrap',
+          gap:6,
+          padding:'24px 0 22px',
         }}>
           {CATEGORIES.map(cat => {
             const active = selectedCat === cat.label
+            const activeColor = cat.label === '전체' ? '#2f6f4f' : cat.color
+
             return (
               <button
                 key={cat.label}
                 onClick={() => setSelectedCat(cat.label)}
                 style={{
-                  padding:'5px 12px', borderRadius:20, fontSize:12,
-                  fontWeight: active ? 700 : 400, cursor:'pointer',
+                  padding:'5px 12px',
+                  borderRadius:20,
+                  fontSize:12,
+                  fontWeight: active ? 700 : 400,
+                  cursor:'pointer',
                   border: active ? 'none' : '1px solid #e2e8f0',
-                  background: active ? cat.color : '#fff',
+                  background: active ? activeColor : '#fff',
                   color: active ? '#fff' : '#64748b',
                   transition:'all .15s',
-                  boxShadow: active ? `0 2px 8px ${cat.color}40` : 'none',
+                  boxShadow: active ? `0 2px 8px ${activeColor}40` : 'none',
                 }}
               >
                 {cat.label}
@@ -533,48 +609,81 @@ export default function StockDictionary() {
         </div>
 
         <div style={{
-          background:'#fff', borderRadius:12, border:'1px solid #e2e8f0',
-          padding:'12px 14px', marginBottom:16,
+          background:'#ffffff',
+          borderRadius:12,
+          border:'1px solid #e2e8f0',
+          padding:'12px 14px',
+          marginBottom:16,
         }}>
-          <div style={{ display:'flex', gap:6, marginBottom:10 }}>
-            {[['ko','한글 ㄱㄴㄷ'],['en','영문 ABC']].map(([lang, label]) => (
+          <div style={{
+            display:'flex',
+            justifyContent:'space-between',
+            alignItems:'center',
+            gap:8,
+            marginBottom:10,
+          }}>
+            <div style={{ display:'flex', gap:6 }}>
+              {[['ko','한글 ㄱㄴㄷ'],['en','영문 ABC']].map(([lang, label]) => (
+                <button
+                  key={lang}
+                  onClick={() => handleLangToggle(lang)}
+                  style={{
+                    padding:'4px 12px',
+                    borderRadius:6,
+                    fontSize:12,
+                    fontWeight: indexLang === lang ? 700 : 400,
+                    cursor:'pointer',
+                    background: indexLang === lang ? '#2f6f4f' : 'transparent',
+                    color: indexLang === lang ? '#fff' : '#64748b',
+                    border: indexLang === lang ? 'none' : '1px solid #e2e8f0',
+                    transition:'all .15s',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {(selectedCat !== '전체' || selectedInit !== '전체' || debouncedQ) && (
               <button
-                key={lang}
-                onClick={() => handleLangToggle(lang)}
+                onClick={resetFilters}
                 style={{
-                  padding:'4px 12px', borderRadius:6, fontSize:12,
-                  fontWeight: indexLang === lang ? 700 : 400,
+                  fontSize:11,
+                  color:'#64748b',
+                  background:'#f8faf9',
+                  border:'1px solid #dbe5de',
+                  borderRadius:6,
                   cursor:'pointer',
-                  background: indexLang === lang ? '#0f172a' : 'transparent',
-                  color: indexLang === lang ? '#fff' : '#64748b',
-                  border: indexLang === lang ? 'none' : '1px solid #e2e8f0',
-                  transition:'all .15s',
+                  padding:'4px 8px',
                 }}
               >
-                {label}
+                필터 초기화
               </button>
-            ))}
+            )}
           </div>
 
           <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
             {tabs.map(tab => {
-              const isActive  = selectedInit === tab
-              const hasData   = tab === '전체' || activeInitials.has(tab)
+              const isActive = selectedInit === tab
+              const hasData = tab === '전체' || activeInitials.has(tab)
+
               return (
                 <button
                   key={tab}
                   onClick={() => hasData && setSelectedInit(tab)}
                   style={{
-                    minWidth:32, height:30, padding:'0 6px',
-                    borderRadius:6, fontSize:12, fontWeight: isActive ? 700 : 400,
+                    minWidth:32,
+                    height:30,
+                    padding:'0 6px',
+                    borderRadius:6,
+                    fontSize:12,
+                    fontWeight: isActive ? 700 : 400,
                     cursor: hasData ? 'pointer' : 'default',
                     border: isActive ? 'none' : '1px solid #e2e8f0',
-                    background: isActive ? '#2563eb'
-                      : hasData ? '#fff' : '#f8fafc',
-                    color: isActive ? '#fff'
-                      : hasData ? '#334155' : '#cbd5e1',
+                    background: isActive ? '#2f6f4f' : hasData ? '#fff' : '#f8fafc',
+                    color: isActive ? '#fff' : hasData ? '#334155' : '#cbd5e1',
                     transition:'all .12s',
-                    boxShadow: isActive ? '0 2px 6px #2563eb40' : 'none',
+                    boxShadow: isActive ? '0 2px 6px rgba(47,111,79,0.24)' : 'none',
                   }}
                 >
                   {tab}
@@ -584,36 +693,15 @@ export default function StockDictionary() {
           </div>
         </div>
 
-        <div style={{ display:'flex', justifyContent:'space-between',
-                      alignItems:'center', marginBottom:12 }}>
+        <div style={{
+          display:'flex',
+          justifyContent:'space-between',
+          alignItems:'center',
+          marginBottom:12,
+        }}>
           <p style={{ margin:0, fontSize:13, color:'#64748b' }}>
             {isLoading ? '로딩 중...' : `${filtered.length}개 용어`}
-            {selectedCat !== '전체' && (
-              <span style={{ marginLeft:6, color: CAT_COLOR[selectedCat] }}>
-                · {selectedCat}
-              </span>
-            )}
-            {selectedInit !== '전체' && (
-              <span style={{ marginLeft:6, color:'#2563eb' }}>
-                · {indexLang === 'ko' ? selectedInit + '으로 시작' : selectedInit}
-              </span>
-            )}
           </p>
-          {(selectedCat !== '전체' || selectedInit !== '전체' || debouncedQ) && (
-            <button
-              onClick={() => {
-                setSelectedCat('전체')
-                setSelectedInit('전체')
-                setSearchQuery('')
-              }}
-              style={{
-                fontSize:11, color:'#ef4444', background:'none',
-                border:'none', cursor:'pointer', padding:'2px 6px',
-              }}
-            >
-              ✕ 필터 초기화
-            </button>
-          )}
         </div>
 
         {isLoading && (
@@ -625,8 +713,11 @@ export default function StockDictionary() {
 
         {error && (
           <div style={{
-            background:'#fef2f2', border:'1px solid #fecaca',
-            borderRadius:10, padding:20, color:'#991b1b',
+            background:'#fef2f2',
+            border:'1px solid #fecaca',
+            borderRadius:10,
+            padding:20,
+            color:'#991b1b',
             textAlign:'center',
           }}>
             <p style={{ margin:0, fontWeight:600 }}>⚠️ 데이터 로드 실패</p>
@@ -661,7 +752,6 @@ export default function StockDictionary() {
             ))}
           </div>
         )}
-
       </div>
 
       {selectedTerm && (
