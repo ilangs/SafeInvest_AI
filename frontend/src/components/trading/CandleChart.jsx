@@ -269,12 +269,9 @@ export default function CandleChart({ symbol, currentPrice, isMockMode = true })
       flexDirection: 'column',
       boxSizing: 'border-box',
     }}>
-      {/* 헤더 (shrink 고정) */}
+      {/* 헤더 (shrink 고정) — 가격은 상단 검색바에서 표시하므로 제거, 데이터 출처/범례만 유지 */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            {currentPrice ? currentPrice.toLocaleString() : '-'}
-          </span>
           <span
             style={{
               fontSize: 12,

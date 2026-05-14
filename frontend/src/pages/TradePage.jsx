@@ -563,7 +563,7 @@ export default function TradePage() {
 
             {/* 종목 정보 inline: 종목명 · 코드 035420 · KOSPI · IT·서비스 */}
             {stockName && (
-              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)' }}>
                 {stockName}
               </span>
             )}
