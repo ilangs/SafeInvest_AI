@@ -177,7 +177,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
             }}
           >
             <thead>
-              <tr style={{ borderBottom: '0.5px solid rgba(45,63,92,0.18)' }}>
+              <tr>
                 <Th>일시</Th>
                 <Th>종목/유형</Th>
                 <Th align="right">가격</Th>
@@ -244,11 +244,17 @@ function Th({ children, align = 'left' }) {
     <th
       style={{
         textAlign: align,
-        padding: '0rem 1rem 0.45rem',
+        padding: '0.4rem 1rem',
         fontSize: 13,
         fontWeight: 500,
         color: 'var(--color-text-secondary)',
         whiteSpace: 'nowrap',
+        // 스크롤 시 헤더 고정 (HoldingsWidget과 동일 패턴)
+        position: 'sticky',
+        top: 0,
+        zIndex: 1,
+        background: 'var(--color-background-primary, #fff)',
+        borderBottom: '0.5px solid rgba(45,63,92,0.18)',
       }}
     >
       {children}
