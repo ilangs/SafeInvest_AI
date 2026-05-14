@@ -100,19 +100,19 @@ export default function AnalysisHome({ stocks, recentTickers, onSelect, onRefres
 
   return (
     <div style={styles.page}>
-      <section style={styles.container}>
+      <section className="an-container" style={styles.container}>
         <div style={styles.pageHeader}>
-          <h1 style={styles.pageTitle}>Market Analysis</h1>
-          <p style={styles.pageSubtitle}>
+          <h1 className="an-page-title" style={styles.pageTitle}>Market Analysis</h1>
+          <p className="an-page-subtitle" style={styles.pageSubtitle}>
             Ju-Dy 와 함께 종목의 위험 신호를 차근차근 확인해 보세요.
           </p>
         </div>
 
-        <section style={styles.topGuideGrid}>
-          <div style={styles.guidePanel}>
+        <section className="an-top-guide-grid" style={styles.topGuideGrid}>
+          <div className="an-guide-panel" style={styles.guidePanel}>
             <div style={styles.sectionHeaderCompact}>
               <p style={styles.sectionEyebrow}>Market Overview</p>
-              <h2 style={styles.sectionTitle}>시장 요약</h2>
+              <h2 className="an-section-title" style={styles.sectionTitle}>시장 요약</h2>
             </div>
 
             <div className="an-grid-4" style={styles.metricGridCompact}>
@@ -123,10 +123,10 @@ export default function AnalysisHome({ stocks, recentTickers, onSelect, onRefres
             </div>
           </div>
 
-          <div style={styles.guidePanel}>
+          <div className="an-guide-panel" style={styles.guidePanel}>
             <div style={styles.sectionHeaderCompact}>
               <p style={styles.sectionEyebrow}>Safety Score</p>
-              <h2 style={styles.sectionTitle}>안전점수 등급 기준</h2>
+              <h2 className="an-section-title" style={styles.sectionTitle}>안전점수 등급 기준</h2>
             </div>
 
             <div className="an-grid-5" style={styles.scoreGridCompact}>
@@ -143,11 +143,11 @@ export default function AnalysisHome({ stocks, recentTickers, onSelect, onRefres
           </div>
         </section>
 
-        <section style={styles.searchCard}>
-          <div style={styles.searchTopRow}>
+        <section className="an-search-card" style={styles.searchCard}>
+          <div className="an-search-top-row" style={styles.searchTopRow}>
             <div style={styles.searchHeaderCompact}>
               <p style={styles.sectionEyebrow}>Stock Search</p>
-              <h2 style={styles.sectionTitle}>종목 검색</h2>
+              <h2 className="an-section-title" style={styles.sectionTitle}>종목 검색</h2>
             </div>
 
             <div className="an-search-wrapper" style={styles.searchWrap}>
@@ -186,7 +186,7 @@ export default function AnalysisHome({ stocks, recentTickers, onSelect, onRefres
             </div>
           </div>
 
-          <div style={styles.noticeGrid}>
+          <div className="an-notice-grid" style={styles.noticeGrid}>
             <div className="an-search-guide">
               <p>✅ 검색 안내 - 종목명 또는 종목코드로 검색할 수 있으며 최근 검색 종목이 자동 저장됩니다.</p>
             </div>

@@ -61,6 +61,7 @@ export default function FaqPage() {
       <Navbar />
 
       <main
+        className="board-main faq-page"
         style={{
           maxWidth: 900,
           width: '100%',
@@ -72,6 +73,7 @@ export default function FaqPage() {
         {/* 페이지 제목 */}
         <section style={{ textAlign: 'center', marginBottom: 32 }}>
           <h1
+            className="board-title"
             style={{
               margin: 0,
               fontSize: 40,
@@ -84,6 +86,7 @@ export default function FaqPage() {
           </h1>
 
           <p
+            className="board-subtitle"
             style={{
               margin: '10px 0 0',
               color: '#6b7280',
@@ -103,6 +106,7 @@ export default function FaqPage() {
           }}
         >
           <input
+            className="faq-search-input"
             value={keyword}
             onChange={handleSearchChange}
             placeholder="궁금한 내용을 검색하세요. 예: 회원가입, 모의투자, 계좌 연결"
@@ -135,6 +139,7 @@ export default function FaqPage() {
           }}
         >
           <div
+            className="faq-table-head"
             style={{
               display: 'grid',
               gridTemplateColumns: '100px 1fr',
@@ -153,6 +158,7 @@ export default function FaqPage() {
             currentFaqs.map((item, index) => (
               <article
                 key={`${item.q}-${index}`}
+                className="faq-table-row"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '100px 1fr',
@@ -213,6 +219,7 @@ export default function FaqPage() {
         {/* 페이지네이션 */}
         {totalPages > 1 && (
           <div
+            className="board-pagination"
             style={{
               display: 'flex',
               justifyContent: 'center',

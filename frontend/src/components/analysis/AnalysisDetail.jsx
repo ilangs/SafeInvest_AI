@@ -66,7 +66,7 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
   const stockName = stock.stock_name || stock.name || ticker
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+    <div className="an-detail-wrap" style={{ maxWidth: 960, margin: '0 auto' }}>
       <button
         className="an-btn-back"
         onClick={onBack}
@@ -85,7 +85,7 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
       </button>
 
       <div
-        className="an-glass-card"
+        className="an-glass-card an-detail-header"
         style={{
           marginBottom: 18,
           background: 'transparent',
@@ -104,22 +104,22 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
           }}
         >
           <div>
-            <div style={{ fontSize: 38, fontWeight: 800, color: '#000000', letterSpacing: '-0.02em' }}>
+            <div className="an-detail-name" style={{ fontSize: 38, fontWeight: 800, color: '#000000', letterSpacing: '-0.02em' }}>
               <span style={{ letterSpacing: '0.02em' }}>{stockName}</span>
               {grade && <GradeBadge label={grade.label} style={{ fontSize: 15, marginLeft: 10, padding: '5px 10px',}} />}
             </div>
 
-            <div style={{ fontSize: 14, color: '#5f6f86', marginTop: 8, fontWeight: 700 }}>
+            <div className="an-detail-meta" style={{ fontSize: 14, color: '#5f6f86', marginTop: 8, fontWeight: 700 }}>
               코드 {ticker} &nbsp;|&nbsp; {stock.market} &nbsp;|&nbsp; {stock.sector ?? '-'}
             </div>
 
-            <div style={{ marginTop: 9, display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 34, fontWeight: 950, color: '#1f2937', letterSpacing: '-0.03em' }}>
+            <div className="an-detail-price-row" style={{ marginTop: 9, display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+              <span className="an-detail-price" style={{ fontSize: 34, fontWeight: 950, color: '#1f2937', letterSpacing: '-0.03em' }}>
                 {fmtPrice(close)}
               </span>
 
               {diff != null && (
-                <span style={{ fontSize: 16, color: col, fontWeight: 900 }}>
+                <span className="an-detail-change" style={{ fontSize: 16, color: col, fontWeight: 900 }}>
                   {sign} {fmtPrice(Math.abs(diff))} ({fmtPercent(pct)})
                 </span>
               )}
@@ -127,12 +127,12 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
           </div>
 
           {score && (
-            <div style={{ textAlign: 'right', minWidth: 120 }}>
+            <div className="an-detail-score-block" style={{ textAlign: 'right', minWidth: 120 }}>
               <div style={{ color: '#5f6f86', fontSize: 13, fontWeight: 800 }}>안전점수</div>
-              <div style={{ fontSize: 54, fontWeight: 950, color: grade.color, lineHeight: 1 }}>
+              <div className="an-detail-score-num" style={{ fontSize: 54, fontWeight: 950, color: grade.color, lineHeight: 1 }}>
                 {score.final_score.toFixed(0)}
               </div>
-              <div style={{ color: grade.color, fontSize: 18, fontWeight: 900 }}>점 / 100점</div>
+              <div className="an-detail-score-label" style={{ color: grade.color, fontSize: 18, fontWeight: 900 }}>점 / 100점</div>
             </div>
           )}
         </div>

@@ -115,9 +115,9 @@ export default function MyPage() {
     <div style={{ minHeight: '100vh', background: '#f5f7f4', fontFamily: "'IBM Plex Sans KR', -apple-system, sans-serif" }}>
       <Navbar />
 
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px' }}>
+      <div className="mypage-wrap" style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px' }}>
         <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>
+          <h1 className="mypage-title" style={{ fontSize: 24, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>
             KIS 계좌 연결
           </h1>
           <p style={{ fontSize: 14, color: '#64748B' }}>
@@ -240,6 +240,7 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
 
   return (
     <div
+      className="mypage-kis-card"
       style={{
         background: 'white',
         borderRadius: 16,
@@ -248,7 +249,7 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
         border: '1px solid #E2E8F0',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div className="mypage-kis-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div
             style={{

@@ -162,17 +162,17 @@ export default function StudyLogPage() {
       <div className="app-layout">
         <Navbar />
 
-        <main style={styles.page}>
+        <main className="study-log-page" style={styles.page}>
           <section style={styles.header}>
-            <h1 style={styles.title}>Study Log</h1>
-            <p style={styles.subtitle}>
+            <h1 className="study-log-title" style={styles.title}>Study Log</h1>
+            <p className="study-log-subtitle" style={styles.subtitle}>
               주식 공부 기록과 투자 학습 일기를 자유롭게 남깁니다.
             </p>
           </section>
 
-          <section style={styles.writeCard}>
+          <section className="study-log-card" style={styles.writeCard}>
             <input
-              style={styles.editInput}
+              className="study-log-edit-input" style={styles.editInput}
               placeholder="제목을 입력하세요."
               value={writeForm.title}
               onChange={(e) => setWriteForm({ ...writeForm, title: e.target.value })}
@@ -186,7 +186,7 @@ export default function StudyLogPage() {
             />
 
             <textarea
-              style={styles.editTextarea}
+              className="study-log-edit-textarea" style={styles.editTextarea}
               placeholder="오늘 공부한 내용이나 투자 복기 내용을 입력하세요."
               value={writeForm.content}
               onChange={(e) => setWriteForm({ ...writeForm, content: e.target.value })}
@@ -196,7 +196,7 @@ export default function StudyLogPage() {
               AI 코멘트는 저장 후 자동으로 생성됩니다.
             </p>
 
-            <div style={styles.buttonRow}>
+            <div className="study-log-buttons" style={styles.buttonRow}>
               <button style={styles.greenBtn} onClick={handleWriteSave} disabled={saving}>
                 {saving ? '저장 중...' : '등록'}
               </button>
@@ -215,19 +215,19 @@ export default function StudyLogPage() {
       <div className="app-layout">
         <Navbar />
 
-        <main style={styles.page}>
+        <main className="study-log-page" style={styles.page}>
           <section style={styles.header}>
-            <h1 style={styles.title}>Study Log</h1>
-            <p style={styles.subtitle}>
+            <h1 className="study-log-title" style={styles.title}>Study Log</h1>
+            <p className="study-log-subtitle" style={styles.subtitle}>
               주식 공부 기록과 투자 학습 일기를 자유롭게 남깁니다.
             </p>
           </section>
 
-          <section style={editing ? styles.writeCard : styles.detailCard}>
+          <section className="study-log-card" style={editing ? styles.writeCard : styles.detailCard}>
             {editing ? (
               <>
                 <input
-                  style={styles.editInput}
+                  className="study-log-edit-input" style={styles.editInput}
                   value={editForm.title}
                   onChange={(e) =>
                     setEditForm({ ...editForm, title: e.target.value })
@@ -244,14 +244,14 @@ export default function StudyLogPage() {
                 />
 
                 <textarea
-                  style={styles.editTextarea}
+                  className="study-log-edit-textarea" style={styles.editTextarea}
                   value={editForm.content}
                   onChange={(e) =>
                     setEditForm({ ...editForm, content: e.target.value })
                   }
                 />
 
-                <div style={styles.buttonRow}>
+                <div className="study-log-buttons" style={styles.buttonRow}>
                   <button style={styles.greenBtn} onClick={handleEditSave} disabled={saving}>
                     {saving ? '저장 중...' : '저장'}
                   </button>
@@ -267,13 +267,13 @@ export default function StudyLogPage() {
                   <span style={styles.date}>{formatDate(selectedLog.log_date)}</span>
                 </div>
 
-                <h2 style={styles.detailTitle}>{selectedLog.title}</h2>
+                <h2 className="study-log-detail-title" style={styles.detailTitle}>{selectedLog.title}</h2>
 
                 <p style={styles.mood}>
                   오늘의 상태 : {selectedLog.mood || '기록'}
                 </p>
 
-                <div style={styles.contentBox}>
+                <div className="study-log-content-box" style={styles.contentBox}>
                   {selectedLog.content}
                 </div>
 
@@ -284,7 +284,7 @@ export default function StudyLogPage() {
                   </div>
                 )}
 
-                <div style={styles.buttonRow}>
+                <div className="study-log-buttons" style={styles.buttonRow}>
                   <button style={styles.greenBtn} onClick={handleEditStart}>
                     수정
                   </button>
@@ -315,7 +315,7 @@ export default function StudyLogPage() {
           </p>
         </section>
 
-        <section style={styles.summaryGrid}>
+        <section className="study-log-summary" style={styles.summaryGrid}>
           <div style={styles.summaryCard}>
             <strong style={{ fontSize: 15.5 }}>오늘의 기록</strong>
             <span style={{ fontSize: 15.5 }}>{todayCount}개</span>
@@ -326,7 +326,7 @@ export default function StudyLogPage() {
             <span style={{ fontSize: 15.5 }}>{total}개</span>
           </div>
 
-          <button style={styles.writeSummaryCard} onClick={() => setWriting(true)}>
+          <button className="study-log-write-summary" style={styles.writeSummaryCard} onClick={() => setWriting(true)}>
             <strong style={{ fontSize: 15.5 }}>글쓰기</strong>
             <span style={{ fontSize: 15.5 }}>Click</span>
           </button>
@@ -341,19 +341,20 @@ export default function StudyLogPage() {
             logs.map((log) => (
               <article
                 key={log.id}
+                className="study-log-row"
                 style={styles.logRow}
                 onClick={() => setSelectedLog(log)}
               >
-                <span style={styles.badge}>{log.tag}</span>
+                <span className="sl-badge" style={styles.badge}>{log.tag}</span>
                 <h3 style={styles.rowTitle}>{log.title}</h3>
-                <span style={styles.date}>{formatDate(log.log_date)}</span>
+                <span className="sl-date" style={styles.date}>{formatDate(log.log_date)}</span>
               </article>
             ))
           )}
         </section>
 
         {totalPages > 1 && (
-          <div style={styles.pagination}>
+          <div className="study-log-pagination" style={styles.pagination}>
             {Array.from({ length: totalPages }, (_, index) => (
               <button
                 key={index + 1}

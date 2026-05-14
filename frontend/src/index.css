@@ -31,6 +31,637 @@
   --color-border-tertiary:      #e2e8f0;
   --border-radius-md:           8px;
   --color-brand:                #0F6E56;
+
+  /* ── 반응형 브레이크포인트 토큰 (표준) ──
+     mobile : ~480px
+     tablet : 481~768px
+     laptop : 769~1024px
+     desktop: 1025px~
+     ※ CSS 변수는 @media 쿼리에선 직접 못 쓰지만 JS(matchMedia)나 문서화 용도로 보존 */
+  --bp-mobile:  480px;
+  --bp-tablet:  768px;
+  --bp-laptop:  1024px;
+
+  /* ── 공통 spacing 토큰 ── */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* ── 컨테이너 padding (반응형) ── */
+  --container-px: 24px;
+}
+
+/* ===================================================
+   반응형 유틸리티 클래스
+   (인라인 스타일 페이지에서도 className으로 부분 적용 가능)
+=================================================== */
+
+/* 표시/숨김 — 모바일 */
+@media (max-width: 768px) {
+  :root { --container-px: 16px; }
+  .hide-mobile  { display: none !important; }
+}
+@media (max-width: 480px) {
+  :root { --container-px: 12px; }
+  .hide-xs { display: none !important; }
+}
+@media (min-width: 769px) {
+  .show-mobile-only { display: none !important; }
+}
+
+/* 컨테이너 — 페이지 공통 좌우 여백 + max-width */
+.responsive-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-left: var(--container-px);
+  padding-right: var(--container-px);
+}
+
+/* 반응형 그리드 — auto-fit 패턴
+   .responsive-grid          → 데스크탑 4열 → 좁아질수록 자동 축소
+   .responsive-grid--2        → 2열 기본
+   .responsive-grid--3        → 3열 기본 */
+.responsive-grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.responsive-grid--2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.responsive-grid--3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+/* 모바일에서 강제 1열 */
+@media (max-width: 480px) {
+  .responsive-grid,
+  .responsive-grid--2,
+  .responsive-grid--3 { grid-template-columns: 1fr; }
+}
+
+/* 가로 스크롤 가능한 row (모바일에서 칩/탭 가로배치 유지) */
+.scroll-row-mobile {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  .scroll-row-mobile {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .scroll-row-mobile::-webkit-scrollbar { display: none; }
+}
+
+/* 모바일에서 flex 세로 정렬로 전환 */
+@media (max-width: 768px) {
+  .stack-mobile {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .stack-mobile > * { width: 100% !important; }
+}
+
+/* 모바일에서 폰트 크기 한 단계 축소 */
+@media (max-width: 480px) {
+  .text-shrink-mobile { font-size: 0.9em !important; }
+  h1.text-shrink-mobile, .h1-shrink-mobile { font-size: 1.5rem !important; }
+  h2.text-shrink-mobile, .h2-shrink-mobile { font-size: 1.2rem !important; }
+}
+
+/* 터치 친화 최소 타겟 사이즈 */
+@media (max-width: 768px) {
+  .tap-target { min-height: 44px; min-width: 44px; }
+}
+
+/* 카드 — 모바일에서 padding 축소 */
+@media (max-width: 480px) {
+  .card-responsive { padding: 12px !important; border-radius: 10px !important; }
+}
+
+/* 가로 overflow 방지 (전체 페이지 안전판) */
+html, body { max-width: 100%; overflow-x: hidden; }
+
+/* ===================================================
+   Navbar 모바일 최적화 (햄버거 메뉴는 JSX에 이미 존재)
+=================================================== */
+
+/* 태블릿 이하: 좌우 padding 축소, "Menu" 라벨 숨김 */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 12px !important;
+    height: 56px !important;
+  }
+  .nav-title { display: none; }            /* ☰ 아이콘으로 충분 */
+  .navbar-right { gap: 8px !important; }
+  .hamburger {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px !important;
+  }
+  .btn-logout {
+    padding: 6px 10px !important;
+    font-size: 13px !important;
+  }
+  /* 드롭다운: 화면 거의 전체 폭 사용 + 헤더 높이 맞춤 */
+  .nav-menu {
+    top: 56px !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-width: calc(100vw - 16px);
+    z-index: 1000;
+  }
+  .nav-menu a {
+    padding: 14px 18px !important;
+    font-size: 15px;
+    min-height: 48px;        /* 터치 친화 */
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* 모바일(≤480): 다크모드 토글 숨김으로 공간 확보 */
+@media (max-width: 480px) {
+  .navbar > .navbar-right > div:first-child {
+    display: none !important;   /* 다크모드 토글 (인라인 div) */
+  }
+}
+
+/* ===================================================
+   StudyLogPage 반응형
+   (인라인 스타일 페이지 — className으로 대상 노드 지정)
+=================================================== */
+@media (max-width: 768px) {
+  .study-log-page { padding: 32px 16px 60px !important; }
+  .study-log-title { font-size: 30px !important; }
+  .study-log-subtitle { font-size: 14px !important; }
+  .study-log-summary { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .study-log-summary > * { padding: 14px 16px !important; font-size: 14px !important; }
+  .study-log-write-summary { grid-column: 1 / -1 !important; }
+  .study-log-row {
+    grid-template-columns: 90px 1fr !important;
+    grid-template-rows: auto auto !important;
+    row-gap: 6px !important;
+  }
+  .study-log-row .sl-date {
+    grid-column: 1 / -1 !important;
+    text-align: left !important;
+    padding-right: 0 !important;
+  }
+  .study-log-card { padding: 22px !important; border-radius: 16px !important; }
+  .study-log-detail-title { font-size: 22px !important; }
+  .study-log-content-box { padding: 16px !important; font-size: 14px !important; }
+  .study-log-buttons { flex-wrap: wrap; gap: 8px !important; }
+  .study-log-buttons button { flex: 1 1 auto; min-height: 40px; }
+}
+@media (max-width: 480px) {
+  .study-log-page { padding: 24px 12px 48px !important; }
+  .study-log-title { font-size: 24px !important; }
+  .study-log-summary { grid-template-columns: 1fr !important; }
+  .study-log-write-summary { grid-column: auto !important; }
+  .study-log-row {
+    grid-template-columns: 1fr !important;
+    padding: 12px 14px !important;
+  }
+  .study-log-row .sl-badge { justify-self: start; }
+  .study-log-card { padding: 16px !important; border-radius: 14px !important; }
+  .study-log-detail-title { font-size: 19px !important; }
+  .study-log-content-box { padding: 14px !important; line-height: 1.7 !important; }
+  .study-log-edit-input { font-size: 16px !important; padding: 12px !important; }
+  .study-log-edit-textarea { min-height: 180px !important; font-size: 14px !important; padding: 12px !important; }
+  .study-log-pagination button {
+    width: 34px !important; height: 34px !important; font-size: 13px !important;
+  }
+}
+
+/* ===================================================
+   EducationPage 반응형
+=================================================== */
+@media (max-width: 768px) {
+  .edu-page { padding: 32px 16px 60px !important; }
+  .edu-title { font-size: 30px !important; }
+  .edu-subtitle { font-size: 14px !important; }
+  .edu-section-tabs { gap: 22px !important; margin-bottom: 24px !important; }
+  .edu-section-tabs button { font-size: 14px !important; padding: 8px 0 9px !important; }
+  .edu-filter-box {
+    grid-template-columns: repeat(3, 1fr) !important;
+    border-radius: 14px !important;
+    margin-bottom: 24px !important;
+  }
+  .edu-filter-box button { height: 44px !important; font-size: 13px !important; }
+  .edu-step-header {
+    padding: 14px 18px !important;
+    gap: 12px !important;
+  }
+  .edu-step-text {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+  }
+  .edu-step-text .edu-step-divider { display: none !important; }
+  .edu-step-title { font-size: 15px !important; white-space: normal !important; }
+  .edu-step-subtitle { font-size: 12.5px !important; white-space: normal !important; }
+  .edu-step-count { min-width: auto !important; padding: 5px 8px !important; font-size: 12px !important; }
+  .edu-lesson-row {
+    grid-template-columns: 28px 1fr !important;
+    grid-template-rows: auto auto !important;
+    gap: 8px 12px !important;
+    padding: 14px 16px !important;
+  }
+  .edu-lesson-meta {
+    grid-column: 1 / -1 !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
+  .edu-lesson-title { font-size: 14.5px !important; }
+  .edu-lesson-summary { font-size: 13px !important; }
+}
+@media (max-width: 480px) {
+  .edu-page { padding: 22px 12px 50px !important; }
+  .edu-title { font-size: 24px !important; }
+  .edu-section-tabs { gap: 14px !important; }
+  .edu-section-tabs button { font-size: 13px !important; }
+  .edu-filter-box {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .edu-step-header { padding: 12px 14px !important; }
+  .edu-step-title { font-size: 14px !important; }
+  .edu-step-subtitle { font-size: 12px !important; }
+  .edu-lesson-row { padding: 12px 14px !important; }
+}
+
+/* ===================================================
+   Analysis (AnalysisHome + AnalysisDetail) 반응형
+=================================================== */
+@media (max-width: 1024px) {
+  .an-top-guide-grid { grid-template-columns: 1fr !important; }
+  .an-recent-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+@media (max-width: 768px) {
+  .an-container { padding: 18px 16px 48px !important; gap: 14px !important; }
+  .an-page-title { font-size: 28px !important; }
+  .an-page-subtitle { font-size: 14px !important; }
+  .an-section-title { font-size: 20px !important; }
+  .an-guide-panel { padding: 14px 8px !important; }
+  .an-search-card { padding: 18px 18px 20px !important; }
+  .an-search-top-row { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .an-notice-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+  .an-recent-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    max-height: 220px !important;
+  }
+  /* AnalysisDetail */
+  .an-detail-name { font-size: 26px !important; }
+  .an-detail-meta { font-size: 13px !important; }
+  .an-detail-price { font-size: 26px !important; }
+  .an-detail-score-num { font-size: 42px !important; }
+  .an-detail-score-label { font-size: 15px !important; }
+  .an-detail-header { padding: 16px 12px !important; }
+}
+@media (max-width: 480px) {
+  .an-container { padding: 14px 10px 40px !important; }
+  .an-page-title { font-size: 22px !important; }
+  .an-section-title { font-size: 17px !important; }
+  .an-recent-grid {
+    grid-template-columns: 1fr !important;
+    padding-right: 4px !important;
+  }
+  .an-search-card { padding: 14px 12px 16px !important; }
+  /* AnalysisDetail */
+  .an-detail-wrap { padding: 0 4px; }
+  .an-detail-name { font-size: 22px !important; }
+  .an-detail-name span:first-child { display: block; margin-bottom: 4px; }
+  .an-detail-price { font-size: 22px !important; }
+  .an-detail-price-row { gap: 8px !important; }
+  .an-detail-change { font-size: 14px !important; }
+  .an-detail-score-block {
+    text-align: left !important;
+    min-width: 0 !important;
+    margin-top: 8px;
+  }
+  .an-detail-score-num { font-size: 36px !important; }
+  .an-tab-btn { font-size: 12.5px !important; padding: 8px 10px !important; }
+  .an-tab-bar { gap: 4px !important; }
+}
+
+/* ===================================================
+   MyPage / NoticePage / FaqPage 반응형
+=================================================== */
+@media (max-width: 768px) {
+  /* MyPage */
+  .mypage-wrap { padding: 24px 16px 48px !important; }
+  .mypage-title { font-size: 22px !important; }
+  .mypage-kis-card { padding: 18px !important; }
+  .mypage-kis-header { flex-wrap: wrap; gap: 8px !important; }
+
+  /* Notice & FAQ 공통 */
+  .board-main { padding: 32px 16px 56px !important; }
+  .board-title { font-size: 30px !important; }
+  .board-subtitle { font-size: 14px !important; }
+
+  /* 카테고리 탭 */
+  .notice-cat-tabs {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .notice-cat-tabs button { height: 46px !important; font-size: 13px !important; }
+
+  /* 테이블 — 번호/날짜/글쓴이 한 줄로 압축, padding 축소 */
+  .notice-table-head, .notice-table-row {
+    grid-template-columns: 50px 1fr 90px !important;
+    padding: 14px 16px !important;
+    font-size: 13px !important;
+  }
+  .notice-table-head > div:nth-child(4),
+  .notice-table-row > div:nth-child(4) { display: none !important; } /* 글쓴이 숨김 */
+
+  /* FAQ */
+  .faq-table-head, .faq-table-row {
+    grid-template-columns: 60px 1fr !important;
+    padding: 14px 16px !important;
+  }
+  .faq-table-head > div:first-child,
+  .faq-table-row > div:first-child { padding-left: 4px !important; }
+  .faq-search-input { height: 44px !important; font-size: 14px !important; }
+
+  /* 공지 상세 */
+  .notice-detail-body { padding: 20px 18px !important; }
+  .notice-detail-title { font-size: 18px !important; }
+
+  /* 페이지네이션 공통 */
+  .board-pagination button {
+    width: 34px !important; height: 34px !important; font-size: 13px !important;
+  }
+}
+@media (max-width: 480px) {
+  .mypage-wrap { padding: 20px 12px 40px !important; }
+  .mypage-title { font-size: 19px !important; }
+  .mypage-kis-card { padding: 14px !important; }
+
+  .board-main { padding: 22px 12px 44px !important; }
+  .board-title { font-size: 24px !important; }
+
+  .notice-cat-tabs { grid-template-columns: repeat(2, 1fr) !important; }
+  .notice-cat-tabs button { height: 42px !important; font-size: 12.5px !important; }
+
+  /* 테이블: 번호 숨기고 제목·날짜만 */
+  .notice-table-head, .notice-table-row {
+    grid-template-columns: 1fr 80px !important;
+    padding: 12px 14px !important;
+    gap: 8px;
+  }
+  .notice-table-head > div:first-child,
+  .notice-table-row > div:first-child { display: none !important; }
+
+  .faq-table-head, .faq-table-row {
+    grid-template-columns: 1fr !important;
+    padding: 12px 14px !important;
+  }
+  .faq-table-head > div:first-child,
+  .faq-table-row > div:first-child { display: none !important; }
+
+  .notice-detail-body { padding: 16px 14px !important; }
+  .notice-detail-title { font-size: 16px !important; }
+}
+
+/* ===================================================
+   Trading 위젯 8개 (BalanceWidget / OrderForm / Orderbook /
+   CandleChart / ChartWidget / StockInfoWidget /
+   HoldingsWidget / TodayOrdersWidget) 모바일 최적화
+   — 모두 .trade-widget-frame > .card 구조 공유
+=================================================== */
+@media (max-width: 768px) {
+  /* 카드 컨테이너 — TradePage가 frame을 1열 풀폭으로 만들어주므로
+     내부 padding만 축소 */
+  .trade-widget-frame .card {
+    padding: 14px !important;
+  }
+  /* 녹색 헤더 바 — padding, font, logo size 축소 */
+  .trade-widget-frame .card-header {
+    padding: 11px 12px !important;
+    margin: -14px -14px 6px -14px !important;
+  }
+  .trade-widget-frame .card-header > span,
+  .trade-widget-frame .card-header > span > span:not([style*="border-radius: 50%"]) {
+    font-size: 14px !important;
+  }
+  .trade-widget-frame .card-header img {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  .trade-widget-frame .card-header button {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .trade-widget-frame .card {
+    padding: 12px !important;
+  }
+  .trade-widget-frame .card-header {
+    padding: 10px 11px !important;
+    margin: -12px -12px 6px -12px !important;
+  }
+  .trade-widget-frame .card-header > span {
+    font-size: 13.5px !important;
+    gap: 6px !important;
+  }
+  .trade-widget-frame .card-header img {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  /* OrderForm 매수/매도 탭 + 지정가/시장가 탭 — 터치 친화 높이 */
+  .trade-widget-frame button[style*="padding: 7px"] {
+    padding: 9px !important;
+    font-size: 13px !important;
+  }
+  /* 비율 버튼 (10%/25%/50%/MAX) — flex 줄바꿈 허용 */
+  .trade-widget-frame .card input[type="text"],
+  .trade-widget-frame .card input[type="number"] {
+    font-size: 14px !important;   /* iOS 줌 방지(>=16 권장이지만 13~14는 무방) */
+  }
+
+  /* Orderbook 매도/매수 호가 행 폰트 축소 */
+  .trade-widget-frame [style*="gridTemplateColumns"],
+  .trade-widget-frame [style*="grid-template-columns"] {
+    font-size: 12px !important;
+  }
+
+  /* StockInfoWidget / Balance / Holdings 안의 dl·dt·dd 폰트 */
+  .trade-widget-frame .balance-row dt,
+  .trade-widget-frame .balance-row dd {
+    font-size: 12.5px !important;
+  }
+
+  /* TodayOrdersWidget / HoldingsWidget 테이블 행 — 가로 스크롤 허용 */
+  .trade-widget-frame table {
+    font-size: 12px !important;
+  }
+  .trade-widget-frame table th,
+  .trade-widget-frame table td {
+    padding: 6px 8px !important;
+    white-space: nowrap;
+  }
+  /* 표가 길면 위젯 안에서만 가로 스크롤 */
+  .trade-widget-frame .card > div[style*="overflow"] {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* CandleChart / ChartWidget — Recharts 등 SVG 차트는 부모 width를 그대로 따라가므로 별도 처리 불필요 */
+
+  /* HoldingsWidget 6열 테이블 — 모바일에서만 가로 스크롤 허용 */
+  .trade-widget-frame .holdings-scroll {
+    overflow-x: auto !important;
+  }
+}
+
+/* ===================================================
+   AI 챗봇 (AiChatPage + ChatWidget) 모바일 최적화
+=================================================== */
+@media (max-width: 768px) {
+  /* 페이지 헤더 축소 */
+  .ai-chat-main { padding: 28px 16px 44px !important; }
+  .ai-chat-title { font-size: 28px !important; }
+  .ai-chat-subtitle { font-size: 14px !important; }
+  .chat-widget {
+    height: calc(100vh - 180px) !important;
+    min-height: 480px;
+  }
+  .chat-header {
+    padding: 0.7rem 0.9rem !important;
+    font-size: 0.88rem !important;
+  }
+  .chat-hint { font-size: 0.72rem !important; }
+  .message-bubble {
+    max-width: 82% !important;
+    padding: 0.65rem 0.95rem !important;
+    font-size: 0.86rem !important;
+  }
+  .chat-input { font-size: 0.9rem !important; }
+}
+@media (max-width: 480px) {
+  /* AiChatPage 페이지 padding/타이틀 축소 */
+  .ai-chat-main { padding: 20px 12px 32px !important; }
+  .ai-chat-title { font-size: 22px !important; }
+  .chat-widget {
+    height: calc(100vh - 150px) !important;
+    border-radius: 0 !important;
+  }
+  .chat-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 2px !important;
+  }
+  .chat-hint { font-size: 0.7rem !important; }
+  .chat-messages {
+    padding: 0.7rem !important;
+    gap: 0.5rem !important;
+  }
+  .message-bubble {
+    max-width: 88% !important;
+    padding: 0.6rem 0.85rem !important;
+    font-size: 13.5px !important;
+    line-height: 1.5 !important;
+  }
+  .chat-input-row {
+    padding: 0.55rem !important;
+    gap: 0.4rem !important;
+  }
+  .chat-input {
+    font-size: 14px !important;       /* 16px 미만이라도 모바일 줌 방지엔 충분히 작음 */
+    padding: 0.5rem 0.65rem !important;
+  }
+  .chat-send-btn {
+    padding: 0 0.85rem !important;
+    font-size: 0.85rem !important;
+    min-height: 40px;
+  }
+  .avatar-img { width: 26px !important; height: 26px !important; }
+}
+
+/* ===================================================
+   Analysis 탭 5종 (Overview / Safety / Financial / Price / Technical)
+   — 인라인 grid·테이블·메트릭 카드의 모바일 대응
+=================================================== */
+@media (max-width: 768px) {
+  /* 메트릭 카드 폰트 축소 */
+  .an-metric-card { padding: 12px 10px !important; }
+  .an-metric-label { font-size: 12px !important; }
+  .an-metric-value { font-size: 18px !important; }
+
+  /* 안전점검·가격추이 안의 인라인 grid (200px/250px + 1fr + 100px) → 1열로 스택 */
+  [style*="grid-template-columns: 200px 1fr 100px"],
+  [style*="grid-template-columns: 250px 1fr 100px"] {
+    grid-template-columns: 1fr !important;
+    row-gap: 4px !important;
+  }
+  /* 안전점검 1fr 1fr 2.6fr → 좁은 화면에서 stack */
+  [style*="grid-template-columns: 1fr 1fr 2.6fr"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* 데이터 테이블 — padding 축소 + 가로 스크롤 */
+  .an-data-table,
+  .an-fin-guide-table,
+  .an-tech-guide-table {
+    font-size: 12.5px !important;
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+  .an-data-table th,
+  .an-data-table td,
+  .an-fin-guide-table th,
+  .an-fin-guide-table td,
+  .an-tech-guide-table th,
+  .an-tech-guide-table td {
+    padding: 7px 9px !important;
+  }
+
+  /* glass-card 패딩/제목 축소 */
+  .an-glass-card { padding: 14px 14px !important; border-radius: 14px !important; }
+
+  /* 가이드/경고 박스 padding 축소 */
+  .an-guide-box, .an-warning-box, .an-empty-warning {
+    padding: 14px 16px !important;
+  }
+  .an-guide-box .an-explain-title,
+  .an-warning-box .an-explain-title { font-size: 14px !important; }
+  .an-guide-box .an-explain-body,
+  .an-warning-box .an-explain-body { font-size: 13.5px !important; line-height: 1.65 !important; }
+
+  /* 진행 바 헤더 */
+  .an-progress-wrap { padding: 12px 10px !important; }
+  .an-progress-header { font-size: 13px !important; }
+}
+@media (max-width: 480px) {
+  .an-metric-card { padding: 10px 8px !important; }
+  .an-metric-value { font-size: 16px !important; }
+  [style*="grid-template-columns: 1fr 1fr 2.6fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  .an-glass-card { padding: 12px !important; border-radius: 12px !important; }
+  .an-guide-box, .an-warning-box, .an-empty-warning {
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+  }
+  .an-guide-box .an-explain-body,
+  .an-warning-box .an-explain-body { font-size: 13px !important; }
+  .an-data-table,
+  .an-fin-guide-table,
+  .an-tech-guide-table { font-size: 12px !important; }
+  .an-data-table th,
+  .an-data-table td { padding: 6px 8px !important; }
 }
 
 body {
@@ -649,11 +1280,12 @@ body {
 .an-grid-4 { grid-template-columns: repeat(4, 1fr); }
 .an-grid-5 { grid-template-columns: repeat(5, 1fr); }
 
-@media (max-width: 1100px) {
+/* 표준 브레이크포인트로 정렬 (1100→1024, 900→768, 600→480) */
+@media (max-width: 1024px) {
   .an-grid-5 { grid-template-columns: repeat(3, 1fr); }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .an-grid-4,
   .an-grid-5 {
     grid-template-columns: repeat(2, 1fr);
@@ -664,7 +1296,7 @@ body {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 480px) {
   .an-grid-2,
   .an-grid-3,
   .an-grid-4,
@@ -1292,8 +1924,8 @@ body {
   }
 }
 
-/* 모바일 */
-@media (max-width: 640px) {
+/* 모바일 (표준 480px) */
+@media (max-width: 480px) {
   .home-page {
     padding: 24px 14px 23px;
   }
@@ -1481,13 +2113,13 @@ body {
   box-shadow: 0 12px 30px rgba(0,0,0,0.2);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 480px) {
   .home-bottom-row {
     grid-template-columns: 1fr !important;
   }
 }
 
-@media (min-width: 641px) {
+@media (min-width: 481px) {
   .btn-logout {
     font-weight: 700;  /* 👉 굵게 */
   }

@@ -192,55 +192,62 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
         </div>
       )}
 
-      {/* 매수/매도 탭 */}
-      <div
-        style={{
-          display: 'flex',
-          borderRadius: 'var(--border-radius-md)',
-          overflow: 'hidden',
-          border: '0.5px solid var(--color-border-secondary)',
-          marginBottom: 3,
-        }}
-      >
-        <button
-          onClick={() => setTab('buy')}
+      {/* 매수/매도 탭: 장이 열려 있을 때만 렌더링되도록 조건부 처리 */}
+      {marketOpen && (
+        <div
           style={{
-            flex: 1,
-            padding: '7px',
-            fontSize: 13,
-            fontWeight: 500,
-            cursor: 'pointer',
-            border: 'none',
-            background: tab === 'buy' ? '#ef4444' : 'transparent',
-            color: tab === 'buy' ? '#fff' : 'var(--color-text-secondary)',
+            display: 'flex',
+            borderRadius: 'var(--border-radius-md)',
+            overflow: 'hidden',
+            border: '0.5px solid var(--color-border-secondary)',
+            marginBottom: 3,
           }}
         >
-          매수
-        </button>
+          <button
+            onClick={() => setTab('buy')}
+            style={{
+              flex: 1,
+              padding: '7px',
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+              border: 'none',
+              background: tab === 'buy' ? '#ef4444' : 'transparent',
+              color: tab === 'buy' ? '#fff' : 'var(--color-text-secondary)',
+            }}
+          >
+            매수
+          </button>
 
-        <button
-          onClick={() => setTab('sell')}
-          style={{
-            flex: 1,
-            padding: '7px',
-            fontSize: 13,
-            fontWeight: 500,
-            cursor: 'pointer',
-            border: 'none',
-            borderLeft: '0.5px solid var(--color-border-secondary)',
-            background: tab === 'sell' ? '#3b82f6' : 'transparent',
-            color: tab === 'sell' ? '#fff' : 'var(--color-text-secondary)',
-          }}
-        >
-          매도
-        </button>
-      </div>
+          <button
+            onClick={() => setTab('sell')}
+            style={{
+              flex: 1,
+              padding: '7px',
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+              border: 'none',
+              borderLeft: '0.5px solid var(--color-border-secondary)',
+              background: tab === 'sell' ? '#3b82f6' : 'transparent',
+              color: tab === 'sell' ? '#fff' : 'var(--color-text-secondary)',
+            }}
+          >
+            매도
+          </button>
+        </div>
+      )}
 
       {/* 종목 코드 */}
       <div style={fieldStyle}>
         <div style={labelStyle}>종목코드</div>
 
-        <div style={{ ...inputStyle, color: 'var(--color-text-secondary)' }}>
+        <div style={{
+          ...inputStyle,
+          color: 'var(--color-text-secondary)',
+          cursor: !marketOpen ? 'not-allowed' : 'default',
+          backgroundColor: !marketOpen ? '#f1f5f9' : 'var(--color-background-secondary)'
+        }}>
           {symbol || '종목을 선택하세요'}
         </div>
       </div>
@@ -252,7 +259,12 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
         <select
           value={orderType}
           onChange={e => setOrderType(e.target.value)}
-          style={inputStyle}
+          disabled={!marketOpen}
+          style={{
+            ...inputStyle,
+            cursor: !marketOpen ? 'not-allowed' : 'pointer',
+            backgroundColor: !marketOpen ? '#f1f5f9' : 'var(--color-background-secondary)'
+          }}
         >
           <option value="limit">지정가</option>
           <option value="market">시장가</option>
@@ -276,7 +288,12 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
             value={price}
             onChange={e => setPrice(e.target.value)}
             placeholder="가격 입력"
-            style={inputStyle}
+            disabled={!marketOpen}
+            style={{
+              ...inputStyle,
+              cursor: !marketOpen ? 'not-allowed' : 'text',
+              backgroundColor: !marketOpen ? '#f1f5f9' : 'var(--color-background-secondary)'
+            }}
           />
         </div>
       )}
@@ -290,7 +307,12 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
           value={quantity}
           onChange={e => setQuantity(e.target.value)}
           placeholder="수량 입력"
-          style={inputStyle}
+          disabled={!marketOpen}
+          style={{
+            ...inputStyle,
+            cursor: !marketOpen ? 'not-allowed' : 'text',
+            backgroundColor: !marketOpen ? '#f1f5f9' : 'var(--color-background-secondary)'
+          }}
           min="1"
         />
 
@@ -300,14 +322,15 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
             <button
               key={pct}
               onClick={() => calcQty(pct)}
+              disabled={!marketOpen}
               style={{
                 flex: 1,
                 padding: '4px',
                 fontSize: 11,
-                cursor: 'pointer',
-                background: pct === 1 ? '#E1F5EE' : 'var(--color-background-secondary)',
-                color: pct === 1 ? '#0F6E56' : 'var(--color-text-secondary)',
-                border: `0.5px solid ${pct === 1 ? '#9FE1CB' : 'var(--color-border-secondary)'}`,
+                cursor: !marketOpen ? 'not-allowed' : 'pointer',
+                background: !marketOpen ? '#f1f5f9' : (pct === 1 ? '#E1F5EE' : 'var(--color-background-secondary)'),
+                color: !marketOpen ? '#9ca3af' : (pct === 1 ? '#0F6E56' : 'var(--color-text-secondary)'),
+                border: `0.5px solid ${!marketOpen ? '#e5e7eb' : (pct === 1 ? '#9FE1CB' : 'var(--color-border-secondary)')}`,
                 borderRadius: 4,
               }}
             >
@@ -333,47 +356,43 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
         </span>
       </div>
 
-      {/* 장 마감 안내 */}
-      {!marketOpen && (
+      {/* 하단 주문 영역 제어 */}
+      {marketOpen ? (
+        /* 1. 장 거래 시간일 때: 주문 버튼 표시 */
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '12px',
+            fontSize: 16,
+            fontWeight: 600,
+            background: tab === 'buy' ? '#ef4444' : '#3b82f6',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 'var(--border-radius-md)',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
+            marginTop: '10px'
+          }}
+        >
+          {loading ? '처리 중...' : `${tab === 'buy' ? '매수' : '매도'} 주문`}
+        </button>
+      ) : (
+        /* 2. 장 마감 시간일 때: 안내 문구만 표시 */
         <div style={{
-          background: '#FEF3C7',
-          border: '1px solid #F59E0B',
-          borderRadius: 'var(--border-radius-md)',
-          padding: '6px 10px',
-          fontSize: 11,
-          color: '#92400E',
-          marginBottom: 6,
           textAlign: 'center',
+          padding: '15px',
+          background: '#f8f9fa',
+          borderRadius: '8px',
+          color: '#666',
+          fontSize: '14px',
+          marginTop: '10px',
+          border: '1px solid #ddd'
         }}>
-          ⚠️ 장 마감 — 정규장(평일 09:00~15:30)에만 주문 가능합니다.
+          지금은 장 마감 상태입니다. (평일 09:00~15:30 이용 가능)
         </div>
       )}
-
-      {/* 주문 버튼 */}
-      <button
-        onClick={handleSubmit}
-        disabled={loading || !marketOpen}
-        style={{
-          width: '100%',
-          padding: '9px',
-          fontSize: 14,
-          fontWeight: 500,
-          background: !marketOpen
-            ? '#94a3b8'
-            : tab === 'buy' ? '#ef4444' : '#3b82f6',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 'var(--border-radius-md)',
-          cursor: (loading || !marketOpen) ? 'not-allowed' : 'pointer',
-          opacity: loading ? 0.7 : 1,
-        }}
-      >
-        {loading
-          ? '처리 중...'
-          : !marketOpen
-            ? '장 마감 — 주문 불가'
-            : `${tab === 'buy' ? '매수' : '매도'} 주문`}
-      </button>
 
       {/* 결과 메시지 */}
       {message && (

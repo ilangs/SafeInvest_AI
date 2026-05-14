@@ -114,17 +114,70 @@ export default function ContentViewerPage() {
   }
 
   return (
-    <div style={styles.layout}>
+    <div className="cv-layout" style={styles.layout}>
       <Navbar />
 
+      <style>{`
+        /* ── ContentViewerPage 반응형 ── */
+        @media (max-width: 1024px) {
+          .cv-layout .cv-page-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .cv-layout .cv-chat-wrap {
+            position: static !important;
+            margin-top: 16px !important;
+            height: 560px !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .cv-layout .cv-page-grid { padding: 20px 16px 32px !important; gap: 16px !important; }
+          .cv-layout .cv-content-card { padding: 18px !important; border-radius: 14px !important; }
+          .cv-layout .cv-content-title { font-size: 19px !important; }
+          .cv-layout .cv-content-summary { font-size: 14px !important; }
+          .cv-layout .cv-breadcrumb { font-size: 13px !important; margin-bottom: 12px !important; }
+          .cv-layout .cv-breadcrumb button { font-size: 13px !important; }
+          .cv-layout .cv-pdf-box { height: 420px !important; }
+          .cv-layout .cv-audio-box, .cv-layout .cv-fallback-card { padding: 22px !important; }
+        }
+        @media (max-width: 480px) {
+          .cv-layout .cv-page-grid { padding: 14px 12px 28px !important; }
+          .cv-layout .cv-content-card { padding: 14px !important; border-radius: 12px !important; }
+          .cv-layout .cv-content-title { font-size: 17px !important; }
+          .cv-layout .cv-content-summary { font-size: 13px !important; }
+          .cv-layout .cv-related-grid {
+            grid-template-columns: 1fr !important;
+          }
+          /* 챗 영역: 화면 거의 풀스크린 드로어 형태 */
+          .cv-layout .cv-chat-wrap {
+            position: fixed !important;
+            top: auto !important;
+            left: 8px !important;
+            right: 8px !important;
+            bottom: 8px !important;
+            margin-top: 0 !important;
+            height: 75vh !important;
+            z-index: 999;
+          }
+          .cv-layout .cv-pdf-box { height: 340px !important; }
+          .cv-layout .cv-open-chat-btn {
+            right: 16px !important;
+            bottom: 16px !important;
+            width: 52px !important;
+            height: 52px !important;
+          }
+          .cv-layout .cv-open-chat-btn img { width: 30px !important; height: 30px !important; }
+        }
+      `}</style>
+
       <div
+        className="cv-page-grid"
         style={{
           ...styles.pageGrid,
           gridTemplateColumns: chatOpen ? '1fr 360px' : '1fr',
         }}
       >
         <div>
-          <div style={styles.breadcrumb}>
+          <div className="cv-breadcrumb" style={styles.breadcrumb}>
             <button onClick={() => navigate('/education')} style={styles.breadcrumbBtn}>
               교육센터
             </button>
@@ -143,7 +196,7 @@ export default function ContentViewerPage() {
             <span style={styles.breadcrumbCurrent}>콘텐츠</span>
           </div>
 
-          <div style={styles.contentCard}>
+          <div className="cv-content-card" style={styles.contentCard}>
             <div style={styles.badgeRow}>
               <span style={styles.badgeBlue}>
                 {labelText(content.make_type_name) || 'Ju-Dy 영상'}
@@ -164,9 +217,9 @@ export default function ContentViewerPage() {
               )}
             </div>
 
-            <h1 style={styles.contentTitle}>{labelText(content.title) || '콘텐츠 제목'}</h1>
+            <h1 className="cv-content-title" style={styles.contentTitle}>{labelText(content.title) || '콘텐츠 제목'}</h1>
 
-            <p style={styles.contentSummary}>
+            <p className="cv-content-summary" style={styles.contentSummary}>
               {labelText(content.summary) || '콘텐츠 요약입니다.'}
             </p>
 
@@ -183,7 +236,7 @@ export default function ContentViewerPage() {
             <div style={{ marginTop: 24 }}>
               <h3 style={styles.relatedTitle}>관련 콘텐츠</h3>
 
-              <div style={styles.relatedGrid}>
+              <div className="cv-related-grid" style={styles.relatedGrid}>
                 {related.map(r => (
                   <div
                     key={r.contents_slno}
@@ -201,7 +254,7 @@ export default function ContentViewerPage() {
         </div>
 
         {chatOpen && (
-          <div style={styles.chatWrap}>
+          <div className="cv-chat-wrap" style={styles.chatWrap}>
             <div style={styles.chatBox}>
               <div style={styles.chatHeader}>
                 <div style={styles.chatTitleWrap}>
@@ -308,7 +361,7 @@ export default function ContentViewerPage() {
       </div>
 
       {!chatOpen && (
-        <button onClick={() => setChatOpen(true)} style={styles.openChatBtn}>
+        <button onClick={() => setChatOpen(true)} className="cv-open-chat-btn" style={styles.openChatBtn}>
           <img src="/logo-tab.png" alt="Ju-Dy" style={styles.openChatImg} />
         </button>
       )}
@@ -337,7 +390,7 @@ function ContentPlayer({ content }) {
 
   if (content.learning_mode === 'ai_summary') {
     return (
-      <div style={styles.fallbackCard}>
+      <div className="cv-fallback-card" style={styles.fallbackCard}>
         <div style={{ fontSize: 42, marginBottom: 16 }}>📄</div>
         <h3 style={styles.fallbackTitle}>직접 재생이 어려운 콘텐츠입니다</h3>
         <p style={styles.fallbackText}>
@@ -419,7 +472,7 @@ function ContentPlayer({ content }) {
       : url
 
     return (
-      <div style={styles.pdfBox}>
+      <div className="cv-pdf-box" style={styles.pdfBox}>
         <iframe src={pdfUrl} style={styles.iframe} title={content.title} />
       </div>
     )
@@ -427,7 +480,7 @@ function ContentPlayer({ content }) {
 
   if (content.make_type_code === '8') {
     return (
-      <div style={styles.audioBox}>
+      <div className="cv-audio-box" style={styles.audioBox}>
         <h3 style={styles.audioTitle}>오디오북</h3>
         <audio controls style={{ width: '100%' }}>
           <source src={url} />
@@ -438,7 +491,7 @@ function ContentPlayer({ content }) {
   }
 
   return (
-    <div style={styles.fallbackCard}>
+    <div className="cv-fallback-card" style={styles.fallbackCard}>
       <a href={url} target="_blank" rel="noopener noreferrer" style={styles.linkBtn}>
         콘텐츠 열기 →
       </a>

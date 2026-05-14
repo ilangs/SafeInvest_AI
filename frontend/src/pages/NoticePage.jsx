@@ -167,6 +167,7 @@ export default function NoticePage() {
       <Navbar />
 
       <main
+        className="board-main notice-page"
         style={{
           maxWidth: 900,
           width: '100%',
@@ -177,6 +178,7 @@ export default function NoticePage() {
       >
         <section style={{ textAlign: 'center', marginBottom: 32 }}>
           <h1
+            className="board-title"
             style={{
               margin: 0,
               fontSize: 40,
@@ -189,6 +191,7 @@ export default function NoticePage() {
           </h1>
 
           <p
+            className="board-subtitle"
             style={{
               margin: '10px 0 0',
               color: '#6b7280',
@@ -202,6 +205,7 @@ export default function NoticePage() {
         {!selectedNotice ? (
           <>
             <section
+              className="notice-cat-tabs"
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
@@ -252,6 +256,7 @@ export default function NoticePage() {
               }}
             >
               <div
+                className="notice-table-head"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '80px 1fr 100px 50px',
@@ -271,6 +276,7 @@ export default function NoticePage() {
               {currentNotices.map((notice) => (
                 <article
                   key={notice.id}
+                  className="notice-table-row"
                   onClick={() => setSelectedNotice(notice)}
                   style={{
                     display: 'grid',
@@ -303,6 +309,7 @@ export default function NoticePage() {
 
             {totalPages > 1 && (
               <div
+                className="board-pagination"
                 style={{
                   display: 'flex',
                   justifyContent: 'center',
@@ -365,8 +372,9 @@ export default function NoticePage() {
               공지사항 상세
             </div>
 
-            <div style={{ padding: '26px 24px' }}>
+            <div className="notice-detail-body" style={{ padding: '26px 24px' }}>
               <h2
+                className="notice-detail-title"
                 style={{
                   margin: '0 0 12px',
                   fontSize: 22,

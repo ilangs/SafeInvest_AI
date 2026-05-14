@@ -32,11 +32,14 @@ export default function TabSafety({ score, warnings }) {
 
         <div
           style={{
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: 590,
             color: '#3b3e43',
-            whiteSpace: 'nowrap',
+            whiteSpace: 'normal', // 모바일에서 줄바꿈 허용
+            wordBreak: 'keep-all', // 단어 단위 줄바꿈
+            textAlign: 'center',
             letterSpacing: '-0.03em',
+            padding: '0 10px',
           }}
         >
           이 탭은 재무 데이터 기반으로 확인된 공식 위험 경고를 보여줍니다.
@@ -298,15 +301,16 @@ export default function TabSafety({ score, warnings }) {
             <div
               key={type}
               style={{
-                display: 'grid',
-                gridTemplateColumns: '200px 1fr 100px',
+                display: 'flex',
+                flexWrap: 'wrap', // 모바일 대응을 위한 핵심 속성
                 alignItems: 'center',
-                gap: -1,
-                padding: '9px 22px',
+                gap: '12px 16px',
+                padding: '16px 22px',
                 borderBottom:
                   idx === arr.length - 1 ? 'none' : '1px solid #e3ece1',
               }}
             >
+              {/* 항목 타이틀 영역 */}
               <div
                 style={{
                   display: 'flex',
@@ -316,6 +320,8 @@ export default function TabSafety({ score, warnings }) {
                   fontWeight: 700,
                   color: '#111827',
                   letterSpacing: '-0.03em',
+                  width: 140, // 타이틀이 차지하는 최소 고정 너비
+                  flex: '0 0 auto',
                 }}
               >
                 <span
@@ -331,20 +337,23 @@ export default function TabSafety({ score, warnings }) {
                 {warnKorean(type)}
               </div>
 
+              {/* 상세 설명 문구 영역 */}
               <div
                 style={{
-                  fontSize: 15,
+                  flex: '1 1 200px', // 여유 공간을 채우되, 좁아지면 줄바꿈 처리
+                  fontSize: 14,
                   lineHeight: 1.6,
                   color: '#374151',
-                  marginLeft: -40,
+                  wordBreak: 'keep-all',
                 }}
               >
                 {detail}
               </div>
 
+              {/* 배지(심각도) 영역 */}
               <div
                 style={{
-                  justifySelf: 'end',
+                  marginLeft: 'auto', // 우측 끝으로 밀어내기
                   color: sevColor,
                   fontWeight: 700,
                   fontSize: 13,
@@ -353,6 +362,7 @@ export default function TabSafety({ score, warnings }) {
                   padding: '5px 12px',
                   borderRadius: 999,
                   whiteSpace: 'nowrap',
+                  flex: '0 0 auto',
                 }}
               >
                 {sev}

@@ -23,3 +23,59 @@
 .white-accordion-btn {
   background: #fdfdfd !important;
 }
+
+/* ── 반응형 ── */
+@media (max-width: 768px) {
+  /* 탭바: 5개 → 2열 2-3행 그리드 */
+  .beginner-guide > div:first-child {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .beginner-guide > div:first-child > button {
+    height: 46px !important;
+    font-size: 13px !important;
+    border-radius: 12px !important;
+  }
+  /* 콘텐츠 카드 패딩 축소 */
+  .beginner-guide > div:last-child {
+    padding: 22px 18px !important;
+    border-radius: 16px !important;
+  }
+  .beginner-guide h3 { font-size: 20px !important; margin-bottom: 14px !important; }
+  .beginner-guide p, .beginner-guide ul, .beginner-guide li { font-size: 14px !important; }
+}
+@media (max-width: 480px) {
+  .beginner-guide { gap: 14px !important; }
+  /* 탭바: 가로 스크롤 + flex */
+  .beginner-guide > div:first-child {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px !important;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .beginner-guide > div:first-child::-webkit-scrollbar { display: none; }
+  .beginner-guide > div:first-child > button {
+    flex: 0 0 auto !important;
+    padding: 0 14px !important;
+    height: 42px !important;
+    font-size: 13px !important;
+    white-space: nowrap;
+  }
+  .beginner-guide > div:last-child {
+    padding: 16px 14px !important;
+    border-radius: 14px !important;
+  }
+  .beginner-guide h3 { font-size: 18px !important; }
+  .beginner-guide p, .beginner-guide ul, .beginner-guide li { font-size: 13.5px !important; line-height: 1.7 !important; }
+  /* 아코디언 버튼 */
+  .beginner-guide .white-accordion-btn {
+    padding: 12px 14px !important;
+    font-size: 14px !important;
+  }
+  /* 박스류 패딩 축소 */
+  .beginner-guide > div:last-child code,
+  .beginner-guide > div:last-child .infoFormula { font-size: 13px !important; }
+}

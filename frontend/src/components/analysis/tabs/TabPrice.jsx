@@ -326,10 +326,13 @@ export default function TabPrice({ prices, score }) {
         />
         <div
           style={{
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: 590,
             color: '#3b3e43',
-            whiteSpace: 'nowrap',
+            whiteSpace: 'normal',
+            wordBreak: 'keep-all',
+            textAlign: 'center',
+            padding: '0 10px',
             letterSpacing: '-0.03em',
           }}
         >
@@ -395,6 +398,7 @@ export default function TabPrice({ prices, score }) {
         <div
           style={{
             display: 'inline-flex',
+            flexWrap: 'wrap', // 모바일에서 버튼이 많아질 경우 대비
             padding: 4,
             background: '#ffffff',
             border: '1px solid #d7e4d5',
@@ -480,14 +484,16 @@ export default function TabPrice({ prices, score }) {
             <div
               key={row.title}
               style={{
-                display: 'grid',
-                gridTemplateColumns: '250px 1fr 100px',
+                display: 'flex', // 반응형을 위해 grid 대신 flex 사용
+                flexWrap: 'wrap', // 좁아지면 아래로 떨어지도록 설정
+                gap: '12px 16px',
                 alignItems: 'center',
-                padding: '10px 22px',
+                padding: '16px 22px', // 터치 영역 및 시각적 안정감을 위해 패딩 약간 증가
                 borderBottom:
                   idx === priceRows.length - 1 ? 'none' : '1px solid #e3ece1',
               }}
             >
+              {/* 타이틀 영역 */}
               <div
                 style={{
                   display: 'flex',
@@ -497,6 +503,8 @@ export default function TabPrice({ prices, score }) {
                   fontWeight: 700,
                   color: '#111827',
                   letterSpacing: '-0.03em',
+                  width: 160, // 모바일에서도 타이틀이 차지할 최소 넓이 확보
+                  flex: '0 0 auto',
                 }}
               >
                 <span
@@ -512,20 +520,23 @@ export default function TabPrice({ prices, score }) {
                 {row.title}
               </div>
 
+              {/* 상세 설명 영역 */}
               <div
                 style={{
                   fontSize: 15,
                   lineHeight: 1.6,
                   color: '#374151',
-                  marginLeft: -28,
+                  flex: '1 1 200px', // 남은 공간을 차지하되, 좁으면 줄바꿈
+                  wordBreak: 'keep-all',
                 }}
               >
                 {row.detail}
               </div>
 
+              {/* 배지 영역 */}
               <div
                 style={{
-                  justifySelf: 'end',
+                  marginLeft: 'auto', // 우측 끝으로 밀어내기 (justifySelf 대체)
                   color: row.sevColor,
                   fontWeight: 700,
                   fontSize: 13,
@@ -534,6 +545,7 @@ export default function TabPrice({ prices, score }) {
                   padding: '5px 12px',
                   borderRadius: 999,
                   whiteSpace: 'nowrap',
+                  flex: '0 0 auto',
                 }}
               >
                 {row.sev}

@@ -142,13 +142,14 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
       }}
     >
       <div
+        className="stock-dict-modal-card"
         onClick={e => e.stopPropagation()}
         style={{
           background:'#fff', borderRadius:16, width:'100%', maxWidth:600,
           maxHeight:'85vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(0,0,0,0.2)',
         }}
       >
-        <div style={{
+        <div className="sd-modal-head" style={{
           padding:'20px 24px 16px',
           borderBottom:`3px solid ${accentColor}`,
           position:'sticky', top:0, background:'#fff', zIndex:1,
@@ -185,7 +186,7 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
           </div>
         </div>
 
-        <div style={{ padding:'20px 24px' }}>
+        <div className="sd-modal-body" style={{ padding:'20px 24px' }}>
           <Section title="📘 정의">
             <p style={{ margin:0, fontSize:15, color:'#1e293b', lineHeight:1.7 }}>
               {term.description}
@@ -461,7 +462,7 @@ export default function StockDictionary() {
   }
 
   return (
-    <div style={{
+    <div className="stock-dict" style={{
       fontFamily: "'IBM Plex Sans KR', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif",
       background: '#f8faf9',
       borderRadius: 20,
@@ -469,13 +470,50 @@ export default function StockDictionary() {
       border: '1px solid #dbe5de',
       boxShadow: '0 18px 44px rgba(47,111,79,0.10)',
     }}>
-      <div style={{
+      <style>{`
+        /* ── StockDictionary 반응형 ── */
+        @media (max-width: 768px) {
+          .stock-dict .sd-inner { width: 94% !important; }
+          .stock-dict .sd-header { padding: 22px 16px 18px !important; }
+          .stock-dict .sd-title { font-size: 18px !important; gap: 6px !important; }
+          .stock-dict .sd-title img { width: 24px !important; height: 24px !important; }
+          .stock-dict .sd-body { padding-bottom: 20px !important; }
+          .stock-dict .sd-cat-row { padding: 18px 0 16px !important; gap: 5px !important; }
+          .stock-dict .sd-cat-row button { padding: 5px 10px !important; font-size: 11px !important; }
+          .stock-dict .sd-grid {
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .stock-dict { border-radius: 14px !important; box-shadow: 0 6px 18px rgba(47,111,79,0.10) !important; }
+          .stock-dict .sd-inner { width: 100% !important; padding: 0 12px !important; }
+          .stock-dict .sd-header { padding: 18px 12px 16px !important; }
+          .stock-dict .sd-header .sd-inner { padding: 0 !important; }
+          .stock-dict .sd-title { font-size: 16px !important; }
+          .stock-dict .sd-search { font-size: 13px !important; padding: 11px 36px 11px 36px !important; }
+          .stock-dict .sd-tab-langs button { padding: 4px 10px !important; font-size: 11px !important; }
+          .stock-dict .sd-init-row button {
+            min-width: 28px !important; height: 28px !important;
+            font-size: 11px !important; padding: 0 4px !important;
+          }
+          .stock-dict .sd-grid {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+          }
+          /* 모달 */
+          .stock-dict-modal-card { max-width: 100% !important; max-height: 92vh !important; border-radius: 14px !important; }
+          .stock-dict-modal-card .sd-modal-head { padding: 16px 16px 12px !important; }
+          .stock-dict-modal-card .sd-modal-body { padding: 16px !important; }
+          .stock-dict-modal-card h2 { font-size: 18px !important; }
+        }
+      `}</style>
+      <div className="sd-header" style={{
         background: 'linear-gradient(135deg, #1f4f3a 0%, #2f6f4f 55%, #3e8e63 100%)',
         padding: '28px 20px 24px',
         color: '#fff',
       }}>
-        <div style={{ width: '90%', margin: '0 auto' }}>
-          <h1 style={{
+        <div className="sd-inner" style={{ width: '90%', margin: '0 auto' }}>
+          <h1 className="sd-title" style={{
             margin:'0 0 16px',
             fontSize:22,
             fontWeight:800,
@@ -574,8 +612,8 @@ export default function StockDictionary() {
         </div>
       </div>
 
-      <div style={{ width: '90%', margin: '0 auto', padding: '0 0 24px' }}>
-        <div style={{
+      <div className="sd-inner sd-body" style={{ width: '90%', margin: '0 auto', padding: '0 0 24px' }}>
+        <div className="sd-cat-row" style={{
           display:'flex',
           flexWrap:'wrap',
           gap:6,
@@ -622,7 +660,7 @@ export default function StockDictionary() {
             gap:8,
             marginBottom:10,
           }}>
-            <div style={{ display:'flex', gap:6 }}>
+            <div className="sd-tab-langs" style={{ display:'flex', gap:6 }}>
               {[['ko','한글 ㄱㄴㄷ'],['en','영문 ABC']].map(([lang, label]) => (
                 <button
                   key={lang}
@@ -662,7 +700,7 @@ export default function StockDictionary() {
             )}
           </div>
 
-          <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+          <div className="sd-init-row" style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
             {tabs.map(tab => {
               const isActive = selectedInit === tab
               const hasData = tab === '전체' || activeInitials.has(tab)
@@ -738,7 +776,7 @@ export default function StockDictionary() {
         )}
 
         {!isLoading && !error && filtered.length > 0 && (
-          <div style={{
+          <div className="sd-grid" style={{
             display:'grid',
             gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))',
             gap:10,

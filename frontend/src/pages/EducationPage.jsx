@@ -93,15 +93,15 @@ export default function EducationPage() {
     <div style={styles.layout}>
       <Navbar />
 
-      <main style={styles.page}>
+      <main className="edu-page" style={styles.page}>
         <section style={styles.header}>
-          <h1 style={styles.title}>Education Center</h1>
-          <p style={styles.subtitle}>
+          <h1 className="edu-title" style={styles.title}>Education Center</h1>
+          <p className="edu-subtitle" style={styles.subtitle}>
             Ju-Dy 와 함께 투자 기본기부터 차근차근 학습해 보세요.
           </p>
         </section>
 
-        <section style={styles.sectionTabs}>
+        <section className="edu-section-tabs" style={styles.sectionTabs}>
           <button
             style={{
               ...styles.sectionTab,
@@ -139,7 +139,7 @@ export default function EducationPage() {
               <div style={styles.loading}>불러오는 중...</div>
             ) : (
               <>
-                <section style={styles.filterBox}>
+                <section className="edu-filter-box" style={styles.filterBox}>
                   <button
                     style={{
                       ...styles.filterButton,
@@ -174,17 +174,18 @@ export default function EducationPage() {
                     return (
                       <div key={step} style={styles.stepBlock}>
                         <button
+                          className="edu-step-header"
                           style={styles.stepHeader}
                           onClick={() => toggleStep(step)}
                         >
-                          <div style={styles.stepTextLine}>
-                            <h2 style={styles.stepTitle}>{info.title}</h2>
-                            <span style={styles.stepDivider}>·</span>
-                            <p style={styles.stepSubtitle}>{info.subtitle}</p>
+                          <div className="edu-step-text" style={styles.stepTextLine}>
+                            <h2 className="edu-step-title" style={styles.stepTitle}>{info.title}</h2>
+                            <span className="edu-step-divider" style={styles.stepDivider}>·</span>
+                            <p className="edu-step-subtitle" style={styles.stepSubtitle}>{info.subtitle}</p>
                           </div>
 
                           <div style={styles.stepRight}>
-                            <span style={styles.stepCount}>{contents.length}개 영상</span>
+                            <span className="edu-step-count" style={styles.stepCount}>{contents.length}개 영상</span>
                             <span style={styles.arrow}>{isOpen ? '▲' : '▼'}</span>
                           </div>
                         </button>
@@ -221,7 +222,7 @@ function LessonRow({ content, onClick }) {
   const cleanTitle = removeBracketPrefix(content.title)
 
   return (
-    <article style={styles.lessonRow} onClick={onClick}>
+    <article className="edu-lesson-row" style={styles.lessonRow} onClick={onClick}>
       <img
         src="/logo-tab.png"
         alt="Ju-Dy"
@@ -229,13 +230,13 @@ function LessonRow({ content, onClick }) {
       />
 
       <div style={styles.lessonMain}>
-        <h3 style={styles.lessonTitle}>{cleanTitle}</h3>
-        <p style={styles.lessonSummary}>
+        <h3 className="edu-lesson-title" style={styles.lessonTitle}>{cleanTitle}</h3>
+        <p className="edu-lesson-summary" style={styles.lessonSummary}>
           {content.summary || '핵심 투자 기본기를 짧게 확인할 수 있습니다.'}
         </p>
       </div>
 
-      <div style={styles.lessonMeta}>
+      <div className="edu-lesson-meta" style={styles.lessonMeta}>
         <span style={styles.categoryBadge}>
           {content.category_name || '기본기'}
         </span>

@@ -439,7 +439,8 @@ export default function TradePage() {
     height: 100%;
   }
 
-  @media (max-width: 1100px) {
+  /* ── laptop ↓ (≤1024px): 메인 그리드 1열로 전환, 위젯 줄별 2열 ── */
+  @media (max-width: 1024px) {
     .trade-main-grid {
       grid-template-columns: 1fr;
       grid-template-areas:
@@ -453,6 +454,7 @@ export default function TradePage() {
       grid-template-rows: auto;
       min-height: auto;
     }
+    .trade-side-top > * { min-height: 340px; }
 
     .trade-bottom-wide {
       grid-template-columns: 1fr 1fr;
@@ -465,28 +467,70 @@ export default function TradePage() {
       grid-template-rows: auto;
       height: auto;
     }
+    .trade-bottom-wide > .trade-widget-frame,
+    .trade-bottom-right > .trade-widget-frame { min-height: 380px; }
   }
 
-  @media (max-width: 720px) {
+  /* ── tablet ↓ (≤768px): 검색바 wrap, 패딩 축소, 차트 높이 감소 ── */
+  @media (max-width: 768px) {
     .trade-page-shell {
-      padding: 12px;
+      padding: 12px 12px 20px;
     }
 
     .trade-search-bar {
       flex-wrap: wrap;
+      gap: 8px !important;
+      padding: 10px 12px !important;
+    }
+    /* 검색바 안쪽 구분선(작은 세로바) 숨김 — 줄바꿈 후 어색해짐 */
+    .trade-search-bar > div[style*="width: 1px"] { display: none; }
+
+    .trade-chart-area,
+    .trade-chart-area > * { min-height: 360px !important; }
+  }
+
+  /* ── mobile (≤480px): 모든 위젯 1열 풀폭, 높이 더 축소 ── */
+  @media (max-width: 480px) {
+    .trade-page-shell { padding: 8px 8px 16px; }
+
+    .trade-warning-banner {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 6px !important;
+      font-size: 12px !important;
     }
 
-    .trade-side-top {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .trade-bottom-wide {
-      grid-template-columns: 1fr 1fr;
-    }
-
+    .trade-side-top,
+    .trade-bottom-wide,
     .trade-bottom-right {
-      grid-column: 1 / -1;
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr !important;
+    }
+
+    .trade-chart-area,
+    .trade-chart-area > * { min-height: 300px !important; }
+    .trade-side-top > * { min-height: 280px !important; }
+    .trade-bottom-wide > .trade-widget-frame,
+    .trade-bottom-right > .trade-widget-frame { min-height: 320px !important; }
+
+    /* 검색바 input/버튼 풀폭 */
+    .trade-search-bar > div:first-child {
+      width: 100%;
+    }
+    .trade-search-bar > div:first-child > input {
+      width: 100% !important;
+      flex: 1;
+    }
+    /* 자동완성 드롭다운: 풀폭 */
+    .trade-search-bar > div:first-child > div[style*="position: absolute"] {
+      left: 0 !important;
+      right: 0 !important;
+      min-width: 0 !important;
+      width: 100% !important;
+    }
+    /* 장 운영 상태 — 왼쪽 정렬로 풀어줌 */
+    .trade-search-bar > span:last-child {
+      margin-left: 0 !important;
+      font-size: 12px !important;
     }
   }
 `}</style>
