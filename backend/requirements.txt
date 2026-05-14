@@ -20,6 +20,9 @@ python-dotenv>=1.0.0
 httpx==0.28.1
 requests>=2.31.0
 
+# --- 메모리 관리 (KIS Client 응답 캐시 TTL evict, Render Free OOM 방지) ---
+cachetools>=5.3.0
+
 # --- Data processing ---
 numpy>=1.26.0
 pandas>=2.1.0

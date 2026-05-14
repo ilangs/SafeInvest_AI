@@ -260,16 +260,24 @@ def _stock_name(symbol: str) -> str:
 _STOCK_NAME_CACHE: dict[str, str] = {}
 
 # 마지막 성공 응답 캐시 (KIS API 일시 실패 시 안정적 fallback)
-_QUOTE_CACHE:     dict[str, dict]  = {}   # symbol → quote dict
-_ORDERBOOK_CACHE: dict[str, dict]  = {}   # symbol → orderbook dict
-_INFO_CACHE:      dict[str, dict]  = {}   # symbol → info dict
-_BALANCE_CACHE:   dict[tuple, dict] = {}  # (user_id, is_mock) → balance dict
-_HOLDINGS_CACHE:  dict[tuple, list] = {}  # (user_id, is_mock) → holdings list
-
-# 당일 주문 로그 — KIS inquire-daily-ccld 가 즉시 반영되지 않는 문제 보완
-# Supabase 'user_orders' 테이블에 영구 저장 (서버 재시작/다중워커에도 유지)
-# 메모리 캐시는 단기 응답속도 개선용
-_LOCAL_ORDER_CACHE: dict[tuple, list] = {}   # (user_id, is_mock, date) → orders
+# Render Free 512MB 환경 OOM 방지: dict → TTLCache (maxsize/ttl 자동 evict).
+# cachetools 미설치 시(예: 로컬 구버전) dict 로 graceful fallback.
+try:
+    from cachetools import TTLCache
+    _QUOTE_CACHE     = TTLCache(maxsize=500, ttl=300)   # symbol → quote dict
+    _ORDERBOOK_CACHE = TTLCache(maxsize=500, ttl=300)   # symbol → orderbook dict
+    _INFO_CACHE      = TTLCache(maxsize=500, ttl=300)   # symbol → info dict
+    _BALANCE_CACHE   = TTLCache(maxsize=500, ttl=300)   # (user_id, is_mock) → balance
+    _HOLDINGS_CACHE  = TTLCache(maxsize=500, ttl=300)   # (user_id, is_mock) → holdings
+    # 당일 주문 로그 — Supabase 'user_orders' 가 진실 원본. 메모리는 단기 가속용.
+    _LOCAL_ORDER_CACHE = TTLCache(maxsize=500, ttl=300)   # (user_id, is_mock, date) → orders
+except ImportError:
+    _QUOTE_CACHE:     dict[str, dict]  = {}
+    _ORDERBOOK_CACHE: dict[str, dict]  = {}
+    _INFO_CACHE:      dict[str, dict]  = {}
+    _BALANCE_CACHE:   dict[tuple, dict] = {}
+    _HOLDINGS_CACHE:  dict[tuple, list] = {}
+    _LOCAL_ORDER_CACHE: dict[tuple, list] = {}
 
 
 def _today_kst() -> str:

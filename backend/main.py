@@ -51,12 +51,16 @@ async def lifespan(app: FastAPI):
 
 # ── FastAPI 앱 생성 ────────────────────────────────────────────────────────────
 
+_is_production = settings.fastapi_env == "production"
+
 app = FastAPI(
     title="SafeInvest AI",
     description="건전 투자 가이드 AI 플랫폼 — Backend API",
     version="0.1.0",
-    docs_url="/docs",          # Swagger UI (개발 환경)
-    redoc_url="/redoc",        # ReDoc
+    # production 환경에선 Swagger/ReDoc 비활성화 — 스키마 메모리 부담 ↓ + 보안 ↑
+    docs_url=None if _is_production else "/docs",
+    redoc_url=None,
+    openapi_url=None if _is_production else "/openapi.json",
     lifespan=lifespan,
 )
 

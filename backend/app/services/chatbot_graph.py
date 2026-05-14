@@ -56,16 +56,14 @@ app/services/chatbot_graph.py — LangGraph 기반 멀티스텝 AI 챗봇
 
 import uuid
 from datetime import datetime, timezone
-from typing import TypedDict
-
-from langchain_core.documents import Document
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langgraph.graph import END, START, StateGraph
+from typing import TypedDict, TYPE_CHECKING, Any
 
 from app.core.config import settings
 from app.core.supabase import supabase_admin
+
+if TYPE_CHECKING:
+    from langchain_core.documents import Document
+    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 
 # ── 시스템 프롬프트 ───────────────────────────────────────────────────────────
@@ -97,13 +95,14 @@ _FALLBACK_SYSTEM_PROMPT = """당신은 건전한 주식 투자를 안내하는 A
 
 # ── 싱글턴 (첫 호출 시 초기화) ───────────────────────────────────────────────
 
-_embeddings: OpenAIEmbeddings | None = None
-_llm: ChatOpenAI | None = None
+_embeddings: Any = None
+_llm: Any = None
 
 
-def _get_embeddings() -> OpenAIEmbeddings:
+def _get_embeddings():
     global _embeddings
     if _embeddings is None:
+        from langchain_openai import OpenAIEmbeddings
         _embeddings = OpenAIEmbeddings(
             model="text-embedding-3-small",
             api_key=settings.openai_api_key,
@@ -111,7 +110,7 @@ def _get_embeddings() -> OpenAIEmbeddings:
     return _embeddings
 
 
-def _get_llm() -> ChatOpenAI:
+def _get_llm():
     """
     답변 생성용 LLM (RAG / Fallback 공용).
     RAG 경로가 우선 동작하며 참조 자료가 정확도를 보강하므로
@@ -120,6 +119,7 @@ def _get_llm() -> ChatOpenAI:
     """
     global _llm
     if _llm is None:
+        from langchain_openai import ChatOpenAI
         _llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0.3,
@@ -135,7 +135,7 @@ class GraphState(TypedDict):
     question:    str
     user_id:     str
     session_id:  str
-    source_docs: list[Document]    # retrieve 노드가 채움
+    source_docs: list    # retrieve 노드가 채움 (각 원소는 langchain_core.documents.Document)
     context:     str               # generate_* 노드가 채움
     answer:      str               # generate_* 노드가 채움
     route:       str               # "rag" | "fallback"
@@ -151,7 +151,7 @@ async def _search_fss(
     k:              int              = 5,
     threshold:      float            = 0.55,
     category_codes: list[str] | None = None,
-) -> list[Document]:
+) -> list:
     """
     match_knowledge_fss RPC 를 직접 호출하여 FSS 유사 문서를 반환합니다.
     supabase-py 2.x 호환 방식 (SupabaseVectorStore 사용 금지).
@@ -159,6 +159,7 @@ async def _search_fss(
     RPC 반환 컬럼: chunk_id, content, title, contents_slno,
                    category_code, source_url, similarity
     """
+    from langchain_core.documents import Document
     try:
         vector = await _get_embeddings().aembed_query(question)
 
@@ -172,7 +173,7 @@ async def _search_fss(
             },
         ).execute()
 
-        docs: list[Document] = []
+        docs: list = []
         for row in (resp.data or []):
             docs.append(Document(
                 page_content=row.get("content", ""),
@@ -191,7 +192,7 @@ async def _search_fss(
         return []
 
 
-def _format_docs(docs: list[Document]) -> str:
+def _format_docs(docs: list) -> str:
     """Document 리스트를 LLM 컨텍스트 문자열로 변환합니다."""
     if not docs:
         return "참조 자료 없음"
@@ -249,6 +250,8 @@ async def generate_rag(state: GraphState) -> dict:
     FSS 검색 문서를 컨텍스트로 삼아 LCEL 체인으로 답변을 생성합니다.
     """
     try:
+        from langchain_core.prompts import ChatPromptTemplate
+        from langchain_core.output_parsers import StrOutputParser
         context = _format_docs(state["source_docs"])
         prompt  = ChatPromptTemplate.from_messages([
             ("system", _SYSTEM_PROMPT),
@@ -289,6 +292,8 @@ async def generate_fallback(state: GraphState) -> dict:
     참조 자료 없이 일반 금융 지식 기반으로 LCEL 체인 답변을 생성합니다.
     """
     try:
+        from langchain_core.prompts import ChatPromptTemplate
+        from langchain_core.output_parsers import StrOutputParser
         prompt = ChatPromptTemplate.from_messages([
             ("system", _FALLBACK_SYSTEM_PROMPT),
             ("human",  "{question}"),
@@ -337,27 +342,33 @@ def should_fallback(state: GraphState) -> str:
     return "generate_fallback" if state["route"] == "fallback" else "generate_rag"
 
 
-# ── 그래프 컴파일 (모듈 로드 시 1회 실행) ────────────────────────────────────
+# ── 그래프 컴파일 (지연 초기화 — 첫 호출 시 1회) ──────────────────────────────
+# Render Free 512MB 환경에서 부팅 메모리를 줄이기 위해 langgraph import 자체를
+# 첫 요청 시점까지 미룬다. 컴파일 결과는 _graph 모듈 변수에 캐시.
 
-_graph = (
-    StateGraph(GraphState)
-    # 노드 등록
-    .add_node("retrieve",          retrieve)
-    .add_node("route_decision",    route_decision)
-    .add_node("generate_rag",      generate_rag)
-    .add_node("generate_fallback", generate_fallback)
-    .add_node("save_history",      save_history)
-    # 고정 엣지
-    .add_edge(START,         "retrieve")
-    .add_edge("retrieve",    "route_decision")
-    # 조건부 엣지: route_decision → generate_rag | generate_fallback
-    .add_conditional_edges("route_decision", should_fallback)
-    # 두 생성 노드 모두 save_history 로 합류
-    .add_edge("generate_rag",      "save_history")
-    .add_edge("generate_fallback", "save_history")
-    .add_edge("save_history",      END)
-    .compile()
-)
+_graph: Any = None
+
+
+def _get_graph():
+    global _graph
+    if _graph is None:
+        from langgraph.graph import END, START, StateGraph
+        _graph = (
+            StateGraph(GraphState)
+            .add_node("retrieve",          retrieve)
+            .add_node("route_decision",    route_decision)
+            .add_node("generate_rag",      generate_rag)
+            .add_node("generate_fallback", generate_fallback)
+            .add_node("save_history",      save_history)
+            .add_edge(START,         "retrieve")
+            .add_edge("retrieve",    "route_decision")
+            .add_conditional_edges("route_decision", should_fallback)
+            .add_edge("generate_rag",      "save_history")
+            .add_edge("generate_fallback", "save_history")
+            .add_edge("save_history",      END)
+            .compile()
+        )
+    return _graph
 
 
 # ── 공개 인터페이스 ───────────────────────────────────────────────────────────
@@ -406,7 +417,7 @@ async def ask_graph(
     }
 
     try:
-        final_state: GraphState = await _graph.ainvoke(initial_state)
+        final_state: GraphState = await _get_graph().ainvoke(initial_state)
     except Exception as exc:
         # 그래프 자체가 중단된 최후의 경우
         print(f"[chatbot_graph] 그래프 실행 오류: {exc}")
