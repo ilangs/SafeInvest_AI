@@ -52,6 +52,7 @@ export default function TradePage() {
   const [quoteLoading,  setQuoteLoading]  = useState(false)
   const [kisConnected,  setKisConnected]  = useState(true)
   const [kisMode,       setKisMode]       = useState(true)
+  const [kisReady,      setKisReady]      = useState(false)   // credentials 1차 확인 완료 여부
   const [suggestions,   setSuggestions]   = useState([])
   const [showSugg,      setShowSugg]      = useState(false)
   const [activeSuggIndex, setActiveSuggIndex] = useState(-1)
@@ -103,7 +104,8 @@ export default function TradePage() {
 
       setCurrentPrice(res.data.current_price)
 
-      const apiName = res.data.stock_name
+      // ★ 백엔드 QuoteResponse 필드명은 `name` (이전엔 `stock_name`을 잘못 참조)
+      const apiName = res.data.name
       if (apiName && apiName !== symbol && !/^\d{6}$/.test(apiName)) {
         setStockName(apiName)
       }
@@ -244,7 +246,7 @@ export default function TradePage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // KIS 연결 상태 확인
+  // KIS 연결 상태 확인 — 완료 후 kisReady=true 로 위젯 자동 로드 트리거
   useEffect(() => {
     api.get('/api/v1/credentials/status')
       .then(res => {
@@ -256,6 +258,23 @@ export default function TradePage() {
         setKisMode(activeConn ? activeConn.is_mock : true)
       })
       .catch(() => setKisConnected(false))
+      .finally(() => setKisReady(true))
+  }, [])
+
+  // 첫 보유종목 자동 선택 — 진입 1회만, 사용자가 직접 종목 검색하면 비활성화
+  const firstHoldingApplied = useRef(false)
+  const handleHoldingsLoaded = useCallback((holdings) => {
+    if (firstHoldingApplied.current) return
+    if (!Array.isArray(holdings) || holdings.length === 0) {
+      firstHoldingApplied.current = true   // 보유종목 없음 → 더 시도 안 함
+      return
+    }
+    const top = holdings[0]
+    if (top?.stock_code && /^\d{6}$/.test(top.stock_code)) {
+      setSymbol(top.stock_code)
+      setStockName(top.stock_name || '')
+      firstHoldingApplied.current = true
+    }
   }, [])
 
   const isUp = changeRate != null && changeRate >= 0
@@ -580,7 +599,7 @@ export default function TradePage() {
               </div>
 
               <div className="trade-widget-frame">
-                <BalanceWidget refreshTrigger={refreshTick} isMock={kisMode} />
+                <BalanceWidget refreshTrigger={refreshTick} isMock={kisMode} kisReady={kisReady} />
               </div>
             </div>
 
@@ -611,7 +630,12 @@ export default function TradePage() {
               {/* 보유종목 + 매매내역 */}
               <div className="trade-bottom-right">
                 <div className="trade-widget-frame">
-                  <HoldingsWidget refreshTrigger={refreshTick} isMock={kisMode} />
+                  <HoldingsWidget
+                    refreshTrigger={refreshTick}
+                    isMock={kisMode}
+                    kisReady={kisReady}
+                    onHoldingsLoad={handleHoldingsLoaded}
+                  />
                 </div>
 
                 <div className="trade-widget-frame">

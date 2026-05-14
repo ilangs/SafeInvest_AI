@@ -4,6 +4,16 @@ import { formatKRW } from '../../utils/format'
 
 const LOGO_TAB = '/logo-tab.png'
 
+// KST 기준 정규장 운영 여부 (주말 + 09:00~15:30)
+// 공휴일 체크는 백엔드(_is_market_open)에서 holidays 패키지로 수행
+function isMarketOpenClient() {
+  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  const day = kst.getUTCDay()
+  if (day === 0 || day === 6) return false
+  const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes()
+  return minutes >= 9 * 60 && minutes < 15 * 60 + 30
+}
+
 export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderComplete, isMock = true }) {
   const [tab, setTab] = useState('buy')
   const [orderType, setOrderType] = useState('limit')
@@ -12,6 +22,13 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
   const [balance, setBalance] = useState(0)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [marketOpen, setMarketOpen] = useState(isMarketOpenClient)
+
+  // 1분마다 거래시간 상태 갱신
+  useEffect(() => {
+    const t = setInterval(() => setMarketOpen(isMarketOpenClient()), 60000)
+    return () => clearInterval(t)
+  }, [])
 
   // 호가 클릭 시 가격 자동 입력
   useEffect(() => {
@@ -45,12 +62,18 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
   // 주문 요청
   const handleSubmit = async () => {
     if (!symbol || !quantity || parseInt(quantity) <= 0) {
-      setMessage('종목코드와 수량을 확인해 주세요.')
+      setMessage('❌ 종목코드와 수량을 확인해 주세요.')
       return
     }
 
     if (orderType === 'limit' && (!price || parseInt(price) <= 0)) {
-      setMessage('지정가를 입력해 주세요.')
+      setMessage('❌ 지정가를 입력해 주세요.')
+      return
+    }
+
+    // 클라이언트 사전 차단 — 거래시간 외 주문 방지 (백엔드도 동일하게 차단)
+    if (!isMarketOpenClient()) {
+      setMessage('❌ 주문 거부 — 주식시장 거래시간이 아닙니다 (평일 09:00~15:30 KST).')
       return
     }
 
@@ -67,6 +90,13 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
       }
 
       const res = await api.post('/api/v1/order', body)
+
+      // ★ 백엔드가 status='rejected'를 리턴해도 HTTP 200이므로 명시적으로 분기
+      if (res.data?.status === 'rejected') {
+        setMessage(`❌ ${res.data.message || '주문이 거부되었습니다.'}`)
+        return
+      }
+
       setMessage(`✅ ${res.data.message || '주문이 접수되었습니다.'}`)
       setQuantity('')
       onOrderComplete?.()
@@ -303,24 +333,46 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
         </span>
       </div>
 
+      {/* 장 마감 안내 */}
+      {!marketOpen && (
+        <div style={{
+          background: '#FEF3C7',
+          border: '1px solid #F59E0B',
+          borderRadius: 'var(--border-radius-md)',
+          padding: '6px 10px',
+          fontSize: 11,
+          color: '#92400E',
+          marginBottom: 6,
+          textAlign: 'center',
+        }}>
+          ⚠️ 장 마감 — 정규장(평일 09:00~15:30)에만 주문 가능합니다.
+        </div>
+      )}
+
       {/* 주문 버튼 */}
       <button
         onClick={handleSubmit}
-        disabled={loading}
+        disabled={loading || !marketOpen}
         style={{
           width: '100%',
           padding: '9px',
           fontSize: 14,
           fontWeight: 500,
-          background: tab === 'buy' ? '#ef4444' : '#3b82f6',
+          background: !marketOpen
+            ? '#94a3b8'
+            : tab === 'buy' ? '#ef4444' : '#3b82f6',
           color: '#fff',
           border: 'none',
           borderRadius: 'var(--border-radius-md)',
-          cursor: loading ? 'not-allowed' : 'pointer',
+          cursor: (loading || !marketOpen) ? 'not-allowed' : 'pointer',
           opacity: loading ? 0.7 : 1,
         }}
       >
-        {loading ? '처리 중...' : `${tab === 'buy' ? '매수' : '매도'} 주문`}
+        {loading
+          ? '처리 중...'
+          : !marketOpen
+            ? '장 마감 — 주문 불가'
+            : `${tab === 'buy' ? '매수' : '매도'} 주문`}
       </button>
 
       {/* 결과 메시지 */}

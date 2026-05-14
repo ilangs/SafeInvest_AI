@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../services/api'
 
-export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoad, isMock = true }) {
+export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoad, isMock = true, kisReady = true }) {
   refreshKey = refreshKey ?? refreshTrigger // 두 prop 모두 지원
 
   const [balance, setBalance] = useState(null)
@@ -21,7 +21,11 @@ export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoa
     }
   }, [onBalanceLoad, isMock])
 
-  useEffect(() => { load() }, [load, refreshKey, isMock])
+  // kisReady=false 동안엔 호출하지 않음 (credentials 확인 전 잘못된 환경 조회 방지)
+  useEffect(() => {
+    if (!kisReady) return
+    load()
+  }, [load, refreshKey, isMock, kisReady])
 
   const plColor = balance
     ? balance.total_profit_loss > 0 ? '#ef4444' : balance.total_profit_loss < 0 ? '#3b82f6' : '#9ca3af'

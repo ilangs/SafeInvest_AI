@@ -3,7 +3,7 @@ import api from '../../services/api'
 
 const LOGO_TAB = '/logo-tab.png'
 
-export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = true }) {
+export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = true, kisReady = true, onHoldingsLoad }) {
   refreshKey = refreshKey ?? refreshTrigger
 
   const [holdings, setHoldings] = useState([])
@@ -14,17 +14,22 @@ export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = tr
 
     try {
       const { data } = await api.get(`/api/v1/account/holdings?is_mock=${isMock}`)
-      setHoldings(data)
+      const list = Array.isArray(data) ? data : []
+      setHoldings(list)
+      onHoldingsLoad?.(list)
     } catch {
       setHoldings([])
+      onHoldingsLoad?.([])
     } finally {
       setLoading(false)
     }
-  }, [isMock])
+  }, [isMock, onHoldingsLoad])
 
+  // kisReady=false 동안엔 호출하지 않음
   useEffect(() => {
+    if (!kisReady) return
     load()
-  }, [load, refreshKey, isMock])
+  }, [load, refreshKey, isMock, kisReady])
 
   return (
     <div
