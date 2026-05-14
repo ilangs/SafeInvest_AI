@@ -45,6 +45,7 @@ export default function TradePage() {
   const [inputSymbol,   setInputSymbol]   = useState('')
   const [currentPrice,  setCurrentPrice]  = useState(null)
   const [stockName,     setStockName]     = useState('')
+  const [stockMeta,     setStockMeta]     = useState({ market: '', industry: '', sector: '' })
   const [changeRate,    setChangeRate]    = useState(null)
   const [change,        setChange]        = useState(null)
   const [selectedPrice, setSelectedPrice] = useState(null)
@@ -64,16 +65,34 @@ export default function TradePage() {
   // 이전 시세 요청 무효화용 ID
   const quoteReqId  = useRef(0)
 
-  // 종목 변경 시 기존 시세값 초기화
+  // 종목 변경 시 기존 시세값 초기화 + 종목 메타정보(시장/업종) 조회
   useEffect(() => {
     quoteReqId.current += 1
     setCurrentPrice(null)
     setChangeRate(null)
     setChange(null)
+    setStockMeta({ market: '', industry: '', sector: '' })
 
     if (symbol && /^\d{6}$/.test(symbol)) {
       saveLastSymbol(userId, symbol)
+      // analysis 모듈과 동일하게 stocks 테이블에서 시장/업종 가져옴
+      api.get(`/api/v1/stocks/${symbol}`)
+        .then(res => {
+          if (res.data) {
+            setStockMeta({
+              market:   res.data.market   || '',
+              industry: res.data.industry || '',
+              sector:   res.data.sector   || '',
+            })
+            // 종목명도 보강 (quote API보다 먼저 응답할 수 있음)
+            if (res.data.stock_name && !stockName) {
+              setStockName(res.data.stock_name)
+            }
+          }
+        })
+        .catch(() => { /* stocks 테이블에 없는 종목 — 표시만 생략 */ })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol, userId])
 
   // 로그인 후 사용자별 마지막 조회 종목 복원
@@ -542,21 +561,33 @@ export default function TradePage() {
             {/* 구분선 */}
             <div style={{ width: 1, height: 28, background: 'var(--color-border-tertiary)' }} />
 
-            {/* 종목명 표시 */}
+            {/* 종목 정보 inline: 종목명 · 코드 035420 · KOSPI · IT·서비스 */}
             {stockName && (
-              <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
                 {stockName}
               </span>
             )}
 
-            <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', fontFamily: 'monospace' }}>
-              {symbol}
+            <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+              · 코드 <span style={{ fontFamily: 'monospace' }}>{symbol}</span>
             </span>
+
+            {stockMeta.market && (
+              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                · {stockMeta.market}
+              </span>
+            )}
+
+            {stockMeta.industry && (
+              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                · {stockMeta.industry}
+              </span>
+            )}
 
             {/* 현재가 표시 */}
             {currentPrice != null && (
               <>
-                <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-text-primary)', marginLeft: 4 }}>
                   {currentPrice.toLocaleString()}원
                 </span>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import api from '../../services/api'
 
 export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoad, isMock = true, kisReady = true }) {
@@ -6,6 +6,9 @@ export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoa
 
   const [balance, setBalance] = useState(null)
   const [loading, setLoading] = useState(true)
+  // KIS 토큰 워밍업 지연 대응 — 첫 응답의 예수금/평가금액이 모두 0이면 1회 재시도
+  const autoRetried = useRef(false)
+  const retryTimer = useRef(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -14,6 +17,16 @@ export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoa
       const { data } = await api.get(`/api/v1/account/balance?is_mock=${isMock}`)
       setBalance(data)
       onBalanceLoad?.(data.available ?? 0)
+
+      // 모든 금액이 0이면 워밍업 지연으로 판단 → 1회 재시도
+      const allZero = (data?.deposit ?? 0) === 0
+                   && (data?.available ?? 0) === 0
+                   && (data?.total_eval ?? 0) === 0
+      if (allZero && !autoRetried.current) {
+        autoRetried.current = true
+        clearTimeout(retryTimer.current)
+        retryTimer.current = setTimeout(() => { load() }, 1500)
+      }
     } catch {
       setBalance(null)
     } finally {
@@ -26,6 +39,9 @@ export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoa
     if (!kisReady) return
     load()
   }, [load, refreshKey, isMock, kisReady])
+
+  useEffect(() => { autoRetried.current = false }, [isMock])
+  useEffect(() => () => clearTimeout(retryTimer.current), [])
 
   const plColor = balance
     ? balance.total_profit_loss > 0 ? '#ef4444' : balance.total_profit_loss < 0 ? '#3b82f6' : '#9ca3af'

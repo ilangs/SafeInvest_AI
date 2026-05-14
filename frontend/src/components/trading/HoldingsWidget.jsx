@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import api from '../../services/api'
 
 const LOGO_TAB = '/logo-tab.png'
@@ -8,6 +8,9 @@ export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = tr
 
   const [holdings, setHoldings] = useState([])
   const [loading, setLoading] = useState(true)
+  // KIS 토큰 워밍업 지연으로 첫 호출이 빈 응답인 경우 1회 자동 재시도용
+  const autoRetried = useRef(false)
+  const retryTimer = useRef(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -17,6 +20,13 @@ export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = tr
       const list = Array.isArray(data) ? data : []
       setHoldings(list)
       onHoldingsLoad?.(list)
+
+      // 첫 호출이 빈 배열이면 한 번만 자동 재시도 (KIS 토큰 워밍업 지연 대응)
+      if (list.length === 0 && !autoRetried.current) {
+        autoRetried.current = true
+        clearTimeout(retryTimer.current)
+        retryTimer.current = setTimeout(() => { load() }, 1500)
+      }
     } catch {
       setHoldings([])
       onHoldingsLoad?.([])
@@ -30,6 +40,14 @@ export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = tr
     if (!kisReady) return
     load()
   }, [load, refreshKey, isMock, kisReady])
+
+  // isMock 변경 시 재시도 카운터 리셋 (모의 ↔ 실거래 전환 대응)
+  useEffect(() => {
+    autoRetried.current = false
+  }, [isMock])
+
+  // 언마운트 시 타이머 정리
+  useEffect(() => () => clearTimeout(retryTimer.current), [])
 
   return (
     <div
