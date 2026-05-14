@@ -131,7 +131,7 @@ export default function ChartWidget({ symbol }) {
     })
 
     bbMiddleRef.current = chart.addSeries(LineSeries, {
-      color: '#64748b',
+      color: 'var(--text-secondary)',
       lineWidth: 1,
       lineStyle: 2,
       priceLineVisible: false,
@@ -269,7 +269,7 @@ export default function ChartWidget({ symbol }) {
             <span
               style={{
                 fontSize: '10px',
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 marginLeft: '6px',
               }}
             >
@@ -290,8 +290,8 @@ export default function ChartWidget({ symbol }) {
 
                 borderColor:
                   period === item.key
-                    ? '#2f6f4f'
-                    : '#cbd5e1',
+                    ? 'var(--brand)'
+                    : 'var(--border)',
 
                 cursor: 'pointer',
                 fontSize: '12px',
@@ -303,13 +303,13 @@ export default function ChartWidget({ symbol }) {
 
                 background:
                   period === item.key
-                    ? '#2f6f4f'
-                    : '#ffffff',
+                    ? 'var(--brand)'
+                    : 'var(--bg-card)',
 
                 color:
                   period === item.key
-                    ? '#ffffff'
-                    : '#1e293b',
+                    ? 'var(--text-on-brand)'
+                    : 'var(--text-primary)',
               }}
             >
               {item.label}
@@ -321,7 +321,7 @@ export default function ChartWidget({ symbol }) {
       {loading && (
         <div
           style={{
-            color: '#64748b',
+            color: 'var(--text-secondary)',
             fontSize: '12px',
             padding: '4px 0',
           }}
@@ -333,7 +333,7 @@ export default function ChartWidget({ symbol }) {
       {error && (
         <div
           style={{
-            color: '#ef4444',
+            color: 'var(--danger)',
             fontSize: '12px',
             padding: '4px 0',
           }}

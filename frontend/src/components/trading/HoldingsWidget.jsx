@@ -68,7 +68,7 @@ export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = tr
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#2f6f4f',
+          background: 'var(--brand)',
           padding: '14px 14px',
           margin: '-16px -16px 7px -16px',
           borderBottom: 'none',
@@ -79,7 +79,7 @@ export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = tr
             display: 'flex',
             alignItems: 'center',
             gap: 7,
-            color: '#ffffff',
+            color: 'var(--text-on-brand)',
             fontWeight: 700,
             fontSize: 15,
             whiteSpace: 'nowrap',
@@ -101,9 +101,9 @@ export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = tr
           className="btn-sm"
           onClick={load}
           style={{
-            background: '#ffffff',
+            background: 'var(--bg-card)',
             border: '1px solid rgba(255, 255, 255, 0.45)',
-            color: '#2f6f4f',
+            color: 'var(--brand)',
             fontWeight: 600,
             boxShadow: 'none',
             fontSize: 11,
@@ -141,10 +141,10 @@ export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = tr
               {holdings.map(h => {
                 const plColor =
                   h.profit_loss > 0
-                    ? '#ef4444'
+                    ? 'var(--up)'
                     : h.profit_loss < 0
-                      ? '#3b82f6'
-                      : '#9ca3af'
+                      ? 'var(--down)'
+                      : 'var(--text-muted)'
 
                 const prefix = h.profit_loss > 0 ? '+' : ''
 

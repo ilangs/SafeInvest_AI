@@ -60,7 +60,7 @@ export default function StockInfoWidget({ symbol, currentPrice, isMock = true })
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#2f6f4f',
+          background: 'var(--brand)',
           padding: '14px 14px',
           margin: '-16px -16px 7px -16px',
           borderBottom: 'none',
@@ -71,7 +71,7 @@ export default function StockInfoWidget({ symbol, currentPrice, isMock = true })
             display: 'flex',
             alignItems: 'center',
             gap: 7,
-            color: '#ffffff',
+            color: 'var(--text-on-brand)',
             fontWeight: 700,
             fontSize: 15,
           }}
@@ -92,9 +92,9 @@ export default function StockInfoWidget({ symbol, currentPrice, isMock = true })
           className="btn-sm"
           onClick={load}
           style={{
-            background: '#ffffff',
+            background: 'var(--bg-card)',
             border: '1px solid rgba(255, 255, 255, 0.45)',
-            color: '#2f6f4f',
+            color: 'var(--brand)',
             fontWeight: 600,
             boxShadow: 'none',
             fontSize: 11,
@@ -120,12 +120,12 @@ export default function StockInfoWidget({ symbol, currentPrice, isMock = true })
               <InfoRow
                 label="상한가"
                 value={info.upper_limit ? info.upper_limit.toLocaleString() : '-'}
-                valueStyle={{ color: '#ef4444', fontWeight: 600 }}
+                valueStyle={{ color: 'var(--up)', fontWeight: 600 }}
               />
               <InfoRow
                 label="하한가"
                 value={info.lower_limit ? info.lower_limit.toLocaleString() : '-'}
-                valueStyle={{ color: '#3b82f6', fontWeight: 600 }}
+                valueStyle={{ color: 'var(--down)', fontWeight: 600 }}
               />
               <InfoRow
                 label="PER"
@@ -149,7 +149,7 @@ export default function StockInfoWidget({ symbol, currentPrice, isMock = true })
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(to right, #3b82f6, #10b981, #ef4444)',
+                  background: 'linear-gradient(to right, var(--down), var(--brand-bright), var(--up))',
                   borderRadius: 3,
                 }}
               />
@@ -164,8 +164,8 @@ export default function StockInfoWidget({ symbol, currentPrice, isMock = true })
                   width: 10,
                   height: 10,
                   borderRadius: '50%',
-                  background: '#fff',
-                  border: '2px solid #234432',
+                  background: 'var(--bg-card)',
+                  border: '2px solid var(--brand-dim)',
                   boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
                   zIndex: 2,
                 }}
@@ -182,7 +182,7 @@ export default function StockInfoWidget({ symbol, currentPrice, isMock = true })
               }}
             >
               <span>{info.w52_low ? info.w52_low.toLocaleString() : '-'}</span>
-              <span style={{ color: '#234432', fontWeight: 700 }}>
+              <span style={{ color: 'var(--brand-dim)', fontWeight: 700 }}>
                 {(currentPrice ?? info.current_price ?? 0).toLocaleString()}
               </span>
               <span>{info.w52_high ? info.w52_high.toLocaleString() : '-'}</span>

@@ -12,6 +12,24 @@
   <!-- 브라우저 / 앱 상단 제목 -->
   <title>Ju-Dy</title>
 
+  <!-- 테마 Flash 방지: 앱 JS 로드 전에 data-theme 미리 부착 -->
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem('theme');
+        var pick = (stored === 'light' || stored === 'dark' || stored === 'system')
+          ? stored
+          : 'system';
+        var effective = pick === 'system'
+          ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : pick;
+        document.documentElement.setAttribute('data-theme', effective);
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
 

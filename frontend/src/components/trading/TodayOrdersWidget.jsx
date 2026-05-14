@@ -60,7 +60,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
     fontWeight: 800,
     border: 'none',
     background: 'transparent',
-    color: '#ffffff',
+    color: 'var(--text-on-brand)',
     outline: 'none',
   }
 
@@ -84,7 +84,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#2f6f4f',
+          background: 'var(--brand)',
           padding: '15px 14px',
           margin: '-16px -16px 5px -16px',
           borderBottom: 'none',
@@ -96,7 +96,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
             display: 'flex',
             alignItems: 'center',
             gap: 7,
-            color: '#ffffff',
+            color: 'var(--text-on-brand)',
             fontWeight: 700,
             fontSize: 15,
             whiteSpace: 'nowrap',
@@ -135,9 +135,9 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
             onClick={() => load()}
             disabled={loading}
             style={{
-              background: '#ffffff',
+              background: 'var(--bg-card)',
               border: '1px solid rgba(255, 255, 255, 0.45)',
-              color: '#2f6f4f',
+              color: 'var(--brand)',
               fontWeight: 600,
               boxShadow: 'none',
               fontSize: 11,
@@ -190,7 +190,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
               {orders.map((o, i) => (
                 <tr
                   key={i}
-                  style={{ borderBottom: '0.5px solid rgba(45,63,92,0.18)' }}
+                  style={{ borderBottom: '0.5px solid var(--border-subtle)' }}
                 >
                   <td style={{ padding: '0.35rem 1rem', whiteSpace: 'nowrap' }}>
                     <div style={{ fontWeight: 500 }}>{fmtDate(o.order_date)}</div>
@@ -206,7 +206,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
                     <div
                       style={{
                         fontSize: 12,
-                        color: o.order_type === '매수' ? '#ef4444' : '#3b82f6',
+                        color: o.order_type === '매수' ? 'var(--up)' : 'var(--down)',
                         fontWeight: 600,
                       }}
                     >
@@ -253,8 +253,8 @@ function Th({ children, align = 'left' }) {
         position: 'sticky',
         top: 0,
         zIndex: 1,
-        background: 'var(--color-background-primary, #fff)',
-        borderBottom: '0.5px solid rgba(45,63,92,0.18)',
+        background: 'var(--bg-card)',
+        borderBottom: '0.5px solid var(--border)',
       }}
     >
       {children}
@@ -267,10 +267,10 @@ function StatusBadge({ status, filledQty, quantity }) {
   const isPartial = !isFilled && filledQty > 0
 
   const cfg = isFilled
-    ? { bg: '#E8F3EE', color: '#2f6f4f', border: '#C7DED3', label: '체결' }
+    ? { bg: 'var(--brand-bg)', color: 'var(--brand)', border: 'var(--brand-bright)', label: '체결' }
     : isPartial
-      ? { bg: '#FEF3C7', color: '#92400E', border: '#F3D38A', label: '부분체결' }
-      : { bg: '#F1F5F9', color: '#64748B', border: '#D7DEE7', label: '미체결' }
+      ? { bg: 'rgba(245,158,11,0.15)', color: 'var(--warning)', border: 'var(--warning)', label: '부분체결' }
+      : { bg: 'var(--bg-subtle)', color: 'var(--text-secondary)', border: 'var(--border)', label: '미체결' }
 
   return (
     <span

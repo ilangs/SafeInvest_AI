@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
+import { useThemeMode } from './hooks/useThemeMode'
 
 import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
@@ -33,6 +34,9 @@ function PrivateRoute({ children }) {
 }
 
 export default function App() {
+  // 전역 1회 호출 — data-theme 부착 + OS 변경 구독
+  useThemeMode()
+
   return (
     <BrowserRouter>
       <ScrollToTop />

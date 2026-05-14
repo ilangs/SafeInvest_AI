@@ -57,7 +57,7 @@ export default function FaqPage() {
   }
 
   return (
-    <div className="app-layout" style={{ background: '#f5f5f5', minHeight: '100vh' }}>
+    <div className="app-layout" style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
       <Navbar />
 
       <main
@@ -78,7 +78,7 @@ export default function FaqPage() {
               margin: 0,
               fontSize: 40,
               fontWeight: 800,
-              color: '#286346',
+              color: 'var(--brand)',
               letterSpacing: '-0.04em',
             }}
           >
@@ -89,7 +89,7 @@ export default function FaqPage() {
             className="board-subtitle"
             style={{
               margin: '10px 0 0',
-              color: '#6b7280',
+              color: 'var(--text-secondary)',
               fontSize: 16,
             }}
           >
@@ -113,15 +113,15 @@ export default function FaqPage() {
             style={{
               width: '100%',
               height: 48,
-              border: '1px solid #d1d5db',
+              border: '1px solid var(--border)',
               borderRadius: 10,
               padding: '0 16px',
               fontSize: 15,
               outline: 'none',
-              color: '#1f2937',
-              background: '#f3f6f4',
+              color: 'var(--text-primary)',
+              background: 'var(--bg-subtle)',
               boxSizing: 'border-box',
-              boxShadow: '0 10px 24px rgba(31, 79, 58, 0.08)',
+              boxShadow: 'var(--shadow-sm)',
             }}
           />
         </section>
@@ -130,11 +130,11 @@ export default function FaqPage() {
         <section
           style={{
             width: '100%',
-            background: '#ffffff',
-            border: '1px solid #dbe5de',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
             borderRadius: 18,
             overflow: 'hidden',
-            boxShadow: '0 18px 45px rgba(31, 79, 58, 0.14)',
+            boxShadow: 'var(--shadow-lg)',
             boxSizing: 'border-box',
           }}
         >
@@ -143,8 +143,8 @@ export default function FaqPage() {
             style={{
               display: 'grid',
               gridTemplateColumns: '100px 1fr',
-              background: 'linear-gradient(135deg, #1f4f3a 0%, #2f6f4f 55%, #3e8e63 100%)',
-              color: '#ffffff',
+              background: 'linear-gradient(135deg, var(--brand-dim) 0%, var(--brand) 55%, var(--brand-bright) 100%)',
+              color: 'var(--text-on-brand)',
               padding: '20px 33px',
               fontWeight: 700,
               fontSize: 14,
@@ -163,13 +163,13 @@ export default function FaqPage() {
                   display: 'grid',
                   gridTemplateColumns: '100px 1fr',
                   padding: '18px 33px',
-                  borderBottom: '1px solid #edf2ef',
-                  background: '#ffffff',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  background: 'var(--bg-card)',
                 }}
               >
                 <div
                   style={{
-                    color: '#2f6f4f',
+                    color: 'var(--brand)',
                     fontWeight: 700,
                     fontSize: 14,
                     paddingLeft: 16,
@@ -184,7 +184,7 @@ export default function FaqPage() {
                       margin: '0 0 8px',
                       fontSize: 14,
                       fontWeight: 700,
-                      color: '#1f2937',
+                      color: 'var(--text-primary)',
                     }}
                   >
                     Q. {item.q}
@@ -193,7 +193,7 @@ export default function FaqPage() {
                   <p
                     style={{
                       margin: 0,
-                      color: '#4b5563',
+                      color: 'var(--text-secondary)',
                       fontSize: 14,
                       lineHeight: 1.7,
                     }}
@@ -208,7 +208,7 @@ export default function FaqPage() {
               style={{
                 padding: '42px 20px',
                 textAlign: 'center',
-                color: '#6b7280',
+                color: 'var(--text-secondary)',
               }}
             >
               검색 결과가 없습니다.
@@ -236,9 +236,9 @@ export default function FaqPage() {
                   width: 38,
                   height: 38,
                   borderRadius: 8,
-                  border: page === num ? '1px solid #2f6f4f' : '1px solid #d1d5db',
-                  background: page === num ? '#2f6f4f' : '#ffffff',
-                  color: page === num ? '#ffffff' : '#2f6f4f',
+                  border: page === num ? '1px solid var(--brand)' : '1px solid var(--border)',
+                  background: page === num ? 'var(--brand)' : 'var(--bg-card)',
+                  color: page === num ? 'var(--text-on-brand)' : 'var(--brand)',
                   fontWeight: 700,
                   cursor: 'pointer',
                 }}

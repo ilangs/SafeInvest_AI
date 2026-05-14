@@ -26,7 +26,7 @@ export default function TabSafety({ score, warnings }) {
           style={{
             flex: 1,
             height: 1,
-            background: '#d7e4d5',
+            background: 'var(--border)',
           }}
         />
 
@@ -49,7 +49,7 @@ export default function TabSafety({ score, warnings }) {
           style={{
             flex: 1,
             height: 1,
-            background: '#d7e4d5',
+            background: 'var(--border)',
           }}
         />
       </div>
@@ -72,7 +72,7 @@ export default function TabSafety({ score, warnings }) {
             borderLeft: `5px solid ${active.length > 0 ? '#c85a5a' : '#4caf6a'}`,
             padding: '18px 22px',
             borderRadius: 18,
-            background: '#ffffff',
+            background: 'var(--bg-card)',
             minHeight: 90,
             display: 'flex',
             flexDirection: 'column',
@@ -83,7 +83,7 @@ export default function TabSafety({ score, warnings }) {
             style={{
               fontSize: 15,
               fontWeight: 700,
-              color: '#111827',
+              color: 'var(--text-primary)',
               marginBottom: 8,
             }}
           >
@@ -110,7 +110,7 @@ export default function TabSafety({ score, warnings }) {
             borderLeft: '5px solid #98a2b3',
             padding: '18px 22px',
             borderRadius: 18,
-            background: '#ffffff',
+            background: 'var(--bg-card)',
             minHeight: 90,
             display: 'flex',
             flexDirection: 'column',
@@ -121,7 +121,7 @@ export default function TabSafety({ score, warnings }) {
             style={{
               fontSize: 15,
               fontWeight: 700,
-              color: '#111827',
+              color: 'var(--text-primary)',
               marginBottom: 8,
             }}
           >
@@ -148,7 +148,7 @@ export default function TabSafety({ score, warnings }) {
             borderLeft: `5px solid ${activePointColor}`,
             padding: '18px 22px',
             borderRadius: 18,
-            background: '#ffffff',
+            background: 'var(--bg-card)',
             minHeight: 90,
           }}
         >
@@ -156,7 +156,7 @@ export default function TabSafety({ score, warnings }) {
             style={{
               fontSize: 15,
               fontWeight: 700,
-              color: '#111827',
+              color: 'var(--text-primary)',
               marginBottom: 10,
               display: 'flex',
               alignItems: 'center',
@@ -201,7 +201,7 @@ export default function TabSafety({ score, warnings }) {
                     style={{
                       fontSize: 14,
                       lineHeight: 1.5,
-                      color: '#475569',
+                      color: 'var(--text-secondary)',
                     }}
                   >
                     {warnDesc(w.warning_type)}
@@ -214,7 +214,7 @@ export default function TabSafety({ score, warnings }) {
               style={{
                 fontSize: 14,
                 fontWeight: 700,
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 lineHeight: 1.5,
               }}
             >
@@ -236,7 +236,7 @@ export default function TabSafety({ score, warnings }) {
           style={{
             fontSize: 18,
             fontWeight: 700,
-            color: '#111827',
+            color: 'var(--text-primary)',
             marginBottom: 18,
             display: 'flex',
             alignItems: 'center',
@@ -258,10 +258,10 @@ export default function TabSafety({ score, warnings }) {
 
         <div
           style={{
-            background: '#ffffff',
+            background: 'var(--bg-card)',
             borderRadius: 12,
             overflow: 'hidden',
-            border: '1px solid #d7e4d5',
+            border: '1px solid var(--border)',
           }}
         >
           {[
@@ -307,7 +307,7 @@ export default function TabSafety({ score, warnings }) {
                 gap: '12px 16px',
                 padding: '16px 22px',
                 borderBottom:
-                  idx === arr.length - 1 ? 'none' : '1px solid #e3ece1',
+                  idx === arr.length - 1 ? 'none' : '1px solid var(--border-subtle)',
               }}
             >
               {/* 항목 타이틀 영역 */}
@@ -318,7 +318,7 @@ export default function TabSafety({ score, warnings }) {
                   gap: 11,
                   fontSize: 15,
                   fontWeight: 700,
-                  color: '#111827',
+                  color: 'var(--text-primary)',
                   letterSpacing: '-0.03em',
                   width: 140, // 타이틀이 차지하는 최소 고정 너비
                   flex: '0 0 auto',
@@ -343,7 +343,7 @@ export default function TabSafety({ score, warnings }) {
                   flex: '1 1 200px', // 여유 공간을 채우되, 좁아지면 줄바꿈 처리
                   fontSize: 14,
                   lineHeight: 1.6,
-                  color: '#374151',
+                  color: 'var(--text-primary)',
                   wordBreak: 'keep-all',
                 }}
               >

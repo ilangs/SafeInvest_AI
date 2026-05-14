@@ -37,13 +37,6 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
         className="an-btn-back"
         onClick={onBack}
         style={{
-          background: '#fdfdfd',
-          color: '#2f5f43',
-          border: '1px solid rgba(47, 95, 67, 0.22)',
-          borderRadius: 10,
-          padding: '10px 16px',
-          fontWeight: 600,
-          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
           marginBottom: 10,
         }}
       >
@@ -71,13 +64,6 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
         className="an-btn-back"
         onClick={onBack}
         style={{
-          background: '#fdfdfd',
-          color: '#2f5f43',
-          border: '1px solid rgba(47, 95, 67, 0.22)',
-          borderRadius: 10,
-          padding: '10px 16px',
-          fontWeight: 600,
-          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
           marginBottom: 10,
         }}
       >
@@ -104,17 +90,17 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
           }}
         >
           <div>
-            <div className="an-detail-name" style={{ fontSize: 38, fontWeight: 800, color: '#000000', letterSpacing: '-0.02em' }}>
+            <div className="an-detail-name" style={{ fontSize: 38, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               <span style={{ letterSpacing: '0.02em' }}>{stockName}</span>
               {grade && <GradeBadge label={grade.label} style={{ fontSize: 15, marginLeft: 10, padding: '5px 10px',}} />}
             </div>
 
-            <div className="an-detail-meta" style={{ fontSize: 14, color: '#5f6f86', marginTop: 8, fontWeight: 700 }}>
+            <div className="an-detail-meta" style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 8, fontWeight: 700 }}>
               코드 {ticker} &nbsp;|&nbsp; {stock.market} &nbsp;|&nbsp; {stock.sector ?? '-'}
             </div>
 
             <div className="an-detail-price-row" style={{ marginTop: 9, display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-              <span className="an-detail-price" style={{ fontSize: 34, fontWeight: 950, color: '#1f2937', letterSpacing: '-0.03em' }}>
+              <span className="an-detail-price" style={{ fontSize: 34, fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
                 {fmtPrice(close)}
               </span>
 
@@ -128,7 +114,7 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
 
           {score && (
             <div className="an-detail-score-block" style={{ textAlign: 'right', minWidth: 120 }}>
-              <div style={{ color: '#5f6f86', fontSize: 13, fontWeight: 800 }}>안전점수</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 800 }}>안전점수</div>
               <div className="an-detail-score-num" style={{ fontSize: 54, fontWeight: 950, color: grade.color, lineHeight: 1 }}>
                 {score.final_score.toFixed(0)}
               </div>
@@ -141,8 +127,8 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
       {score && (
         <div
           style={{
-            background: '#f2faf4',
-            border: '1px solid rgba(47, 95, 67, 0.18)',
+            background: 'var(--brand-bg)',
+            border: '1px solid var(--border-strong)',
             borderRadius: 14,
             padding: '18px 20px',
             marginBottom: 16,
@@ -158,12 +144,12 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
                 objectFit: 'contain',
               }}
             />
-            <strong style={{ color: '#2f5f43', fontSize: 15 }}>
+            <strong style={{ color: 'var(--brand-dim)', fontSize: 15 }}>
               Check Point
             </strong>
           </div>
 
-          <div style={{ color: '#26352c', fontSize: 15, lineHeight: 1.7 }}>
+          <div style={{ color: 'var(--text-primary)', fontSize: 15, lineHeight: 1.7 }}>
             <strong>{stockName}</strong> : {gradeMessage(score.final_score, stockName).replace(`<b>${stockName}</b>:`, '').replace(`${stockName}:`, '').trim()}
           </div>
         </div>

@@ -259,10 +259,10 @@ export default function CandleChart({ symbol, currentPrice, isMockMode = true })
 
   return (
     <div style={{
-      background: 'var(--color-background-primary)',
+      background: 'var(--bg-card)',
       borderRadius: 'var(--border-radius-md)',
       padding: '12px',
-      border: '0.5px solid var(--color-border-tertiary)',
+      border: '0.5px solid var(--border)',
       /* 부모 grid stretch 에 맞춰 전체 높이 사용 */
       height: '100%',
       display: 'flex',
@@ -276,9 +276,9 @@ export default function CandleChart({ symbol, currentPrice, isMockMode = true })
             style={{
               fontSize: 12,
               fontWeight: 400,
-              background: '#E8F3EE',
-              color: '#2f6f4f',
-              border: '1px solid #C7DED3',
+              background: 'var(--brand-bg)',
+              color: 'var(--brand)',
+              border: '1px solid var(--brand-bright)',
               padding: '3px 10px',
               borderRadius: 6,
             }}
@@ -315,9 +315,9 @@ export default function CandleChart({ symbol, currentPrice, isMockMode = true })
               style={{
                 padding: '3px 10px', fontSize: 12,
                 borderRadius: 'var(--border-radius-md)',
-                background: period === p.key ? '#0F6E56' : 'var(--color-background-secondary)',
-                color:      period === p.key ? '#fff' : 'var(--color-text-secondary)',
-                border:     period === p.key ? 'none' : '0.5px solid var(--color-border-secondary)',
+                background: period === p.key ? 'var(--brand)' : 'var(--bg-primary)',
+                color:      period === p.key ? '#fff' : 'var(--text-secondary)',
+                border:     period === p.key ? 'none' : '0.5px solid var(--border)',
                 cursor: 'pointer',
               }}
             >

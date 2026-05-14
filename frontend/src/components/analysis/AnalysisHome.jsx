@@ -171,12 +171,12 @@ export default function AnalysisHome({ stocks, recentTickers, onSelect, onRefres
                       ref={idx === activeIndex ? activeItemRef : null}
                       className="an-search-item"
                       style={{
-                        background: idx === activeIndex ? '#eef6f0' : '#ffffff',
+                        background: idx === activeIndex ? 'var(--brand-bg)' : 'transparent',
                       }}
                       onMouseDown={() => handleSelect(s.ticker)}
                     >
                       <span style={{ fontWeight: 700 }}>{s.stock_name}</span>
-                      <span style={{ color: '#64748b', fontSize: 13, marginLeft: 8 }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: 13, marginLeft: 8 }}>
                         {s.ticker} · {s.market} · {s.sector ?? '-'}
                       </span>
                     </div>
@@ -240,7 +240,7 @@ const styles = {
     minHeight: '100%',
     display: 'flex',
     justifyContent: 'center',
-    background: '#f5f5f5',
+    background: 'var(--bg-primary)',
     fontFamily: "'IBM Plex Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
   },
 
@@ -263,14 +263,14 @@ const styles = {
     margin: 0,
     fontSize: 40,
     fontWeight: 800,
-    color: '#286346',
+    color: 'var(--brand)',
     letterSpacing: '-0.03em',
   },
 
   pageSubtitle: {
     margin: '10px 0 0',
     fontSize: 16,
-    color: '#6b7280',
+    color: 'var(--text-secondary)',
     fontWeight: 400,
     lineHeight: 1.5,
   },
@@ -294,9 +294,9 @@ const styles = {
     margin: '0 auto',
     padding: '22px 26px 24px',
     borderRadius: 20,
-    background: '#fdfdfd',
-    border: '1px solid #dbe5de',
-    boxShadow: '0 14px 34px rgba(47,111,79,0.08)',
+    background: 'var(--bg-elevated)',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow-md)',
   },
 
   searchTopRow: {
@@ -315,7 +315,7 @@ const styles = {
     margin: 0,
     fontSize: 13,
     fontWeight: 900,
-    color: '#2f6f4f',
+    color: 'var(--brand)',
     letterSpacing: 0.4,
   },
 
@@ -323,7 +323,7 @@ const styles = {
     margin: '5px 0 0',
     fontSize: 25,
     fontWeight: 900,
-    color: '#1f4f3a',
+    color: 'var(--brand-dim)',
     letterSpacing: '-0.03em',
   },
 
@@ -356,12 +356,12 @@ const styles = {
   recentTitle: {
     fontWeight: 900,
     fontSize: 15,
-    color: '#1f4f3a',
+    color: 'var(--brand-dim)',
   },
 
   clearBtn: {
     fontSize: 13,
-    color: '#2f6f4f',
+    color: 'var(--brand)',
   },
 
   recentGrid: {

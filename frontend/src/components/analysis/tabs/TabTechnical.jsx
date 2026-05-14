@@ -110,7 +110,7 @@ export default function TabTechnical({ prices }) {
     height: 880,
     autosize: true,
     font: {
-      color: '#111827',
+      color: 'var(--text-primary)',
       size: 12,
       family:
         'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
@@ -192,7 +192,7 @@ export default function TabTechnical({ prices }) {
       x: 0,
       y: 1.08,
       bgcolor: 'rgba(255,255,255,0)',
-      font: { color: '#111827', size: 12 },
+      font: { color: 'var(--text-primary)', size: 12 },
     },
     hoverlabel: {
       bgcolor: '#ffffff',
@@ -239,19 +239,19 @@ export default function TabTechnical({ prices }) {
           marginBottom: 33,
         }}
       >
-        <div style={{ flex: 1, height: 1, background: '#d7e4d5' }} />
+        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
         <div
           style={{
             fontSize: 16,
             fontWeight: 590,
-            color: '#3b3e43',
+            color: 'var(--text-secondary)',
             whiteSpace: 'nowrap',
             letterSpacing: '-0.03em',
           }}
         >
           기술적 지표는 과열·과냉·추세 전환 신호를 참고하는 화면입니다.
         </div>
-        <div style={{ flex: 1, height: 1, background: '#d7e4d5' }} />
+        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
 
       {/* 기술적 분석 그래프 */}
@@ -273,7 +273,7 @@ export default function TabTechnical({ prices }) {
         style={{
           fontSize: 18,
           fontWeight: 700,
-          color: '#111827',
+          color: 'var(--text-primary)',
           marginTop: 28,
           marginBottom: 20,
           display: 'flex',

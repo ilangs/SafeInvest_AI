@@ -95,7 +95,7 @@ const Stars = ({ n }) => (
 const Tag = ({ label }) => (
   <span style={{
     display:'inline-block', fontSize:11, padding:'4px 8px',
-    borderRadius:20, background:'#eef6f0', color:'#475569',
+    borderRadius:20, background:'var(--brand-bg)', color:'var(--text-secondary)',
     marginRight:4, marginBottom:4,
   }}>
     #{label}
@@ -145,14 +145,14 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
         className="stock-dict-modal-card"
         onClick={e => e.stopPropagation()}
         style={{
-          background:'#fff', borderRadius:16, width:'100%', maxWidth:600,
-          maxHeight:'85vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(0,0,0,0.2)',
+          background:'var(--bg-card)', borderRadius:16, width:'100%', maxWidth:600,
+          maxHeight:'85vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(0,0,0,0.4)',
         }}
       >
         <div className="sd-modal-head" style={{
           padding:'20px 24px 16px',
           borderBottom:`3px solid ${accentColor}`,
-          position:'sticky', top:0, background:'#fff', zIndex:1,
+          position:'sticky', top:0, background:'var(--bg-card)', zIndex:1,
           borderRadius:'16px 16px 0 0',
         }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
@@ -164,11 +164,11 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
                   {IMP_LABEL[term.importance]}
                 </span>
               </div>
-              <h2 style={{ margin:0, fontSize:22, fontWeight:700, color:'#0f172a' }}>
+              <h2 style={{ margin:0, fontSize:22, fontWeight:700, color:'var(--text-primary)' }}>
                 {term.term}
               </h2>
               {term.term_ko && (
-                <p style={{ margin:'4px 0 0', fontSize:13, color:'#64748b' }}>
+                <p style={{ margin:'4px 0 0', fontSize:13, color:'var(--text-secondary)' }}>
                   {term.term_ko}
                 </p>
               )}
@@ -177,7 +177,7 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
               onClick={onClose}
               style={{
                 background:'none', border:'none', cursor:'pointer',
-                fontSize:22, color:'#94a3b8', padding:4, lineHeight:1,
+                fontSize:22, color:'var(--text-muted)', padding:4, lineHeight:1,
               }}
               aria-label="닫기"
             >
@@ -188,7 +188,7 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
 
         <div className="sd-modal-body" style={{ padding:'20px 24px' }}>
           <Section title="📘 정의">
-            <p style={{ margin:0, fontSize:15, color:'#1e293b', lineHeight:1.7 }}>
+            <p style={{ margin:0, fontSize:15, color:'var(--text-primary)', lineHeight:1.7 }}>
               {term.description}
             </p>
           </Section>
@@ -196,9 +196,9 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
           {term.easy_desc && (
             <Section title="💡 쉽게 이해하기">
               <div style={{
-                background:'#f8faf9', borderLeft:`3px solid ${accentColor}`,
+                background:'var(--bg-subtle)', borderLeft:`3px solid ${accentColor}`,
                 borderRadius:'0 8px 8px 0', padding:'10px 14px',
-                fontSize:14, color:'#334155', lineHeight:1.7,
+                fontSize:14, color:'var(--text-primary)', lineHeight:1.7,
               }}>
                 {term.easy_desc}
               </div>
@@ -208,13 +208,13 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
           {term.formula && (
             <Section title="📐 계산식">
               <div style={{
-                background:'#eef6f0',
-                border:'1px solid #dbe5de',
+                background:'var(--brand-bg)',
+                border:'1px solid var(--border)',
                 borderRadius:8,
                 padding:'10px 14px',
                 fontSize:14,
                 fontWeight:600,
-                color:'#1e593c',
+                color:'var(--brand-dim)',
                 width:'100%',
               }}>
                 {term.formula}
@@ -225,9 +225,9 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
           {term.caution && (
             <Section title="⚠️ 주의사항">
               <div style={{
-                background:'#fff8ef', border:'1px solid #f2d1a6',
+                background:'rgba(245,158,11,0.10)', border:'1px solid rgba(245,158,11,0.40)',
                 borderRadius:8, padding:'10px 14px',
-                fontSize:13, color:'#374151', lineHeight:1.7,
+                fontSize:13, color:'var(--text-primary)', lineHeight:1.7,
               }}>
                 {term.caution}
               </div>
@@ -283,7 +283,7 @@ function Section({ title, children }) {
         margin:'0 0 6px',
         fontSize:13,
         fontWeight:600,
-        color:'#000000',
+        color:'var(--text-primary)',
         textTransform:'uppercase',
         letterSpacing:1,
       }}>
@@ -304,10 +304,10 @@ function TermCard({ term, onClick }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? '#f8faf9' : '#fff',
-        borderTop: hovered ? `1px solid ${accentColor}60` : '1px solid #e2e8f0',
-        borderRight: hovered ? `1px solid ${accentColor}60` : '1px solid #e2e8f0',
-        borderBottom: hovered ? `1px solid ${accentColor}60` : '1px solid #e2e8f0',
+        background: hovered ? 'var(--bg-subtle)' : 'var(--bg-card)',
+        borderTop: hovered ? `1px solid ${accentColor}60` : '1px solid var(--border-subtle)',
+        borderRight: hovered ? `1px solid ${accentColor}60` : '1px solid var(--border-subtle)',
+        borderBottom: hovered ? `1px solid ${accentColor}60` : '1px solid var(--border-subtle)',
         borderLeft: `3px solid ${accentColor}`,
         borderRadius:12,
         padding:'14px 16px',
@@ -319,11 +319,11 @@ function TermCard({ term, onClick }) {
     >
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
         <div>
-          <span style={{ fontSize:15, fontWeight:700, color:'#0f172a' }}>
+          <span style={{ fontSize:15, fontWeight:700, color:'var(--text-primary)' }}>
             {term.term}
           </span>
           {term.term_ko && (
-            <span style={{ fontSize:11, color:'#94a3b8', marginLeft:6 }}>
+            <span style={{ fontSize:11, color:'var(--text-muted)', marginLeft:6 }}>
               {term.term_ko}
             </span>
           )}
@@ -334,7 +334,7 @@ function TermCard({ term, onClick }) {
       <p style={{
         margin:'0 0 8px',
         fontSize:13,
-        color:'#475569',
+        color:'var(--text-secondary)',
         lineHeight:1.6,
         display:'-webkit-box',
         WebkitLineClamp:2,
@@ -464,11 +464,11 @@ export default function StockDictionary() {
   return (
     <div className="stock-dict" style={{
       fontFamily: "'IBM Plex Sans KR', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif",
-      background: '#f8faf9',
+      background: 'var(--bg-subtle)',
       borderRadius: 20,
       overflow: 'hidden',
-      border: '1px solid #dbe5de',
-      boxShadow: '0 18px 44px rgba(47,111,79,0.10)',
+      border: '1px solid var(--border)',
+      boxShadow: 'var(--shadow-lg)',
     }}>
       <style>{`
         /* ── StockDictionary 반응형 ── */
@@ -508,7 +508,7 @@ export default function StockDictionary() {
         }
       `}</style>
       <div className="sd-header" style={{
-        background: 'linear-gradient(135deg, #1f4f3a 0%, #2f6f4f 55%, #3e8e63 100%)',
+        background: 'linear-gradient(135deg, var(--brand-dim) 0%, var(--brand) 55%, var(--brand-bright) 100%)',
         padding: '28px 20px 24px',
         color: '#fff',
       }}>
@@ -633,9 +633,9 @@ export default function StockDictionary() {
                   fontSize:12,
                   fontWeight: active ? 700 : 400,
                   cursor:'pointer',
-                  border: active ? 'none' : '1px solid #e2e8f0',
-                  background: active ? activeColor : '#fff',
-                  color: active ? '#fff' : '#64748b',
+                  border: active ? 'none' : '1px solid var(--border-subtle)',
+                  background: active ? activeColor : 'var(--bg-card)',
+                  color: active ? '#fff' : 'var(--text-secondary)',
                   transition:'all .15s',
                   boxShadow: active ? `0 2px 8px ${activeColor}40` : 'none',
                 }}
@@ -647,9 +647,9 @@ export default function StockDictionary() {
         </div>
 
         <div style={{
-          background:'#ffffff',
+          background:'var(--bg-card)',
           borderRadius:12,
-          border:'1px solid #e2e8f0',
+          border:'1px solid var(--border-subtle)',
           padding:'12px 14px',
           marginBottom:16,
         }}>
@@ -671,9 +671,9 @@ export default function StockDictionary() {
                     fontSize:12,
                     fontWeight: indexLang === lang ? 700 : 400,
                     cursor:'pointer',
-                    background: indexLang === lang ? '#2f6f4f' : 'transparent',
-                    color: indexLang === lang ? '#fff' : '#64748b',
-                    border: indexLang === lang ? 'none' : '1px solid #e2e8f0',
+                    background: indexLang === lang ? 'var(--brand)' : 'transparent',
+                    color: indexLang === lang ? 'var(--text-on-brand)' : 'var(--text-secondary)',
+                    border: indexLang === lang ? 'none' : '1px solid var(--border-subtle)',
                     transition:'all .15s',
                   }}
                 >
@@ -687,9 +687,9 @@ export default function StockDictionary() {
                 onClick={resetFilters}
                 style={{
                   fontSize:11,
-                  color:'#64748b',
-                  background:'#f8faf9',
-                  border:'1px solid #dbe5de',
+                  color:'var(--text-secondary)',
+                  background:'var(--bg-subtle)',
+                  border:'1px solid var(--border)',
                   borderRadius:6,
                   cursor:'pointer',
                   padding:'4px 8px',
@@ -717,9 +717,9 @@ export default function StockDictionary() {
                     fontSize:12,
                     fontWeight: isActive ? 700 : 400,
                     cursor: hasData ? 'pointer' : 'default',
-                    border: isActive ? 'none' : '1px solid #e2e8f0',
-                    background: isActive ? '#2f6f4f' : hasData ? '#fff' : '#f8fafc',
-                    color: isActive ? '#fff' : hasData ? '#334155' : '#cbd5e1',
+                    border: isActive ? 'none' : '1px solid var(--border-subtle)',
+                    background: isActive ? 'var(--brand)' : hasData ? 'var(--bg-card)' : 'var(--bg-subtle)',
+                    color: isActive ? 'var(--text-on-brand)' : hasData ? 'var(--text-primary)' : 'var(--text-muted)',
                     transition:'all .12s',
                     boxShadow: isActive ? '0 2px 6px rgba(47,111,79,0.24)' : 'none',
                   }}
@@ -737,13 +737,13 @@ export default function StockDictionary() {
           alignItems:'center',
           marginBottom:12,
         }}>
-          <p style={{ margin:0, fontSize:13, color:'#64748b' }}>
+          <p style={{ margin:0, fontSize:13, color:'var(--text-secondary)' }}>
             {isLoading ? '로딩 중...' : `${filtered.length}개 용어`}
           </p>
         </div>
 
         {isLoading && (
-          <div style={{ textAlign:'center', padding:'60px 0', color:'#94a3b8' }}>
+          <div style={{ textAlign:'center', padding:'60px 0', color:'var(--text-muted)' }}>
             <div style={{ fontSize:32, marginBottom:12 }}>📖</div>
             <p style={{ margin:0 }}>용어를 불러오는 중입니다...</p>
           </div>
@@ -751,11 +751,11 @@ export default function StockDictionary() {
 
         {error && (
           <div style={{
-            background:'#fef2f2',
-            border:'1px solid #fecaca',
+            background:'rgba(239,68,68,0.08)',
+            border:'1px solid rgba(239,68,68,0.35)',
             borderRadius:10,
             padding:20,
-            color:'#991b1b',
+            color:'var(--danger)',
             textAlign:'center',
           }}>
             <p style={{ margin:0, fontWeight:600 }}>⚠️ 데이터 로드 실패</p>
@@ -764,9 +764,9 @@ export default function StockDictionary() {
         )}
 
         {!isLoading && !error && filtered.length === 0 && (
-          <div style={{ textAlign:'center', padding:'60px 0', color:'#94a3b8' }}>
+          <div style={{ textAlign:'center', padding:'60px 0', color:'var(--text-muted)' }}>
             <div style={{ fontSize:40, marginBottom:12 }}>🔍</div>
-            <p style={{ margin:0, fontWeight:600, color:'#475569' }}>
+            <p style={{ margin:0, fontWeight:600, color:'var(--text-primary)' }}>
               검색 결과가 없습니다
             </p>
             <p style={{ margin:'6px 0 0', fontSize:13 }}>

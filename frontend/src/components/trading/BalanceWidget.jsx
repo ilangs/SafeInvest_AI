@@ -44,8 +44,8 @@ export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoa
   useEffect(() => () => clearTimeout(retryTimer.current), [])
 
   const plColor = balance
-    ? balance.total_profit_loss > 0 ? '#ef4444' : balance.total_profit_loss < 0 ? '#3b82f6' : '#9ca3af'
-    : '#9ca3af'
+    ? balance.total_profit_loss > 0 ? 'var(--up)' : balance.total_profit_loss < 0 ? 'var(--down)' : 'var(--text-muted)'
+    : 'var(--text-muted)'
 
   return (
     <div
@@ -66,7 +66,7 @@ export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoa
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#2f6f4f',
+          background: 'var(--brand)',
           padding: '14px 14px',
           margin: '-16px -16px 7px -16px',
           borderBottom: 'none',
@@ -77,7 +77,7 @@ export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoa
             display: 'flex',
             alignItems: 'center',
             gap: 7,
-            color: '#ffffff',
+            color: 'var(--text-on-brand)',
             fontWeight: 700,
             fontSize: 15,
           }}
@@ -98,9 +98,9 @@ export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoa
           className="btn-sm"
           onClick={load}
           style={{
-            background: '#ffffff',
+            background: 'var(--bg-card)',
             border: '1px solid rgba(255, 255, 255, 0.45)',
-            color: '#2f6f4f',
+            color: 'var(--brand)',
             fontWeight: 600,
             boxShadow: 'none',
             fontSize: 11,

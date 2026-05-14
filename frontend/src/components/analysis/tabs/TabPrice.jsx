@@ -122,7 +122,7 @@ export default function TabPrice({ prices, score }) {
     height: 560,
     autosize: true,
     font: {
-      color: '#111827',
+      color: 'var(--text-primary)',
       size: 12,
       family:
         'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
@@ -154,7 +154,7 @@ export default function TabPrice({ prices, score }) {
       x: 0,
       y: 1.08,
       bgcolor: 'rgba(255,255,255,0)',
-      font: { color: '#111827', size: 12 },
+      font: { color: 'var(--text-primary)', size: 12 },
     },
     hoverlabel: {
       bgcolor: '#ffffff',
@@ -321,7 +321,7 @@ export default function TabPrice({ prices, score }) {
           style={{
             flex: 1,
             height: 1,
-            background: '#d7e4d5',
+            background: 'var(--border)',
           }}
         />
         <div
@@ -342,7 +342,7 @@ export default function TabPrice({ prices, score }) {
           style={{
             flex: 1,
             height: 1,
-            background: '#d7e4d5',
+            background: 'var(--border)',
           }}
         />
       </div>
@@ -362,7 +362,7 @@ export default function TabPrice({ prices, score }) {
             className="an-metric-card"
             style={{
               borderLeft: `5px solid ${card.color}`,
-              background: '#ffffff',
+              background: 'var(--bg-card)',
               borderRadius: 18,
               padding: '18px 22px',
               minHeight: 90,
@@ -400,8 +400,8 @@ export default function TabPrice({ prices, score }) {
             display: 'inline-flex',
             flexWrap: 'wrap', // 모바일에서 버튼이 많아질 경우 대비
             padding: 4,
-            background: '#ffffff',
-            border: '1px solid #d7e4d5',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
             gap: 2,
           }}
@@ -417,8 +417,8 @@ export default function TabPrice({ prices, score }) {
                 cursor: 'pointer',
                 fontSize: 14,
                 fontWeight: 700,
-                color: period === p ? '#ffffff' : '#3b5f45',
-                background: period === p ? '#3f6f4f' : 'transparent',
+                color: period === p ? 'var(--text-on-brand)' : 'var(--text-secondary)',
+                background: period === p ? 'var(--brand)' : 'transparent',
                 transition: '0.2s ease',
               }}
             >
@@ -452,7 +452,7 @@ export default function TabPrice({ prices, score }) {
           style={{
             fontSize: 18,
             fontWeight: 700,
-            color: '#111827',
+            color: 'var(--text-primary)',
             marginBottom: 18,
             display: 'flex',
             alignItems: 'center',
@@ -474,10 +474,10 @@ export default function TabPrice({ prices, score }) {
 
         <div
           style={{
-            background: '#ffffff',
+            background: 'var(--bg-card)',
             borderRadius: 12,
             overflow: 'hidden',
-            border: '1px solid #d7e4d5',
+            border: '1px solid var(--border)',
           }}
         >
           {priceRows.map((row, idx) => (
@@ -490,7 +490,7 @@ export default function TabPrice({ prices, score }) {
                 alignItems: 'center',
                 padding: '16px 22px', // 터치 영역 및 시각적 안정감을 위해 패딩 약간 증가
                 borderBottom:
-                  idx === priceRows.length - 1 ? 'none' : '1px solid #e3ece1',
+                  idx === priceRows.length - 1 ? 'none' : '1px solid var(--border-subtle)',
               }}
             >
               {/* 타이틀 영역 */}
@@ -501,7 +501,7 @@ export default function TabPrice({ prices, score }) {
                   gap: 11,
                   fontSize: 15,
                   fontWeight: 700,
-                  color: '#111827',
+                  color: 'var(--text-primary)',
                   letterSpacing: '-0.03em',
                   width: 160, // 모바일에서도 타이틀이 차지할 최소 넓이 확보
                   flex: '0 0 auto',
@@ -525,7 +525,7 @@ export default function TabPrice({ prices, score }) {
                 style={{
                   fontSize: 15,
                   lineHeight: 1.6,
-                  color: '#374151',
+                  color: 'var(--text-primary)',
                   flex: '1 1 200px', // 남은 공간을 차지하되, 좁으면 줄바꿈
                   wordBreak: 'keep-all',
                 }}

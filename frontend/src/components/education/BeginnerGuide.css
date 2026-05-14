@@ -17,11 +17,13 @@
 }
 
 .beginner-guide > div:last-child {
-  background: #f7f7f7 !important;
+  background: var(--bg-card) !important;
+  color: var(--text-primary);
 }
 
 .white-accordion-btn {
-  background: #fdfdfd !important;
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary);
 }
 
 /* ── 반응형 ── */

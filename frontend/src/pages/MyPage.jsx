@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Navbar from '../components/layout/Navbar'
+import ThemeSelector from '../components/settings/ThemeSelector'
 import api from '../services/api'
 
 const EMPTY_FORM = {
@@ -112,29 +113,32 @@ export default function MyPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f7f4', fontFamily: "'IBM Plex Sans KR', -apple-system, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: "'IBM Plex Sans KR', -apple-system, sans-serif" }}>
       <Navbar />
 
       <div className="mypage-wrap" style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px' }}>
+        {/* 화면 스타일 선택 */}
+        <ThemeSelector />
+
         <div style={{ marginBottom: 28 }}>
-          <h1 className="mypage-title" style={{ fontSize: 24, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>
+          <h1 className="mypage-title" style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
             KIS 계좌 연결
           </h1>
-          <p style={{ fontSize: 14, color: '#64748B' }}>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
             KIS Developers에서 발급받은 APP KEY, APP SECRET, 계좌번호를 입력하고 연결해 주세요.
           </p>
           <a
             href="https://apiportal.koreainvestment.com"
             target="_blank"
             rel="noreferrer"
-            style={{ fontSize: 13, color: '#0A3D62', fontWeight: 600, textDecoration: 'none' }}
+            style={{ fontSize: 13, color: 'var(--info)', fontWeight: 600, textDecoration: 'none' }}
           >
             KIS Developers 바로가기
           </a>
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 60, color: '#94A3B8' }}>불러오는 중...</div>
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>불러오는 중...</div>
         ) : (
           <>
             <KISCard
@@ -157,9 +161,9 @@ export default function MyPage() {
 
             <div
               style={{
-                background: 'white',
+                background: 'var(--bg-card)',
                 borderRadius: 16,
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border)',
                 overflow: 'hidden',
                 marginTop: 8,
               }}
@@ -178,11 +182,11 @@ export default function MyPage() {
                   fontFamily: 'inherit',
                 }}
               >
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>KIS 연결 방법</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>KIS 연결 방법</span>
                 <span
                   style={{
                     fontSize: 16,
-                    color: '#94A3B8',
+                    color: 'var(--text-muted)',
                     transform: guideOpen ? 'rotate(180deg)' : 'none',
                     transition: 'transform 0.2s',
                   }}
@@ -191,10 +195,10 @@ export default function MyPage() {
                 </span>
               </button>
               {guideOpen && (
-                <div style={{ padding: '0 20px 20px', borderTop: '1px solid #F1F5F9' }}>
-                  <ol style={{ paddingLeft: 20, margin: 0, color: '#334155', fontSize: 13, lineHeight: 2 }}>
+                <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--border-subtle)' }}>
+                  <ol style={{ paddingLeft: 20, margin: 0, color: 'var(--text-primary)', fontSize: 13, lineHeight: 2 }}>
                     <li>
-                      <a href="https://apiportal.koreainvestment.com" target="_blank" rel="noreferrer" style={{ color: '#0A3D62' }}>
+                      <a href="https://apiportal.koreainvestment.com" target="_blank" rel="noreferrer" style={{ color: 'var(--info)' }}>
                         apiportal.koreainvestment.com
                       </a>{' '}
                       에 접속합니다.
@@ -216,10 +220,10 @@ export default function MyPage() {
                     style={{
                       marginTop: 12,
                       padding: '10px 14px',
-                      background: '#FEF3C7',
+                      background: 'rgba(245,158,11,0.12)',
                       borderRadius: 8,
                       fontSize: 12,
-                      color: '#92400E',
+                      color: 'var(--warning)',
                     }}
                   >
                     APP SECRET은 암호화되어 DB에 저장됩니다. 화면에는 복원되고, 서버에는 암호문으로 보관합니다.
@@ -236,17 +240,17 @@ export default function MyPage() {
 
 function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }) {
   const label = isMock ? '모의투자' : '실거래'
-  const btnColor = isMock ? '#0A3D62' : '#b83b3b'
+  const btnColor = isMock ? 'var(--info)' : 'var(--danger)'
 
   return (
     <div
       className="mypage-kis-card"
       style={{
-        background: 'white',
+        background: 'var(--bg-card)',
         borderRadius: 16,
         padding: '24px',
         marginBottom: 16,
-        border: '1px solid #E2E8F0',
+        border: '1px solid var(--border)',
       }}
     >
       <div className="mypage-kis-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -256,18 +260,18 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: status.is_connected ? '#166534' : '#94A3B8',
+              background: status.is_connected ? 'var(--success)' : 'var(--text-muted)',
             }}
           />
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
             {label} 연결
           </span>
           {status.is_connected && (
             <span
               style={{
                 fontSize: 12,
-                background: status.token_valid ? '#d7e7db' : '#FEF3C7',
-                color: status.token_valid ? '#166534' : '#92400E',
+                background: status.token_valid ? 'var(--brand-bg)' : 'rgba(245,158,11,0.15)',
+                color: status.token_valid ? 'var(--brand)' : 'var(--warning)',
                 padding: '5px 12px',
                 borderRadius: 20,
                 fontWeight: 600,
@@ -281,8 +285,8 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
           <span
             style={{
               fontSize: 12,
-              background: '#FEE2E2',
-              color: '#991B1B',
+              background: 'rgba(220,38,38,0.12)',
+              color: 'var(--danger)',
               padding: '5px 12px',
               borderRadius: 20,
               fontWeight: 600,
@@ -295,16 +299,16 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
 
       {status.is_connected ? (
         <div>
-          <div style={{ fontSize: 13, color: '#64748B', marginBottom: 12 }}>
-            저장된 계좌번호: <strong style={{ color: '#0F172A' }}>{status.account_no_masked}</strong>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+            저장된 계좌번호: <strong style={{ color: 'var(--text-primary)' }}>{status.account_no_masked}</strong>
           </div>
           <button
             onClick={onDisconnect}
             style={{
               padding: '8px 18px',
-              background: '#F1F5F9',
-              color: '#475569',
-              border: '1px solid #E2E8F0',
+              background: 'var(--bg-subtle)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               fontSize: 13,
               cursor: 'pointer',
@@ -320,10 +324,10 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
             <div
               style={{
                 padding: '10px 14px',
-                background: '#FEF3C7',
+                background: 'rgba(245,158,11,0.12)',
                 borderRadius: 8,
                 fontSize: 12,
-                color: '#92400E',
+                color: 'var(--warning)',
                 marginBottom: 14,
               }}
             >
@@ -354,12 +358,12 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
           </div>
 
           {form.error && (
-            <div style={{ marginTop: 10, fontSize: 13, color: '#DC2626', padding: '8px 12px', background: '#FEF2F2', borderRadius: 8 }}>
+            <div style={{ marginTop: 10, fontSize: 13, color: 'var(--danger)', padding: '8px 12px', background: 'rgba(220,38,38,0.10)', borderRadius: 8 }}>
               {form.error}
             </div>
           )}
           {form.success && (
-            <div style={{ marginTop: 10, fontSize: 13, color: '#166534', padding: '8px 12px', background: '#DCFCE7', borderRadius: 8 }}>
+            <div style={{ marginTop: 10, fontSize: 13, color: 'var(--success)', padding: '8px 12px', background: 'var(--brand-bg)', borderRadius: 8 }}>
               {form.success}
             </div>
           )}
@@ -371,7 +375,7 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
               marginTop: 14,
               width: '100%',
               padding: '11px',
-              background: form.submitting ? '#94A3B8' : btnColor,
+              background: form.submitting ? 'var(--text-muted)' : btnColor,
               color: 'white',
               border: 'none',
               borderRadius: 10,
@@ -392,7 +396,7 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
 function FormField({ label, type = 'text', value, onChange, placeholder }) {
   return (
     <div>
-      <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>
+      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
         {label}
       </label>
       <input
@@ -405,13 +409,13 @@ function FormField({ label, type = 'text', value, onChange, placeholder }) {
           width: '100%',
           padding: '9px 12px',
           borderRadius: 8,
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border)',
           fontSize: 13,
           outline: 'none',
           fontFamily: 'inherit',
           boxSizing: 'border-box',
-          color: '#0F172A',
-          background: '#FAFBFC',
+          color: 'var(--text-primary)',
+          background: 'var(--bg-elevated)',
         }}
       />
     </div>

@@ -148,7 +148,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
         style={{
           display: 'flex',
           alignItems: 'center',
-          background: '#2f6f4f',
+          background: 'var(--brand)',
           padding: '16px 14px',
           margin: '-16px -16px 7px -16px',
           borderBottom: 'none',
@@ -159,7 +159,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
             display: 'flex',
             alignItems: 'center',
             gap: 7,
-            color: '#ffffff',
+            color: 'var(--text-on-brand)',
             fontWeight: 700,
             fontSize: 15,
             whiteSpace: 'nowrap',
@@ -212,8 +212,8 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
               fontWeight: 500,
               cursor: 'pointer',
               border: 'none',
-              background: tab === 'buy' ? '#ef4444' : 'transparent',
-              color: tab === 'buy' ? '#fff' : 'var(--color-text-secondary)',
+              background: tab === 'buy' ? 'var(--up)' : 'transparent',
+              color: tab === 'buy' ? '#fff' : 'var(--text-secondary)',
             }}
           >
             매수
@@ -229,8 +229,8 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
               cursor: 'pointer',
               border: 'none',
               borderLeft: '0.5px solid var(--color-border-secondary)',
-              background: tab === 'sell' ? '#3b82f6' : 'transparent',
-              color: tab === 'sell' ? '#fff' : 'var(--color-text-secondary)',
+              background: tab === 'sell' ? 'var(--down)' : 'transparent',
+              color: tab === 'sell' ? '#fff' : 'var(--text-secondary)',
             }}
           >
             매도
@@ -246,7 +246,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
           ...inputStyle,
           color: 'var(--color-text-secondary)',
           cursor: !marketOpen ? 'not-allowed' : 'default',
-          backgroundColor: !marketOpen ? '#f1f5f9' : 'var(--color-background-secondary)'
+          backgroundColor: !marketOpen ? 'var(--bg-subtle)' : 'var(--bg-primary)'
         }}>
           {symbol || '종목을 선택하세요'}
         </div>
@@ -263,7 +263,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
           style={{
             ...inputStyle,
             cursor: !marketOpen ? 'not-allowed' : 'pointer',
-            backgroundColor: !marketOpen ? '#f1f5f9' : 'var(--color-background-secondary)'
+            backgroundColor: !marketOpen ? 'var(--bg-subtle)' : 'var(--bg-primary)'
           }}
         >
           <option value="limit">지정가</option>
@@ -277,7 +277,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
           <div style={labelStyle}>
             주문가격
             {defaultPrice && (
-              <span style={{ color: '#0F6E56', marginLeft: 4, fontSize: 10 }}>
+              <span style={{ color: 'var(--brand)', marginLeft: 4, fontSize: 10 }}>
                 호가 반영됨
               </span>
             )}
@@ -292,7 +292,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
             style={{
               ...inputStyle,
               cursor: !marketOpen ? 'not-allowed' : 'text',
-              backgroundColor: !marketOpen ? '#f1f5f9' : 'var(--color-background-secondary)'
+              backgroundColor: !marketOpen ? 'var(--bg-subtle)' : 'var(--bg-primary)'
             }}
           />
         </div>
@@ -311,7 +311,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
           style={{
             ...inputStyle,
             cursor: !marketOpen ? 'not-allowed' : 'text',
-            backgroundColor: !marketOpen ? '#f1f5f9' : 'var(--color-background-secondary)'
+            backgroundColor: !marketOpen ? 'var(--bg-subtle)' : 'var(--bg-primary)'
           }}
           min="1"
         />
@@ -328,9 +328,9 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
                 padding: '4px',
                 fontSize: 11,
                 cursor: !marketOpen ? 'not-allowed' : 'pointer',
-                background: !marketOpen ? '#f1f5f9' : (pct === 1 ? '#E1F5EE' : 'var(--color-background-secondary)'),
-                color: !marketOpen ? '#9ca3af' : (pct === 1 ? '#0F6E56' : 'var(--color-text-secondary)'),
-                border: `0.5px solid ${!marketOpen ? '#e5e7eb' : (pct === 1 ? '#9FE1CB' : 'var(--color-border-secondary)')}`,
+                background: !marketOpen ? 'var(--bg-subtle)' : (pct === 1 ? 'var(--brand-bg)' : 'var(--bg-primary)'),
+                color: !marketOpen ? 'var(--text-muted)' : (pct === 1 ? 'var(--brand)' : 'var(--text-secondary)'),
+                border: `0.5px solid ${!marketOpen ? 'var(--border)' : (pct === 1 ? 'var(--brand-bright)' : 'var(--border)')}`,
                 borderRadius: 4,
               }}
             >
@@ -367,7 +367,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
             padding: '12px',
             fontSize: 16,
             fontWeight: 600,
-            background: tab === 'buy' ? '#ef4444' : '#3b82f6',
+            background: tab === 'buy' ? 'var(--up)' : 'var(--down)',
             color: '#fff',
             border: 'none',
             borderRadius: 'var(--border-radius-md)',
@@ -383,12 +383,12 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
         <div style={{
           textAlign: 'center',
           padding: '15px',
-          background: '#f8f9fa',
+          background: 'var(--bg-subtle)',
           borderRadius: '8px',
-          color: '#666',
+          color: 'var(--text-secondary)',
           fontSize: '14px',
           marginTop: '10px',
-          border: '1px solid #ddd'
+          border: '1px solid var(--border)'
         }}>
           지금은 장 마감 상태입니다. (평일 09:00~15:30 이용 가능)
         </div>
@@ -401,7 +401,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
             marginTop: 6,
             fontSize: 12,
             textAlign: 'center',
-            color: message.startsWith('✅') ? '#0F6E56' : '#ef4444',
+            color: message.startsWith('✅') ? 'var(--brand)' : 'var(--danger)',
           }}
         >
           {message}

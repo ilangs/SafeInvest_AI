@@ -1,13 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { useThemeMode } from '../../hooks/useThemeMode'
 import { useState, useEffect, useRef } from 'react'
 
 export default function Navbar() {
   const { signOut } = useAuth()
   const location = useLocation()
+  const { theme, effective, setTheme } = useThemeMode()
 
   const [menuOpen, setMenuOpen] = useState(false)
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark')
   const menuRef = useRef(null)
 
   const isActive = (path) => location.pathname.startsWith(path)
@@ -17,15 +18,13 @@ export default function Navbar() {
   // 홈이 아닌 페이지에서만 초록색 메뉴바 스타일을 적용합니다.
   const isHomePage = location.pathname.startsWith('/home')
 
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
-    }
-  }, [isDark])
+  // 3-상태 순환 토글: light → dark → system → light
+  const cycleTheme = () => {
+    const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
+    setTheme(next)
+  }
+  const themeIcon = theme === 'system' ? '🖥️' : effective === 'dark' ? '🌙' : '☀️'
+  const themeLabel = theme === 'system' ? '기기 설정' : effective === 'dark' ? '다크' : '라이트'
 
   // 햄버거 메뉴 바깥을 클릭하면 메뉴를 닫습니다.
   useEffect(() => {
@@ -52,30 +51,15 @@ export default function Navbar() {
       </div>
 
       <div className="navbar-right">
-        <div
-          onClick={() => setIsDark(prev => !prev)}
-          style={{
-            width: 44,
-            height: 24,
-            borderRadius: 20,
-            background: isDark ? '#E2E8F0' : '#334155',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '2px',
-            cursor: 'pointer',
-          }}
+        <button
+          type="button"
+          className="theme-cycle-btn"
+          onClick={cycleTheme}
+          title={`화면 스타일: ${themeLabel} (클릭하여 변경)`}
+          aria-label={`현재 화면 스타일 ${themeLabel}, 클릭하여 변경`}
         >
-          <div
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: '50%',
-              background: 'white',
-              transform: isDark ? 'translateX(20px)' : 'translateX(0)',
-              transition: 'all 0.2s',
-            }}
-          />
-        </div>
+          <span aria-hidden="true">{themeIcon}</span>
+        </button>
 
         <button className="btn-logout" onClick={signOut}>
           로그아웃

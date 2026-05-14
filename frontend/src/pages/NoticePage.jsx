@@ -163,7 +163,7 @@ export default function NoticePage() {
   )
 
   return (
-    <div className="app-layout" style={{ background: '#f5f5f5', minHeight: '100vh' }}>
+    <div className="app-layout" style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
       <Navbar />
 
       <main
@@ -183,7 +183,7 @@ export default function NoticePage() {
               margin: 0,
               fontSize: 40,
               fontWeight: 800,
-              color: '#286346',
+              color: 'var(--brand)',
               letterSpacing: '-0.04em',
             }}
           >
@@ -194,7 +194,7 @@ export default function NoticePage() {
             className="board-subtitle"
             style={{
               margin: '10px 0 0',
-              color: '#6b7280',
+              color: 'var(--text-secondary)',
               fontSize: 16,
             }}
           >
@@ -209,11 +209,11 @@ export default function NoticePage() {
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
-                border: '1px solid #dbe5de',
+                border: '1px solid var(--border)',
                 borderRadius: 16,
                 overflow: 'hidden',
-                background: '#ffffff',
-                boxShadow: '0 14px 36px rgba(31, 79, 58, 0.10)',
+                background: 'var(--bg-card)',
+                boxShadow: 'var(--shadow-md)',
                 marginBottom: 22,
               }}
             >
@@ -227,13 +227,13 @@ export default function NoticePage() {
                   style={{
                     height: 52,
                     border: 'none',
-                    borderRight: '1px solid #edf2ef',
-                    borderBottom: '1px solid #edf2ef',
+                    borderRight: '1px solid var(--border-subtle)',
+                    borderBottom: '1px solid var(--border-subtle)',
                     background:
                       selectedCategory === category
-                        ? 'linear-gradient(135deg, #1f4f3a 0%, #2f6f4f 55%, #3e8e63 100%)'
-                        : '#ffffff',
-                    color: selectedCategory === category ? '#ffffff' : '#1f2937',
+                        ? 'linear-gradient(135deg, var(--brand-dim) 0%, var(--brand) 55%, var(--brand-bright) 100%)'
+                        : 'var(--bg-card)',
+                    color: selectedCategory === category ? 'var(--text-on-brand)' : 'var(--text-primary)',
                     fontSize: 14,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -247,11 +247,11 @@ export default function NoticePage() {
             <section
               style={{
                 width: '100%',
-                background: '#ffffff',
-                border: '1px solid #dbe5de',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
                 borderRadius: 18,
                 overflow: 'hidden',
-                boxShadow: '0 18px 45px rgba(31, 79, 58, 0.14)',
+                boxShadow: 'var(--shadow-lg)',
                 boxSizing: 'border-box',
               }}
             >
@@ -260,8 +260,8 @@ export default function NoticePage() {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '80px 1fr 100px 50px',
-                  background: 'linear-gradient(135deg, #1f4f3a 0%, #2f6f4f 55%, #3e8e63 100%)',
-                  color: '#ffffff',
+                  background: 'linear-gradient(135deg, var(--brand-dim) 0%, var(--brand) 55%, var(--brand-bright) 100%)',
+                  color: 'var(--text-on-brand)',
                   padding: '20px 50px',
                   fontWeight: 700,
                   fontSize: 14,
@@ -282,25 +282,25 @@ export default function NoticePage() {
                     display: 'grid',
                     gridTemplateColumns: '80px 1fr 120px 50px',
                     padding: '20px 50px',
-                    borderBottom: '1px solid #edf2ef',
-                    background: '#ffffff',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-card)',
                     cursor: 'pointer',
                     alignItems: 'center',
                   }}
                 >
-                  <div style={{ color: '#2f6f4f', fontWeight: 700, fontSize: 14 }}>
+                  <div style={{ color: 'var(--brand)', fontWeight: 700, fontSize: 14 }}>
                     {notice.id}
                   </div>
 
-                  <div style={{ color: '#1f2937', fontSize: 14, fontWeight: 700 }}>
+                  <div style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 700 }}>
                     [{notice.category}] {notice.title}
                   </div>
 
-                  <div style={{ color: '#6b7280', fontSize: 14 }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
                     {notice.date}
                   </div>
 
-                  <div style={{ color: '#4b5563', fontSize: 14 }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
                     {notice.writer}
                   </div>
                 </article>
@@ -328,16 +328,16 @@ export default function NoticePage() {
                       borderRadius: 8,
                       border:
                         page === num
-                          ? '1px solid #2f6f4f'
-                          : '1px solid #d1d5db',
+                          ? '1px solid var(--brand)'
+                          : '1px solid var(--border)',
                       background:
                         page === num
-                          ? '#2f6f4f'
-                          : '#ffffff',
+                          ? 'var(--brand)'
+                          : 'var(--bg-card)',
                       color:
                         page === num
-                          ? '#ffffff'
-                          : '#2f6f4f',
+                          ? 'var(--text-on-brand)'
+                          : 'var(--brand)',
                       fontWeight: 700,
                       cursor: 'pointer',
                     }}
@@ -352,18 +352,18 @@ export default function NoticePage() {
           <section
             style={{
               width: '100%',
-              background: '#ffffff',
-              border: '1px solid #dbe5de',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
               borderRadius: 18,
               overflow: 'hidden',
-              boxShadow: '0 18px 45px rgba(31, 79, 58, 0.14)',
+              boxShadow: 'var(--shadow-lg)',
               boxSizing: 'border-box',
             }}
           >
             <div
               style={{
-                background: 'linear-gradient(135deg, #1f4f3a 0%, #2f6f4f 55%, #3e8e63 100%)',
-                color: '#ffffff',
+                background: 'linear-gradient(135deg, var(--brand-dim) 0%, var(--brand) 55%, var(--brand-bright) 100%)',
+                color: 'var(--text-on-brand)',
                 padding: '18px 22px',
                 fontWeight: 700,
                 fontSize: 15,
@@ -379,7 +379,7 @@ export default function NoticePage() {
                   margin: '0 0 12px',
                   fontSize: 22,
                   fontWeight: 800,
-                  color: '#1f2937',
+                  color: 'var(--text-primary)',
                 }}
               >
                 {selectedNotice.title}
@@ -389,7 +389,7 @@ export default function NoticePage() {
                 style={{
                   display: 'flex',
                   gap: 14,
-                  color: '#6b7280',
+                  color: 'var(--text-secondary)',
                   fontSize: 14,
                   marginBottom: 24,
                 }}
@@ -402,7 +402,7 @@ export default function NoticePage() {
               <p
                 style={{
                   margin: 0,
-                  color: '#374151',
+                  color: 'var(--text-primary)',
                   fontSize: 15,
                   lineHeight: 1.8,
                   whiteSpace: 'pre-wrap',
@@ -417,10 +417,10 @@ export default function NoticePage() {
                   marginTop: 28,
                   height: 40,
                   padding: '0 18px',
-                  border: '1px solid #2f6f4f',
+                  border: '1px solid var(--brand)',
                   borderRadius: 8,
-                  background: '#ffffff',
-                  color: '#2f6f4f',
+                  background: 'var(--bg-card)',
+                  color: 'var(--brand)',
                   fontWeight: 700,
                   cursor: 'pointer',
                 }}

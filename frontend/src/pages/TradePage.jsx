@@ -326,7 +326,9 @@ export default function TradePage() {
   }, [])
 
   const isUp = changeRate != null && changeRate >= 0
-  const rateColor = changeRate == null ? '#64748b' : isUp ? '#ef4444' : '#3b82f6'
+  const rateColor = changeRate == null
+    ? 'var(--text-secondary)'
+    : isUp ? 'var(--up)' : 'var(--down)'
 
   return (
     <div className="app-layout">
@@ -340,7 +342,7 @@ export default function TradePage() {
     padding: 18px 20px 24px;
 
     /* 다른 메뉴들과 맞추기 위한 기본 배경 */
-    background: #f5f5f5;
+    background: var(--bg-primary);
   }
 
   .trade-dashboard {
@@ -350,9 +352,9 @@ export default function TradePage() {
   }
 
   .trade-top-panel {
-    background: var(--color-background-primary);
-    border: 1px solid var(--color-border-tertiary);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
   }
 
   .trade-warning-banner {
@@ -366,6 +368,12 @@ export default function TradePage() {
     justify-content: space-between;
     gap: 12px;
     font-size: 13px;
+    color: #78350F;
+  }
+  [data-theme="dark"] .trade-warning-banner {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #fbbf24;
   }
 
   .trade-search-bar {
@@ -429,8 +437,8 @@ export default function TradePage() {
   .trade-widget-frame {
     min-width: 0;
     height: 100%;
-    background: var(--color-background-primary);
-    border: 1px solid var(--color-border-tertiary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     border-radius: var(--border-radius-md);
     overflow: hidden;
   }
@@ -542,7 +550,7 @@ export default function TradePage() {
           {!kisConnected && (
             <div className="trade-warning-banner">
               <span>KIS 계좌가 연결되지 않았습니다. 모의 데이터로 표시 중입니다.</span>
-              <a href="/mypage" style={{ color: '#92400E', fontWeight: 600, textDecoration: 'none' }}>
+              <a href="/mypage" style={{ color: 'inherit', fontWeight: 700, textDecoration: 'underline' }}>
                 계좌 연결하기 →
               </a>
             </div>
@@ -571,8 +579,8 @@ export default function TradePage() {
                 onClick={handleSearch}
                 style={{
                   padding: '4px 14px',
-                  background: '#2f6f4f',
-                  color: '#fff',
+                  background: 'var(--brand)',
+                  color: 'var(--text-on-brand)',
                   border: 'none',
                   borderRadius: 'var(--border-radius-md)',
                   fontSize: 13,
@@ -589,10 +597,10 @@ export default function TradePage() {
                   top: '100%',
                   left: 0,
                   zIndex: 200,
-                  background: 'var(--color-background-primary)',
-                  border: '1px solid var(--color-border-tertiary)',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
                   borderRadius: 'var(--border-radius-md)',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                  boxShadow: 'var(--shadow-md)',
                   minWidth: 280,
                   marginTop: 4,
                 }}>
@@ -608,22 +616,22 @@ export default function TradePage() {
                         alignItems: 'center',
                         fontSize: 13,
                         background: activeSuggIndex === idx
-                          ? '#E8F3EE'
+                          ? 'var(--brand-bg)'
                           : 'transparent',
                       }}
                       onMouseEnter={e => {
                         setActiveSuggIndex(idx)
-                        e.currentTarget.style.background = '#E8F3EE'
+                        e.currentTarget.style.background = 'var(--brand-bg)'
                       }}
                       onMouseLeave={e => {
                         e.currentTarget.style.background = activeSuggIndex === idx
-                          ? '#E8F3EE'
+                          ? 'var(--brand-bg)'
                           : 'transparent'
                       }}
                     >
-                      <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>{s.name}</span>
-                      <span style={{ color: 'var(--color-text-secondary)', fontSize: 12, fontFamily: 'monospace' }}>
-                        {s.code} <span style={{ color: '#94a3b8', marginLeft: 4 }}>{s.market}</span>
+                      <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{s.name}</span>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: 12, fontFamily: 'monospace' }}>
+                        {s.code} <span style={{ color: 'var(--text-muted)', marginLeft: 4 }}>{s.market}</span>
                       </span>
                     </div>
                   ))}
@@ -632,27 +640,27 @@ export default function TradePage() {
             </div>
 
             {/* 구분선 */}
-            <div style={{ width: 1, height: 28, background: 'var(--color-border-tertiary)' }} />
+            <div style={{ width: 1, height: 28, background: 'var(--border)' }} />
 
             {/* 종목 정보 inline: 종목명 · 코드 035420 · KOSPI · IT·서비스 */}
             {stockName && (
-              <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
                 {stockName}
               </span>
             )}
 
-            <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               · 코드 <span style={{ fontFamily: 'monospace' }}>{symbol}</span>
             </span>
 
             {stockMeta.market && (
-              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                 · {stockMeta.market}
               </span>
             )}
 
             {stockMeta.industry && (
-              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                 · {stockMeta.industry}
               </span>
             )}
@@ -660,7 +668,7 @@ export default function TradePage() {
             {/* 현재가 표시 */}
             {currentPrice != null && (
               <>
-                <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-text-primary)', marginLeft: 4 }}>
+                <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-primary)', marginLeft: 4 }}>
                   {currentPrice.toLocaleString()}원
                 </span>
 
@@ -679,10 +687,10 @@ export default function TradePage() {
                 width: 7,
                 height: 7,
                 borderRadius: '50%',
-                background: marketOpen ? '#22c55e' : '#94a3b8',
+                background: marketOpen ? 'var(--success)' : 'var(--text-muted)',
               }} />
 
-              <span style={{ color: marketOpen ? '#22c55e' : 'var(--color-text-secondary)' }}>
+              <span style={{ color: marketOpen ? 'var(--success)' : 'var(--text-secondary)' }}>
                 {quoteLoading ? '갱신 중...' : marketOpen ? '장 운영 중 · 5초 갱신' : '장 마감 · 1분 갱신'}
               </span>
             </span>

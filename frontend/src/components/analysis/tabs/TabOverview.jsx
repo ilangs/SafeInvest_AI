@@ -136,13 +136,13 @@ export default function TabOverview({ score, financials, warnings }) {
     <div>
       <div className="an-grid-2">
         <div>
-          <p style={{ fontWeight: 800, color: '#3b3e43', marginBottom: 4, marginTop: 20, textAlign: 'center', fontSize: 18, letterSpacing: '-0.005em' }}>
+          <p style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4, marginTop: 20, textAlign: 'center', fontSize: 18, letterSpacing: '-0.005em' }}>
             안전점수 게이지
           </p>
           <PlotlyChart data={gaugeData} layout={gaugeLayout} />
         </div>
         <div>
-          <p style={{ fontWeight: 800, color: '#3b3e43', marginBottom: 4, marginTop: 20, textAlign: 'center', fontSize: 18, letterSpacing: '-0.005em' }}>
+          <p style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4, marginTop: 20, textAlign: 'center', fontSize: 18, letterSpacing: '-0.005em' }}>
             5대 항목 레이더
           </p>
           <PlotlyChart data={radarData} layout={radarLayout} />
@@ -167,7 +167,7 @@ export default function TabOverview({ score, financials, warnings }) {
         style={{
           fontSize: 18,
           fontWeight: 700,
-          color: '#111827',
+          color: 'var(--text-primary)',
           marginTop: 24,
           marginBottom: 20,
           display: 'flex',

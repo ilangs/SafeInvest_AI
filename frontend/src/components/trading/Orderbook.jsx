@@ -125,7 +125,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#2f6f4f',
+          background: 'var(--brand)',
           padding: '16px 14px',
           margin: '-16px -16px 7px -16px',
           borderBottom: 'none',
@@ -136,7 +136,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
             display: 'flex',
             alignItems: 'center',
             gap: 7,
-            color: '#ffffff',
+            color: 'var(--text-on-brand)',
             fontWeight: 700,
             fontSize: 15,
           }}
@@ -156,8 +156,8 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
         {data.is_mock && (
           <span
             style={{
-              background: '#ffffff',
-              color: '#2f6f4f',
+              background: 'var(--bg-card)',
+              color: 'var(--brand)',
               fontWeight: 600,
               fontSize: 11,
               padding: '4px 10px',
@@ -212,10 +212,10 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
                 borderRadius: 4,
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', textAlign: 'right' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--up)', textAlign: 'right' }}>
                 {upper.toLocaleString()}
               </span>
-              <span style={{ fontSize: 10, color: '#ef4444', paddingLeft: 6, fontWeight: 700 }}>상한가</span>
+              <span style={{ fontSize: 10, color: 'var(--up)', paddingLeft: 6, fontWeight: 700 }}>상한가</span>
             </div>
           )}
 
@@ -227,7 +227,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.07)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <span style={{ fontSize: 13, fontWeight: 500, color: '#ef4444', textAlign: 'right' }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--up)', textAlign: 'right' }}>
                 {ask.price.toLocaleString()}
               </span>
 
@@ -261,8 +261,8 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
               borderBottom: '1px solid var(--color-border-tertiary)',
               fontSize: 14,
               fontWeight: 700,
-              color: '#0F6E56',
-              background: 'rgba(15,110,86,0.05)',
+              color: 'var(--brand)',
+              background: 'var(--brand-bg)',
               borderRadius: 2,
             }}
           >
@@ -277,7 +277,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.07)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <span style={{ fontSize: 13, fontWeight: 500, color: '#3b82f6', textAlign: 'right' }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--down)', textAlign: 'right' }}>
                 {bid.price.toLocaleString()}
               </span>
 
@@ -314,10 +314,10 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
                 borderRadius: 4,
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', textAlign: 'right' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--down)', textAlign: 'right' }}>
                 {lower.toLocaleString()}
               </span>
-              <span style={{ fontSize: 10, color: '#3b82f6', paddingLeft: 6, fontWeight: 700 }}>하한가</span>
+              <span style={{ fontSize: 10, color: 'var(--down)', paddingLeft: 6, fontWeight: 700 }}>하한가</span>
             </div>
           )}
         </div>
@@ -325,13 +325,13 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
         {asks.length > 0 && bids.length > 0 && (
           <div style={{ marginTop: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-              <span style={{ color: '#ef4444', fontWeight: 600 }}>매도 {askPct}%</span>
-              <span style={{ color: '#3b82f6', fontWeight: 600 }}>매수 {bidPct}%</span>
+              <span style={{ color: 'var(--up)', fontWeight: 600 }}>매도 {askPct}%</span>
+              <span style={{ color: 'var(--down)', fontWeight: 600 }}>매수 {bidPct}%</span>
             </div>
 
             <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden',marginBottom: 10 }}>
-              <div style={{ width: `${askPct}%`, background: '#ef4444', opacity: 0.7 }} />
-              <div style={{ width: `${bidPct}%`, background: '#3b82f6', opacity: 0.7 }} />
+              <div style={{ width: `${askPct}%`, background: 'var(--up)', opacity: 0.7 }} />
+              <div style={{ width: `${bidPct}%`, background: 'var(--down)', opacity: 0.7 }} />
             </div>
           </div>
         )}

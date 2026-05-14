@@ -28,7 +28,7 @@ export default function TabFinancial({ financials }) {
     height,
     autosize: true,
     font: {
-      color: '#111827',
+      color: 'var(--text-primary)',
       size: 12,
       family:
         'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
@@ -51,7 +51,7 @@ export default function TabFinancial({ financials }) {
       x: 0,
       y: 1.08,
       bgcolor: 'rgba(255,255,255,0)',
-      font: { color: '#111827', size: 12 },
+      font: { color: 'var(--text-primary)', size: 12 },
     },
     hoverlabel: {
       bgcolor: '#ffffff',
@@ -209,7 +209,7 @@ export default function TabFinancial({ financials }) {
           style={{
             fontSize: 18,
             fontWeight: 700,
-            color: '#111827',
+            color: 'var(--text-primary)',
             marginBottom: 18,
             display: 'flex',
             alignItems: 'center',
@@ -229,10 +229,10 @@ export default function TabFinancial({ financials }) {
           style={{
             overflowX: 'auto',
             paddingBottom: 8,
-            background: '#ffffff',
+            background: 'var(--bg-card)',
             borderRadius: 12,
-            border: '1px solid #d7e4d5',
-            boxShadow: '0 10px 24px rgba(47, 95, 67, 0.08)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <table className="an-data-table">
@@ -252,15 +252,15 @@ export default function TabFinancial({ financials }) {
                 <tr key={r.fiscal_year}>
                   <td>{r.fiscal_year}</td>
                   <td>{fmtMoney(r.revenue)}</td>
-                  <td style={{ color: r.operating_profit < 0 ? '#ef4444' : '#2f7d4f' }}>
+                  <td style={{ color: r.operating_profit < 0 ? 'var(--up)' : 'var(--brand-bright)' }}>
                     {r.operating_profit > 0 ? '+' : ''}{fmtMoney(r.operating_profit)}
                   </td>
-                  <td style={{ color: r.net_income < 0 ? '#ef4444' : '#2f7d4f' }}>
+                  <td style={{ color: r.net_income < 0 ? 'var(--up)' : 'var(--brand-bright)' }}>
                     {r.net_income > 0 ? '+' : ''}{fmtMoney(r.net_income)}
                   </td>
                   <td>{fmtRatio(r.debt_ratio)}</td>
                   <td>{fmtMoney(r.total_equity)}</td>
-                  <td style={{ color: (r.roe ?? 0) < 0 ? '#ef4444' : '#2f7d4f' }}>
+                  <td style={{ color: (r.roe ?? 0) < 0 ? 'var(--up)' : 'var(--brand-bright)' }}>
                     {(r.roe ?? 0) > 0 ? '+' : ''}{fmtRatio(r.roe)}
                   </td>
                 </tr>
@@ -275,7 +275,7 @@ export default function TabFinancial({ financials }) {
         style={{
           fontSize: 18,
           fontWeight: 700,
-          color: '#111827',
+          color: 'var(--text-primary)',
           marginTop: 28,
           marginBottom: 20,
           display: 'flex',

@@ -3,7 +3,7 @@ import ChatWidget from '../components/ai/ChatWidget'
 
 export default function AiChatPage() {
   return (
-    <div className="app-layout" style={{ background: '#f5f5f5', minHeight: '100vh' }}>
+    <div className="app-layout" style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
       <Navbar />
 
       <main className="ai-chat-main" style={{ padding: '44px 24px 64px' }}>
@@ -18,12 +18,12 @@ export default function AiChatPage() {
                 marginBottom: 10,
                 fontWeight: 800,
                 letterSpacing: '-0.03em',
-                color: '#286346',
+                color: 'var(--brand)',
               }}
             >
               Financial AI Tutor
             </div>
-            <div className="ai-chat-subtitle" style={{ color: '#6B7280', fontSize: 16, lineHeight: 1.6 }}>
+            <div className="ai-chat-subtitle" style={{ color: 'var(--text-secondary)', fontSize: 16, lineHeight: 1.6 }}>
               투자 학습과 주식 기초 질문을 쉽고 명확하게 도와드립니다.
             </div>
           </div>
@@ -31,10 +31,10 @@ export default function AiChatPage() {
           {/* 챗봇 카드 */}
           <div
             style={{
-              background: '#ffffff',
-              border: '1px solid #dbe5de',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
               borderRadius: 18,
-              boxShadow: '0 30px 80px rgba(31, 79, 58, 0.4)',
+              boxShadow: 'var(--shadow-lg)',
               overflow: 'hidden',
             }}
           >

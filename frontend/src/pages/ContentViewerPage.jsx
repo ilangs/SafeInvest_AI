@@ -51,9 +51,9 @@ export default function ContentViewerPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
         <Navbar />
-        <div style={{ textAlign: 'center', padding: 80, color: '#94A3B8' }}>
+        <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-muted)' }}>
           불러오는 중...
         </div>
       </div>
@@ -62,9 +62,9 @@ export default function ContentViewerPage() {
 
   if (!data) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
         <Navbar />
-        <div style={{ textAlign: 'center', padding: 80, color: '#EF4444' }}>
+        <div style={{ textAlign: 'center', padding: 80, color: 'var(--danger)' }}>
           콘텐츠를 찾을 수 없습니다.
         </div>
       </div>
@@ -243,7 +243,7 @@ export default function ContentViewerPage() {
                     onClick={() => navigate(`/education/content/${r.contents_slno}`)}
                     style={styles.relatedCard}
                     onMouseEnter={e => (e.currentTarget.style.borderColor = '#286346')}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = '#E2E8F0')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                   >
                     {r.title ? `${labelText(r.title).slice(0, 50)}...` : '관련 콘텐츠'}
                   </div>
@@ -284,7 +284,7 @@ export default function ContentViewerPage() {
                             onClick={() => sendChat(q)}
                             style={styles.suggestBtn}
                             onMouseEnter={e => (e.currentTarget.style.borderColor = '#286346')}
-                            onMouseLeave={e => (e.currentTarget.style.borderColor = '#E2E8F0')}
+                            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                           >
                             {q}
                           </button>
@@ -502,7 +502,7 @@ function ContentPlayer({ content }) {
 const styles = {
   layout: {
     minHeight: '100vh',
-    background: '#f5f5f5',
+    background: 'var(--bg-primary)',
     fontFamily: "'IBM Plex Sans KR', -apple-system, BlinkMacSystemFont, sans-serif",
   },
 
@@ -520,14 +520,14 @@ const styles = {
     gap: 8,
     marginBottom: 16,
     fontSize: 15,
-    color: '#64748B',
+    color: 'var(--text-secondary)',
   },
 
   breadcrumbBtn: {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#286346',
+    color: 'var(--brand)',
     fontFamily: 'inherit',
     fontSize: 15,
     fontWeight: 600,
@@ -535,17 +535,17 @@ const styles = {
   },
 
   breadcrumbCurrent: {
-    color: '#111827',
+    color: 'var(--text-primary)',
     fontWeight: 600,
   },
 
   contentCard: {
-    background: '#ffffff',
+    background: 'var(--bg-card)',
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    border: '1px solid #dbe5de',
-    boxShadow: '0 12px 30px rgba(47,111,79,0.06)',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow-md)',
   },
 
   badgeRow: {
@@ -557,8 +557,8 @@ const styles = {
 
   badgeBlue: {
     fontSize: 12,
-    background: '#eef2f7',
-    color: '#475569',
+    background: 'var(--bg-subtle)',
+    color: 'var(--text-secondary)',
     padding: '4px 10px',
     borderRadius: 20,
     fontWeight: 700,
@@ -566,8 +566,8 @@ const styles = {
 
   badgeGreen: {
     fontSize: 12,
-    background: '#dff3ee',
-    color: '#2c6b5a',
+    background: 'var(--brand-bg)',
+    color: 'var(--brand)',
     padding: '4px 10px',
     borderRadius: 20,
     fontWeight: 700,
@@ -575,8 +575,8 @@ const styles = {
 
   badgeMint: {
     fontSize: 12,
-    background: '#efe9ff',
-    color: '#6a5aa3',
+    background: 'rgba(106,90,163,0.14)',
+    color: '#8b7ec0',
     padding: '4px 10px',
     borderRadius: 20,
     fontWeight: 700,
@@ -584,8 +584,8 @@ const styles = {
 
   badgeCream: {
     fontSize: 12,
-    background: '#f7f1e8',
-    color: '#8a5a22',
+    background: 'rgba(245,158,11,0.15)',
+    color: 'var(--warning)',
     padding: '4px 10px',
     borderRadius: 20,
     fontWeight: 700,
@@ -594,14 +594,14 @@ const styles = {
   contentTitle: {
     fontSize: 23,
     fontWeight: 700,
-    color: '#111827',
+    color: 'var(--text-primary)',
     lineHeight: 1.4,
     marginBottom: 10,
   },
 
   contentSummary: {
     fontSize: 15,
-    color: '#64748B',
+    color: 'var(--text-secondary)',
     lineHeight: 1.65,
     margin: 0,
   },
@@ -609,13 +609,13 @@ const styles = {
   provider: {
     marginTop: 12,
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'var(--text-muted)',
   },
 
   relatedTitle: {
     fontSize: 16,
     fontWeight: 700,
-    color: '#111827',
+    color: 'var(--text-primary)',
     marginBottom: 12,
   },
 
@@ -626,13 +626,13 @@ const styles = {
   },
 
   relatedCard: {
-    background: '#ffffff',
+    background: 'var(--bg-card)',
     borderRadius: 12,
     padding: 14,
-    border: '1px solid #E2E8F0',
+    border: '1px solid var(--border)',
     cursor: 'pointer',
     fontSize: 13,
-    color: '#111827',
+    color: 'var(--text-primary)',
     fontWeight: 500,
     transition: 'border-color 0.15s',
   },
@@ -647,19 +647,19 @@ const styles = {
   },
 
   chatBox: {
-    background: '#ffffff',
+    background: 'var(--bg-card)',
     borderRadius: 16,
-    border: '1px solid #dbe5de',
+    border: '1px solid var(--border)',
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
     overflow: 'hidden',
-    boxShadow: '0 12px 30px rgba(47,111,79,0.07)',
+    boxShadow: 'var(--shadow-md)',
   },
 
   chatHeader: {
     padding: '16px 20px',
-    borderBottom: '1px solid #E2E8F0',
+    borderBottom: '1px solid var(--border-subtle)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -679,13 +679,13 @@ const styles = {
 
   chatTitle: {
     fontWeight: 800,
-    color: '#111827',
+    color: 'var(--text-primary)',
     fontSize: 17,
   },
 
   chatSubTitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: 'var(--text-secondary)',
     marginTop: 2,
   },
 
@@ -693,7 +693,7 @@ const styles = {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#94A3B8',
+    color: 'var(--text-muted)',
     fontSize: 18,
   },
 
@@ -708,14 +708,14 @@ const styles = {
 
   chatGuide: {
     fontSize: 13,
-    color: '#64748B',
+    color: 'var(--text-secondary)',
     marginBottom: 12,
     lineHeight: 1.5,
   },
 
   suggestTitle: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'var(--text-muted)',
     marginBottom: 13,
     fontWeight: 700,
     letterSpacing: '0.04em',
@@ -726,12 +726,12 @@ const styles = {
     width: '100%',
     textAlign: 'left',
     marginBottom: 6,
-    background: '#F8FAFC',
-    border: '1px solid #E2E8F0',
+    background: 'var(--bg-subtle)',
+    border: '1px solid var(--border)',
     borderRadius: 10,
     padding: '10px 14px',
     fontSize: 13,
-    color: '#475569',
+    color: 'var(--text-primary)',
     cursor: 'pointer',
     fontFamily: 'inherit',
     lineHeight: 1.4,
@@ -747,52 +747,52 @@ const styles = {
   },
 
   userBubble: {
-    background: '#286346',
-    color: '#ffffff',
+    background: 'var(--brand)',
+    color: 'var(--text-on-brand)',
     border: 'none',
   },
 
   aiBubble: {
-    background: '#F8FAFC',
-    color: '#111827',
-    border: '1px solid #E2E8F0',
+    background: 'var(--bg-subtle)',
+    color: 'var(--text-primary)',
+    border: '1px solid var(--border-subtle)',
   },
 
   sourcesBox: {
     marginTop: 8,
     paddingTop: 8,
-    borderTop: '1px solid rgba(0,0,0,0.1)',
+    borderTop: '1px solid var(--border-subtle)',
   },
 
   sourcesTitle: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: 'var(--text-muted)',
     marginBottom: 4,
   },
 
   sourceItem: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'var(--text-secondary)',
   },
 
   disclaimer: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: 'var(--text-muted)',
     marginTop: 6,
   },
 
   loadingBubble: {
-    background: '#F8FAFC',
-    border: '1px solid #E2E8F0',
+    background: 'var(--bg-subtle)',
+    border: '1px solid var(--border-subtle)',
     borderRadius: 12,
     padding: '10px 14px',
     fontSize: 13,
-    color: '#94A3B8',
+    color: 'var(--text-muted)',
   },
 
   chatInputArea: {
     padding: '12px 16px',
-    borderTop: '1px solid #E2E8F0',
+    borderTop: '1px solid var(--border-subtle)',
     display: 'flex',
     gap: 8,
   },
@@ -800,17 +800,18 @@ const styles = {
   chatInput: {
     flex: 1,
     padding: '8px 12px',
-    border: '1px solid #E2E8F0',
+    border: '1px solid var(--border)',
     borderRadius: 10,
     fontSize: 13,
     outline: 'none',
     fontFamily: 'inherit',
-    color: '#111827',
+    color: 'var(--text-primary)',
+    background: 'var(--bg-elevated)',
   },
 
   sendBtn: {
-    background: '#286346',
-    color: '#ffffff',
+    background: 'var(--brand)',
+    color: 'var(--text-on-brand)',
     border: 'none',
     borderRadius: 10,
     padding: '8px 14px',
@@ -824,7 +825,7 @@ const styles = {
     position: 'fixed',
     bottom: 32,
     right: 32,
-    background: '#286346',
+    background: 'var(--brand)',
     border: 'none',
     borderRadius: 50,
     width: 58,
@@ -868,52 +869,52 @@ const styles = {
   },
 
   pdfBox: {
-    background: '#ffffff',
+    background: 'var(--bg-card)',
     borderRadius: 16,
     overflow: 'hidden',
-    border: '1px solid #E2E8F0',
+    border: '1px solid var(--border)',
     height: 600,
   },
 
   audioBox: {
-    background: '#ffffff',
+    background: 'var(--bg-card)',
     borderRadius: 16,
     padding: 32,
-    border: '1px solid #E2E8F0',
+    border: '1px solid var(--border)',
   },
 
   audioTitle: {
     fontSize: 15,
     fontWeight: 700,
     marginBottom: 16,
-    color: '#111827',
+    color: 'var(--text-primary)',
   },
 
   fallbackCard: {
-    background: '#ffffff',
+    background: 'var(--bg-card)',
     borderRadius: 16,
     padding: 32,
-    border: '1px solid #E2E8F0',
+    border: '1px solid var(--border)',
     textAlign: 'center',
   },
 
   fallbackTitle: {
     fontSize: 16,
     fontWeight: 700,
-    color: '#111827',
+    color: 'var(--text-primary)',
     marginBottom: 8,
   },
 
   fallbackText: {
     fontSize: 13,
-    color: '#64748B',
+    color: 'var(--text-secondary)',
     marginBottom: 20,
   },
 
   linkBtn: {
     display: 'inline-block',
-    background: '#286346',
-    color: '#ffffff',
+    background: 'var(--brand)',
+    color: 'var(--text-on-brand)',
     padding: '10px 24px',
     borderRadius: 10,
     fontSize: 14,
