@@ -502,7 +502,12 @@ def update_financials():
 
     # ── 4) 재무 항목 추출 헬퍼 ──
     def get_val(df, sj_div_filter, *keywords):
-        sub = df if sj_div_filter is None else df[df["sj_div"] == sj_div_filter]
+        if sj_div_filter is None:
+            sub = df
+        elif isinstance(sj_div_filter, (list, tuple)):
+            sub = df[df["sj_div"].isin(sj_div_filter)]
+        else:
+            sub = df[df["sj_div"] == sj_div_filter]
         if sub is None or sub.empty:
             return None
         for kw in keywords:
@@ -543,9 +548,9 @@ def update_financials():
                 no_data_cnt += 1
                 continue
 
-            revenue           = get_val(df_fin, "IS", "매출액", "영업수익", "수익(매출액)")
-            operating_profit  = get_val(df_fin, "IS", "영업이익")
-            net_income        = get_val(df_fin, "IS", "당기순이익", "분기순이익", "반기순이익", "당기순손익")
+            revenue           = get_val(df_fin, ("IS", "CIS"), "매출액", "영업수익", "수익(매출액)")
+            operating_profit  = get_val(df_fin, ("IS", "CIS"), "영업이익")
+            net_income        = get_val(df_fin, ("IS", "CIS"), "당기순이익", "분기순이익", "반기순이익", "당기순손익")
             total_assets      = get_val(df_fin, "BS", "자산총계")
             total_equity      = get_val(df_fin, "BS", "자본총계")
             total_liabilities = get_val(df_fin, "BS", "부채총계")

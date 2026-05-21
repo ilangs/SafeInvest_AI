@@ -391,23 +391,36 @@ def _record_local_order(
 
 def _sync_local_with_kis_fills(user_id: str, is_mock: bool, kis_filled_orders: list) -> None:
     """
-    KIS 체결 확인된 주문의 로컬 status 를 '접수' → '체결' 로 업데이트.
+    KIS 체결/부분체결 확인된 주문의 로컬 status 를 동기화.
     get_today_orders 가 KIS 응답을 받은 직후 호출됨.
+
+    ★ status 별 분리 update — '부분체결'을 '체결'로 잘못 마킹하지 않도록.
     """
     if not kis_filled_orders:
         return
-    filled_ids = {o.get("order_id") for o in kis_filled_orders if o.get("order_id")}
-    if not filled_ids:
+    # status → {order_id 집합}
+    buckets: dict[str, set[str]] = {"체결": set(), "부분체결": set()}
+    for o in kis_filled_orders:
+        oid = o.get("order_id")
+        st  = o.get("status")
+        if oid and st in buckets:
+            buckets[st].add(oid)
+
+    if not any(buckets.values()):
         return
+
     try:
         from app.core.supabase import supabase_admin
-        supabase_admin.table("user_orders") \
-            .update({"status": "체결"}) \
-            .eq("user_id", user_id) \
-            .eq("is_mock", is_mock) \
-            .in_("order_id_ext", list(filled_ids)) \
-            .neq("status", "체결") \
-            .execute()
+        for new_status, ids in buckets.items():
+            if not ids:
+                continue
+            supabase_admin.table("user_orders") \
+                .update({"status": new_status}) \
+                .eq("user_id", user_id) \
+                .eq("is_mock", is_mock) \
+                .in_("order_id_ext", list(ids)) \
+                .neq("status", new_status) \
+                .execute()
         # 캐시 무효화 → 다음 호출 시 최신 상태 재조회
         today = _today_kst()
         _LOCAL_ORDER_CACHE.pop((user_id, is_mock, today), None)
@@ -436,14 +449,17 @@ def _local_order_bucket(user_id: str, is_mock: bool) -> list:
             .execute()
         )
         for r in (res.data or []):
+            r_status = r.get("status") or "접수"   # ★ NULL fallback: "접수" (안전한 기본값)
+            r_qty    = int(r.get("quantity") or 0)
             orders.append({
                 "stock_code":  r.get("stock_code", ""),
                 "stock_name":  r.get("stock_name") or _stock_name(r.get("stock_code", "")),
                 "order_type":  "매수" if r.get("order_type") == "buy" else "매도",
-                "quantity":    int(r.get("quantity") or 0),
-                "filled_qty":  int(r.get("quantity") or 0),
+                "quantity":    r_qty,
+                # ★ 인서트 로직(_record_local_order)과 일관: 체결 상태에서만 filled_qty 반영
+                "filled_qty":  r_qty if r_status == "체결" else 0,
                 "price":       int(r.get("price") or 0),
-                "status":      r.get("status") or "체결",
+                "status":      r_status,
                 "order_time":  r.get("order_time", ""),
                 "order_id":    r.get("order_id_ext", ""),
             })
@@ -920,11 +936,15 @@ def _merge_holdings_with_local(holdings: list, user_id: str, is_mock: bool) -> l
     h_map = {h["stock_code"]: dict(h) for h in holdings}
 
     for o in local_orders:
-        # ★ 체결된 주문만 반영 — '접수' 상태는 KIS 확인 전이므로 보유종목 미반영
-        if o.get("status") != "체결":
+        # ★ 체결/부분체결만 반영 — '접수' 상태는 KIS 확인 전이므로 보유종목 미반영
+        #   부분체결은 실제 체결분(filled_qty)만 반영해야 평단가 왜곡 없음
+        status = o.get("status")
+        if status not in ("체결", "부분체결"):
             continue
         code   = o["stock_code"]
-        qty    = int(o["quantity"])
+        qty    = int(o.get("filled_qty") or 0) if status == "부분체결" else int(o["quantity"])
+        if qty <= 0:
+            continue
         price  = int(o["price"])
         is_buy = (o["order_type"] == "매수")
 
@@ -1057,26 +1077,41 @@ async def get_order_history(
         print(f"[order_history 조회 실패] {e}")
         rows = []
 
-    return [{
-        "stock_code":  r.get("stock_code", ""),
-        "stock_name":  r.get("stock_name") or _stock_name(r.get("stock_code", "")),
-        "order_type":  "매수" if r.get("order_type") == "buy" else "매도",
-        "quantity":    int(r.get("quantity") or 0),
-        "filled_qty":  int(r.get("quantity") or 0),
-        "price":       int(r.get("price") or 0),
-        "status":      r.get("status") or "체결",
-        "order_date":  r.get("order_date", ""),
-        "order_time":  r.get("order_time", ""),
-        "order_id":    r.get("order_id_ext", ""),
-    } for r in rows]
+    out = []
+    for r in rows:
+        r_status = r.get("status") or "접수"   # ★ NULL fallback: "접수"
+        r_qty    = int(r.get("quantity") or 0)
+        out.append({
+            "stock_code":  r.get("stock_code", ""),
+            "stock_name":  r.get("stock_name") or _stock_name(r.get("stock_code", "")),
+            "order_type":  "매수" if r.get("order_type") == "buy" else "매도",
+            "quantity":    r_qty,
+            # ★ 체결 상태에서만 filled_qty 반영
+            "filled_qty":  r_qty if r_status == "체결" else 0,
+            "price":       int(r.get("price") or 0),
+            "status":      r_status,
+            "order_date":  r.get("order_date", ""),
+            "order_time":  r.get("order_time", ""),
+            "order_id":    r.get("order_id_ext", ""),
+        })
+    return out
 
 
 def _merge_with_local(kis_orders: list, user_id: str, is_mock: bool, status: str) -> list:
     """KIS API 결과 + 로컬 주문 로그 병합 (order_id 기준 중복 제거).
-    체결("ccld") 상태일 때만 로컬 로그를 병합 — 로컬 기록은 모두 체결 가정."""
-    if status != "ccld":
-        return kis_orders
+
+    ★ 탭별 병합 규칙
+      - ccld(체결) 탭   : 로컬 status == "체결" 인 행만 병합
+      - pending(미체결) : 로컬 status 가 "접수"/"미체결"/"부분체결" 인 행만 병합
+        (KIS 가 잠시 누락한 미체결 주문 보완)
+      - 로컬 "접수"가 KIS ccld 탭에 끼어들어 체결로 오인되지 않도록 차단."""
     local = _local_order_bucket(user_id, is_mock)
+    if not local:
+        return kis_orders
+    if status == "ccld":
+        local = [lo for lo in local if lo.get("status") == "체결"]
+    else:
+        local = [lo for lo in local if lo.get("status") in ("접수", "미체결", "부분체결")]
     if not local:
         return kis_orders
     # 중복 키: (stock_code, order_time, quantity, order_type)
@@ -1151,6 +1186,18 @@ async def get_today_orders(
             if qty == 0 and filled_qty == 0:
                 continue
             buy_sell   = item.get("sll_buy_dvsn_cd", "")
+            # ★ 실제 체결수량(tot_ccld_qty) 기반으로 status 판정
+            #   - filled_qty == 0           → 미체결 (또는 취소)
+            #   - 0 < filled_qty < qty      → 부분체결
+            #   - filled_qty >= qty         → 체결
+            if order_status == "ccld":
+                # 체결 탭 요청 시 실제 체결이 없는 행은 제외 (KIS가 CCLD_DVSN="00"으로 전체 반환)
+                if filled_qty <= 0:
+                    continue
+                row_status = "체결" if filled_qty >= qty else "부분체결"
+            else:
+                # 미체결 탭(inquire-psbl-rvsecncl)은 정정·취소 가능 잔량만 반환
+                row_status = "미체결"
             orders.append({
                 "stock_code":  item.get("pdno", ""),
                 "stock_name":  item.get("prdt_name", "").strip() or _stock_name(item.get("pdno", "")),
@@ -1158,8 +1205,9 @@ async def get_today_orders(
                 "quantity":    qty,
                 "filled_qty":  filled_qty,
                 "price":       int(item.get("ord_unpr", 0) or 0),
-                "status":      "체결" if order_status == "ccld" else "미체결",
+                "status":      row_status,
                 "order_time":  item.get("ord_tmd", ""),
+                "order_id":    item.get("odno", ""),   # ★ sync용 주문번호
             })
         # ★ KIS 체결 확인된 주문의 로컬 status를 '접수' → '체결' 동기화
         if order_status == "ccld":
