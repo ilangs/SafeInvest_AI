@@ -22,16 +22,8 @@ export default function TabSafety({ score, warnings }) {
           marginBottom: 33,
         }}
       >
-        <div
-          style={{
-            flex: 1,
-            height: 1,
-            background: 'var(--border)',
-          }}
-        />
-
-        <div
-          style={{
+        <div style={{ flex: 1, height: 1, background: '#d7e4d5' }} />
+        <div className="an-tab-guide-text" style={{
             fontSize: 15,
             fontWeight: 590,
             color: '#3b3e43',
@@ -44,18 +36,11 @@ export default function TabSafety({ score, warnings }) {
         >
           이 탭은 재무 데이터 기반으로 확인된 공식 위험 경고를 보여줍니다.
         </div>
-
-        <div
-          style={{
-            flex: 1,
-            height: 1,
-            background: 'var(--border)',
-          }}
-        />
+        <div style={{ flex: 1, height: 1, background: '#d7e4d5' }} />
       </div>
 
       {/* 상단 카드 3개 */}
-      <div
+      <div className="safety-top-cards"
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr 2.6fr',
@@ -225,7 +210,7 @@ export default function TabSafety({ score, warnings }) {
       </div>
 
       {/* 위험 유형 설명 */}
-      <div
+      <div className="safety-risk-section"
         style={{
           marginTop: 12,
           padding: '24px 26px',
@@ -256,7 +241,7 @@ export default function TabSafety({ score, warnings }) {
           위험 유형 설명
         </h3>
 
-        <div
+        <div className="safety-risk-section"
           style={{
             background: 'var(--bg-card)',
             borderRadius: 12,
@@ -305,7 +290,7 @@ export default function TabSafety({ score, warnings }) {
                 flexWrap: 'wrap', // 모바일 대응을 위한 핵심 속성
                 alignItems: 'center',
                 gap: '12px 16px',
-                padding: '16px 22px',
+                padding: '13px 22px',
                 borderBottom:
                   idx === arr.length - 1 ? 'none' : '1px solid var(--border-subtle)',
               }}

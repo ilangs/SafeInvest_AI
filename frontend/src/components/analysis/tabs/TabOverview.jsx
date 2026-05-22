@@ -99,7 +99,7 @@ export default function TabOverview({ score, financials, warnings }) {
       angularaxis: {
         gridcolor: gridLine,
         linecolor: 'rgba(100, 116, 139, 0.35)',
-        tickfont: { color: '#475569', size: 13 },
+        tickfont: { color: '#0a0a0a', size: 13 },
       },
     },
     paper_bgcolor: 'rgba(0,0,0,0)',
@@ -139,16 +139,19 @@ export default function TabOverview({ score, financials, warnings }) {
           <p style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4, marginTop: 20, textAlign: 'center', fontSize: 18, letterSpacing: '-0.005em' }}>
             안전점수 게이지
           </p>
-          <PlotlyChart data={gaugeData} layout={gaugeLayout} />
+          <div className="radar-chart-wrap">
+            <PlotlyChart data={gaugeData} layout={gaugeLayout} />
+          </div>
         </div>
         <div>
           <p style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4, marginTop: 20, textAlign: 'center', fontSize: 18, letterSpacing: '-0.005em' }}>
             5대 항목 레이더
           </p>
-          <PlotlyChart data={radarData} layout={radarLayout} />
+          <div className="radar-chart-wrap">
+          <PlotlyChart data={radarData} layout={radarLayout} config={{ staticPlot: true, displayModeBar: false, scrollZoom: false }} />
+          </div>
         </div>
       </div>
-
       <div style={{ marginTop: 24, marginBottom: 35, width: '90%', marginLeft: 'auto', marginRight: 'auto' }}>
         {bars.map(({ title, score: s, max }) => (
           <ProgressBar key={title} title={title} score={s} max={max} />

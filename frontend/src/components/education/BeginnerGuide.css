@@ -17,13 +17,13 @@
 }
 
 .beginner-guide > div:last-child {
-  background: var(--bg-card) !important;
+  background: #f5f5f5 !important;
   color: var(--text-primary);
 }
 
 .white-accordion-btn {
   background: var(--bg-elevated) !important;
-  color: var(--text-primary);
+  color: #357f44 !important;
 }
 
 /* ── 반응형 ── */
@@ -48,24 +48,23 @@
 }
 @media (max-width: 480px) {
   .beginner-guide { gap: 14px !important; }
-  /* 탭바: 가로 스크롤 + flex */
+  /* 모바일에서 초보가이드 탭 3개씩 줄바꿈 */
   .beginner-guide > div:first-child {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 6px !important;
-    padding-bottom: 4px;
-    scrollbar-width: none;
+    overflow-x: visible !important;
+    padding-bottom: 0;
   }
   .beginner-guide > div:first-child::-webkit-scrollbar { display: none; }
   .beginner-guide > div:first-child > button {
-    flex: 0 0 auto !important;
-    padding: 0 14px !important;
+    width: 100% !important;
+    padding: 0 4px !important;
     height: 42px !important;
     font-size: 13px !important;
-    white-space: nowrap;
+    white-space: normal !important;
   }
+
   .beginner-guide > div:last-child {
     padding: 16px 14px !important;
     border-radius: 14px !important;
@@ -80,4 +79,43 @@
   /* 박스류 패딩 축소 */
   .beginner-guide > div:last-child code,
   .beginner-guide > div:last-child .infoFormula { font-size: 13px !important; }
+}
+
+.beginner-content-card {
+  background: #f5f5f5 !important;
+}
+
+html[data-theme="dark"] .beginner-content-card {
+  background: #18231d !important;
+}
+
+html[data-theme="dark"] .white-accordion-btn:hover {
+  background: #40584c !important;
+}
+
+html[data-theme="dark"] .beginner-guide > div:first-child > button:not(.active) {
+  border: none !important;
+}
+
+html[data-theme="dark"] .beginner-guide > div:last-child {
+  background: #1d2d26 !important;
+}
+
+html[data-theme="dark"] .beginner-guide code {
+  color: #8fbc9f !important;
+  background: #2a3a33 !important;
+}
+
+html[data-theme="dark"] .risk-title {
+  color: #7fa78d !important;
+}
+
+html[data-theme="dark"] .white-accordion-btn {
+  color: #85b8a0 !important;
+}
+
+html[data-theme="dark"] .formula-box {
+  background: #24352d !important;
+  color: #9fd3ad !important;
+  border: 1px solid #355244 !important;
 }

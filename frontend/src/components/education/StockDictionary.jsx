@@ -207,7 +207,7 @@ function TermModal({ term, allTerms, onClose, onRelated }) {
 
           {term.formula && (
             <Section title="📐 계산식">
-              <div style={{
+              <div className="formula-box" style={{
                 background:'var(--brand-bg)',
                 border:'1px solid var(--border)',
                 borderRadius:8,
@@ -304,7 +304,7 @@ function TermCard({ term, onClick }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? 'var(--bg-subtle)' : 'var(--bg-card)',
+        background: hovered ? 'var(--hover-card-bg)' : 'var(--bg-card)',
         borderTop: hovered ? `1px solid ${accentColor}60` : '1px solid var(--border-subtle)',
         borderRight: hovered ? `1px solid ${accentColor}60` : '1px solid var(--border-subtle)',
         borderBottom: hovered ? `1px solid ${accentColor}60` : '1px solid var(--border-subtle)',
@@ -464,7 +464,7 @@ export default function StockDictionary() {
   return (
     <div className="stock-dict" style={{
       fontFamily: "'IBM Plex Sans KR', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif",
-      background: 'var(--bg-subtle)',
+      background: '#f5f5f5',
       borderRadius: 20,
       overflow: 'hidden',
       border: '1px solid var(--border)',

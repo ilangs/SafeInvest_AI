@@ -96,6 +96,8 @@
 
   /* ── 컨테이너 padding (반응형) ── */
   --container-px: 24px;
+
+  --hover-card-bg: #f9f6e0;
 }
 
 /* ===================================================
@@ -104,10 +106,10 @@
    — 라이트 토큰 이름은 그대로 두고 값만 교체
 =================================================== */
 [data-theme="dark"] {
-  --bg-primary:   #0f1419;
-  --bg-card:      #1a1f24;
-  --bg-elevated:  #222830;
-  --bg-subtle:    #1d3026;
+  --bg-primary:   #30423a;
+  --bg-card:      #213129;
+  --bg-elevated:  #294036;
+  --bg-subtle:    #31493e;
 
   --text-primary:    #e6ebef;
   --text-secondary:  #9aa5b1;
@@ -118,9 +120,9 @@
   --border-subtle:  #252c34;
   --border-strong:  #3a444f;
 
-  --brand:         #4ea376;
-  --brand-dim:     #3a7d5c;
-  --brand-bright:  #62bf90;
+  --brand:         #2f6f4f;
+  --brand-dim:     #1f4f3a;
+  --brand-bright:  #3e8e63;
   --brand-bg:      #1d3026;
 
   --up:    #f87171;
@@ -134,6 +136,8 @@
   --shadow-sm:  0 2px 8px rgba(0,0,0,0.35);
   --shadow-md:  0 8px 24px rgba(0,0,0,0.45);
   --shadow-lg:  0 18px 44px rgba(0,0,0,0.55);
+
+  --hover-card-bg: #2b3b34;
 
   /* Module C 호환 별칭은 :root의 var(...)를 그대로 재참조하므로
      별도 재정의 불필요 — 자동으로 다크 값을 따라감 */
@@ -427,7 +431,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 
 /* Navbar 3-상태 테마 순환 버튼 */
 .theme-cycle-btn {
-  width: 36px;
+  width: 100px;
   height: 32px;
   border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.35);
@@ -449,7 +453,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 
 /* 모바일(≤480): 테마 버튼 유지하되 사이즈 살짝 축소 */
 @media (max-width: 480px) {
-  .theme-cycle-btn { width: 32px; height: 30px; font-size: 14px; }
+  .theme-cycle-btn { width: 82px; height: 30px; font-size: 14px; }
 }
 
 /* ===================================================
@@ -480,15 +484,16 @@ html, body { max-width: 100%; overflow-x: hidden; }
   .study-log-buttons button { flex: 1 1 auto; min-height: 40px; }
 }
 @media (max-width: 480px) {
-  .study-log-page { padding: 24px 12px 48px !important; }
-  .study-log-title { font-size: 24px !important; }
-  .study-log-summary { grid-template-columns: 1fr !important; }
+  .study-log-page { padding: 35px 12px 48px !important; }
+  .study-log-title { font-size: 30px !important; }
+  .study-log-summary { grid-template-columns: 1fr !important; max-width: 300px !important; margin: 0 auto 28px !important; }
   .study-log-write-summary { grid-column: auto !important; }
   .study-log-row {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: auto 1fr auto !important;
     padding: 12px 14px !important;
   }
   .study-log-row .sl-badge { justify-self: start; }
+  .study-log-row .sl-date { justify-self: end;}
   .study-log-card { padding: 16px !important; border-radius: 14px !important; }
   .study-log-detail-title { font-size: 19px !important; }
   .study-log-content-box { padding: 14px !important; line-height: 1.7 !important; }
@@ -544,8 +549,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
   .edu-lesson-summary { font-size: 13px !important; }
 }
 @media (max-width: 480px) {
-  .edu-page { padding: 22px 12px 50px !important; }
-  .edu-title { font-size: 24px !important; }
+  .edu-page { padding: 35px 12px 50px !important; }
+  .edu-title { font-size: 30px !important; }
   .edu-section-tabs { gap: 14px !important; }
   .edu-section-tabs button { font-size: 13px !important; }
   .edu-filter-box {
@@ -565,8 +570,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
   .an-recent-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
 }
 @media (max-width: 768px) {
-  .an-container { padding: 18px 16px 48px !important; gap: 14px !important; }
-  .an-page-title { font-size: 28px !important; }
+  .an-container { padding: 10px 16px 48px !important; gap: 14px !important; }
+  .an-page-title { font-size: 30px !important; }
   .an-page-subtitle { font-size: 14px !important; }
   .an-section-title { font-size: 20px !important; }
   .an-guide-panel { padding: 14px 8px !important; }
@@ -586,8 +591,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
   .an-detail-header { padding: 16px 12px !important; }
 }
 @media (max-width: 480px) {
-  .an-container { padding: 14px 10px 40px !important; }
-  .an-page-title { font-size: 22px !important; }
+  .an-container { padding: 18px 10px 40px !important; }
+  .an-page-title { font-size: 30px !important; }
   .an-section-title { font-size: 17px !important; }
   .an-recent-grid {
     grid-template-columns: 1fr !important;
@@ -664,8 +669,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
   .mypage-title { font-size: 19px !important; }
   .mypage-kis-card { padding: 14px !important; }
 
-  .board-main { padding: 22px 12px 44px !important; }
-  .board-title { font-size: 24px !important; }
+  .board-main { padding: 35px 12px 44px !important; }
+  .board-title { font-size: 30px !important; }
 
   .notice-cat-tabs { grid-template-columns: repeat(2, 1fr) !important; }
   .notice-cat-tabs button { height: 42px !important; font-size: 12.5px !important; }
@@ -809,10 +814,10 @@ html, body { max-width: 100%; overflow-x: hidden; }
 }
 @media (max-width: 480px) {
   /* AiChatPage 페이지 padding/타이틀 축소 */
-  .ai-chat-main { padding: 20px 12px 32px !important; }
-  .ai-chat-title { font-size: 22px !important; }
+  .ai-chat-main { padding: 30px 12px 8px !important; }
+  .ai-chat-title { font-size: 30px !important; }
   .chat-widget {
-    height: calc(100vh - 150px) !important;
+    height: calc(100vh - 270px) !important;
     border-radius: 0 !important;
   }
   .chat-header {
@@ -1354,7 +1359,7 @@ body {
   background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.38rem 0.77rem;
   color: var(--text-primary);
   font-size: 0.88rem;
   resize: none;
@@ -1643,7 +1648,7 @@ body {
   cursor: pointer;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 7px 14px;
   transition: all 0.15s;
 }
@@ -1752,7 +1757,7 @@ body {
   cursor: pointer;
   font-family: inherit;
   font-size: 14.5px;
-  font-weight: 750;
+  font-weight: 700;
   padding: 12px 16px;
   text-align: left;
   width: 100%;
@@ -1761,7 +1766,7 @@ body {
   justify-content: space-between;
   align-items: center;
 }
-[data-theme="dark"] .an-expander-header { color: var(--brand-bright); }
+[data-theme="dark"] .an-expander-header { color: #9bbca7; }
 
 .an-expander-header:hover {
   background: var(--brand-bg);
@@ -2329,7 +2334,7 @@ body {
   background: var(--bg-card);
   color: #c83a3a;
   border: none;
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 8px;
   cursor: pointer;
 }
@@ -2370,7 +2375,7 @@ body {
 /* 하단 2개 가로 배치 */
 .home-bottom-row {
   max-width: 1180px;
-  margin: 24px auto 0;
+  margin: 24px auto -20px;
 
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2422,7 +2427,7 @@ body {
 .home-footer {
   margin-top: 2px;
   padding: 24px 0 24px;
-  border-top: 1px solid var(--border-subtle);
+  border-top: none;
   text-align: center;
   color: var(--text-secondary);
   font-size: 13px;
@@ -2452,7 +2457,7 @@ body {
 
 .home-footer {
   margin-top: 0!important;
-  padding-top: 16px !important;
+  padding-top: 40px !important;
 }
 
 .tab-btn.active {
@@ -2479,9 +2484,14 @@ body {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-/* hover */
+/* 홈 화면 hover */
+.navbar:not(.green-navbar) .nav-menu a:hover {
+  background: rgba(145, 52, 52, 0.22);
+}
+
+/* 일반 페이지 hover */
 .green-nav-menu a:hover {
-  background: var(--brand-bg);
+  background: rgba(47, 111, 79, 0.22);
 }
 
 /* 활성 메뉴 (현재 페이지) — 양 모드 모두 그린 톤 */
@@ -2594,7 +2604,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .an-explain-body {
   text-align: center;
   padding-bottom: 18px;
-  border-bottom: 1.7px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .an-tech-guide {
@@ -2674,10 +2684,277 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: rgba(245,158,11,0.10);
   border: 1px solid rgba(245,158,11,0.35);
 
-  padding-top: 34px;
-  padding-bottom: 34px;
+  padding-top: 23px;
+  padding-bottom: 25px;
 }
 
 .an-empty-warning .an-explain-body {
   color: var(--text-primary);
+}
+
+html[data-theme="dark"] .stock-dict {
+  background: #2f3f38 !important;
+}
+
+html[data-theme="dark"] .an-tab-guide-text {
+  color: #d7e3dc !important;
+}
+
+html[data-theme="dark"] .radar-chart-wrap text {
+  fill: #d7e3dc !important;
+}
+
+html[data-theme="dark"] .financial-chart-wrap text {
+  fill: #d7e3dc !important;
+}
+
+html[data-theme="dark"] .price-chart-wrap text { fill: #d7e3dc !important; }
+
+html[data-theme="dark"] .tech-chart-wrap text { fill: #d7e3dc !important; }
+
+html[data-theme="dark"] .checkpoint-title {
+  color: #d7e3dc !important;
+}
+
+html[data-theme="dark"] .analysis-home-title { color: #d7e3dc !important; }
+html[data-theme="dark"] .analysis-score-title { color: #d7e3dc !important; }
+html[data-theme="dark"] .analysis-search-title { color: #d7e3dc !important; }
+html[data-theme="dark"] .analysis-recent-title { color: #d7e3dc !important; }
+
+html[data-theme="dark"] .an-empty-warning .line {
+  background: rgba(255,255,255,0.06) !important;
+}
+
+html[data-theme="dark"] .an-empty-warning .an-explain-body {
+  border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+
+.chat-input::placeholder {
+  color: #0b0b0b;
+  font-size: 14.5px;
+}
+
+html[data-theme="dark"] .chat-input::placeholder {
+  color: #b8c4bd;
+}
+
+html[data-theme="dark"] .an-btn-back {
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .price-chart-wrap .gridlayer path,
+html[data-theme="dark"] .tech-chart-wrap .gridlayer path,
+html[data-theme="dark"] .financial-chart-wrap .gridlayer path {
+  stroke: rgba(255,255,255,0.09) !important;
+}
+
+[data-theme="dark"] .btn-sm {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .theme-cycle-btn,
+[data-theme="dark"] .btn-logout {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .trade-widget-frame button,
+[data-theme="dark"] .trade-widget-frame button:disabled {
+  background: #234734 !important;
+  border-color: #315f47 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+[data-theme="dark"] .trade-widget-frame button:hover {
+  background: #2f6f4f !important;
+  border-color: #3f8763 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* 홈 화면 전체 다크 디자인 */
+
+html[data-theme="dark"] .home-page {
+  background:
+    radial-gradient(circle at 18% 30%, rgba(47, 111, 79, 0.20) 0%, transparent 34%),
+    linear-gradient(135deg, #17221d 0%, #1f3028 45%, #121a1f 100%) !important;
+}
+
+html[data-theme="dark"] .home-section-card {
+  background: #213129 !important;
+  border-color: #2d3f35 !important;
+}
+
+html[data-theme="dark"] .home-section-card:hover {
+  background: #263b31 !important;
+}
+
+html[data-theme="dark"] .btn-logout {
+  background: #213129 !important;
+  color: #ffffff !important;
+  border-color: #3f5f4d !important;
+}
+
+html[data-theme="dark"] .btn-logout:hover {
+  background: #2d4a3a !important;
+  color: #ffffff !important;
+  border-color: #2f6f4f !important;
+}
+
+/* 다크모드 일반 페이지 활성 메뉴 */
+[data-theme="dark"] .green-nav-menu a.active {
+  background: rgba(111, 168, 120, 0.38) !important;
+  color: #dff5df !important;
+  font-weight: 600;
+}
+
+/* active (홈 화면 — 레드 액센트) */
+.nav-menu a.active {
+  background: #fceaea;
+  color: #c83a3a;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .nav-menu a.active {
+  background: #3d1f1f;
+  color: #fceaea;
+  font-weight: 600;
+}
+
+[data-theme="light"] .login-card .tab-btn {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #dbe5de !important;
+}
+
+[data-theme="light"] .login-card .tab-btn.active {
+  background: #d1413a !important;
+  color: #ffffff !important;
+  border-color: #b6453f !important;
+}
+
+/* 다크모드 로그인/회원가입 버튼 채도 업 */
+[data-theme="dark"] .login-card .tab-btn.active,
+[data-theme="dark"] .login-card .btn-primary {
+  background: linear-gradient(135deg, #ff0224 0%, #e34d45 100%) !important;
+  border-color: #ef6b63 !important;
+  color: #ffffff !important;
+}
+
+/* 모바일에서 시장요약 카드 2개씩 */
+@media (max-width: 480px) {
+  .an-top-guide-grid .an-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  /* 모바일에서 안전점수 카드 3개씩 */
+  .an-top-guide-grid .an-grid-5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+
+/* 모바일에서 종합진단 점수바 간격 축소 */
+@media (max-width: 480px) {
+  .an-progress-wrap {
+    margin-bottom: -15px !important;}
+
+  .an-progress-header {
+    margin-bottom: 6px !important;}
+
+  .an-progress-track {
+    height: 10px !important;}
+}
+
+@media (max-width: 480px) {
+  .safety-top-cards {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .safety-top-cards {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .safety-top-cards .an-glass-card:nth-child(3) {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* 모바일에서 위험 유형 설명 가로 꽉 차게 */
+@media (max-width: 480px) {
+  .safety-risk-section {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* 모바일에서 가격추이 카드 2열 */
+@media (max-width: 480px) {
+  .an-grid-4 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* 모바일에서 52주 가격 위치 해석 가로 꽉 차게 */
+@media (max-width: 480px) {
+  .price-analysis-section {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* 모바일에서 주식매매 오류들 수정 코드 */
+@media (max-width: 480px) {
+  .trade-candle-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .trade-candle-info-row {
+    justify-content: space-between !important;
+    gap: 6px !important;
+  }
+
+  .trade-mock-badge {
+  width: auto !important;
+  white-space: nowrap !important;
+  margin-bottom: 2px !important;
+  }
+
+  .trade-ma-legend {
+    margin-left: 0 !important;
+    gap: 6px !important;
+  }
+
+  .trade-period-row {
+    justify-content: flex-end !important;
+    gap: 6px !important;
+  }
+
+  .trade-period-btn {
+    min-width: 48px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .ai-chat-layout {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  .ai-chat-layout .ai-chat-main {
+    height: calc(100dvh - 70px) !important;
+    overflow: hidden !important;
+  }
+
+  .ai-chat-layout .chat-messages {
+    overflow-y: auto !important;
+  }
 }

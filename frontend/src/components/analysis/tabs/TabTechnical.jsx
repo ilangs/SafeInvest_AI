@@ -115,7 +115,7 @@ export default function TabTechnical({ prices }) {
       family:
         'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
     },
-    margin: { l: 50, r: 8, t: 28, b: 32 },
+    margin: { l: 50, r:10, t: 28, b: 32 },
     grid: { rows: 3, columns: 1, pattern: 'independent' },
     xaxis: {
       gridcolor: '#dfe9dd',
@@ -149,7 +149,7 @@ export default function TabTechnical({ prices }) {
       tickfont: { color: '#111827' },
       linecolor: '#cfdcc9',
       domain: [0.58, 1],
-      title: '종가+BB',
+      title: { text: '종가 + BB', standoff: 20 },
     },
     yaxis2: {
       gridcolor: '#dfe9dd',
@@ -239,31 +239,25 @@ export default function TabTechnical({ prices }) {
           marginBottom: 33,
         }}
       >
-        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-        <div
-          style={{
-            fontSize: 16,
+        <div style={{ flex: 1, height: 1, background: '#d7e4d5' }} />
+        <div className="an-tab-guide-text" style={{
+            fontSize: 15,
             fontWeight: 590,
-            color: 'var(--text-secondary)',
-            whiteSpace: 'nowrap',
-            letterSpacing: '-0.03em',
+            color: '#3b3e43', whiteSpace: 'normal', // 모바일에서 줄바꿈 허용 
+            wordBreak: 'keep-all', // 단어 단위 줄바꿈 
+            textAlign: 'center', 
+            letterSpacing: '-0.03em', 
+            padding: '0 10px'
           }}
         >
           기술적 지표는 과열·과냉·추세 전환 신호를 참고하는 화면입니다.
         </div>
-        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+        <div style={{ flex: 1, height: 1, background: '#d7e4d5' }} />
       </div>
 
       {/* 기술적 분석 그래프 */}
-      <div
-        style={{
-          width: '100%',
-          background: 'transparent',
-          padding: '0 4px',
-          marginBottom: 24,
-        }}
-      >
-        <PlotlyChart data={techData} layout={techLayout} />
+      <div className="tech-chart-wrap" style={{ width: '100%', background: 'transparent', padding: '0 4px', marginBottom: 24 }}>
+        <PlotlyChart data={techData} layout={techLayout} config={{ staticPlot: true, displayModeBar: false, scrollZoom: false }} />
       </div>
 
       {rsiMsg && <ExplainBox className="an-guide-box" title="RSI 해석" body={rsiMsg} type={rsiType} />}
@@ -291,7 +285,10 @@ export default function TabTechnical({ prices }) {
       </h3>
 
       <div className="an-warning-box an-tech-guide">
-        <b>📌 Check Point - 기술적 분석의 한계를 먼저 이해하세요.</b> 기술적 분석은 <b>과거</b> 주가와 거래량 데이터를 분석하는 방법입니다.<br /> 
+        <b>📌 Check Point</b><br />
+        <span style={{ marginLeft: '22px' }}></span> 
+        기술적 분석의 한계를 먼저 이해하세요. 기술적 분석은 <b>과거</b> 주가와 거래량 데이터를 분석하는 방법입니다.<br />
+        <span style={{ marginLeft: '22px' }}></span> 
         과거 패턴이 미래에도 반복된다는 가정을 전제하지만, 이것이 항상 맞지는 않습니다. 기술적 지표는 매수·매도 타이밍의 <b>참고 자료</b>일 뿐입니다.
       </div>
 

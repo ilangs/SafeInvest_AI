@@ -33,7 +33,7 @@ export default function TabFinancial({ financials }) {
       family:
         'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
     },
-    margin: { l: 50, r: 8, t: 28, b: 32 },
+    margin: { l: 23, r: 8, t: 3, b: 58 },
     xaxis: {
       gridcolor: '#dfe9dd',
       zerolinecolor: '#dfe9dd',
@@ -46,6 +46,7 @@ export default function TabFinancial({ financials }) {
       tickfont: { color: '#111827' },
       linecolor: '#cfdcc9',
     },
+    
     legend: {
       orientation: 'h',
       x: 0,
@@ -89,8 +90,12 @@ export default function TabFinancial({ financials }) {
     },
   ]
 
-  const finLayout = baseLayout(560)
+  const finLayout = baseLayout(window.innerWidth <= 480 ? 420 : 560)
 
+  if (window.innerWidth <= 480) {
+    finLayout.margin.t = 0
+    finLayout.legend.y = 1.18
+  }
   const periods = quarterly.map(r => `${r.fiscal_year}-${r.fiscal_quarter}`)
   const debtRatio = quarterly.map(r => r.debt_ratio)
 
@@ -165,13 +170,15 @@ export default function TabFinancial({ financials }) {
         }}
       >
         <div style={{ flex: 1, height: 1, background: '#d7e4d5' }} />
-        <div
-          style={{
-            fontSize: 16,
+        <div className="an-tab-guide-text" style={{
+            fontSize: 15,
             fontWeight: 590,
             color: '#3b3e43',
-            whiteSpace: 'nowrap',
-            letterSpacing: '-0.03em',
+            whiteSpace: 'normal', // 모바일에서 줄바꿈 허용 
+            wordBreak: 'keep-all', // 단어 단위 줄바꿈 
+            textAlign: 'center', 
+            letterSpacing: '-0.03em', 
+            padding: '0 10px',
           }}
         >
           아래 그래프는 연간 합산 기준입니다. 부채비율 차트는 분기별 기준입니다.
@@ -180,27 +187,13 @@ export default function TabFinancial({ financials }) {
       </div>
 
       {/* 매출 / 영업이익 / 순이익 그래프 */}
-      <div
-        style={{
-          width: '100%',
-          background: 'transparent',
-          padding: '0 4px',
-          marginBottom: 24,
-        }}
-      >
-        <PlotlyChart data={finData} layout={finLayout} />
+      <div className="financial-chart-wrap" style={{ width: '100%', background: 'transparent', padding: '0 4px', marginBottom: 5 }}>
+        <PlotlyChart data={finData} layout={finLayout} config={{ staticPlot: true, displayModeBar: false, scrollZoom: false }} />
       </div>
 
       {/* 부채비율 그래프 */}
-      <div
-        style={{
-          width: '100%',
-          background: 'transparent',
-          padding: '0 4px',
-          marginBottom: 30,
-        }}
-      >
-        <PlotlyChart data={debtData} layout={debtLayout} />
+      <div className="financial-chart-wrap" style={{ width: '100%', background: 'transparent', padding: '0 4px', marginBottom: 30 }}>
+        <PlotlyChart data={debtData} layout={debtLayout} config={{ staticPlot: true, displayModeBar: false, scrollZoom: false }} />
       </div>
 
       {/* 연간 재무 요약 */}

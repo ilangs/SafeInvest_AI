@@ -54,7 +54,7 @@ export default function QuoteWidget({ onSymbolChange, onAnalyse, onPriceUpdate }
     <div className="card">
       <div className="card-header">
         <span>현재가 조회</span>
-        <span className="mock-badge">모의투자</span>
+        <span className="mock-badge">모의 투자</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', paddingTop: '8px' }}>

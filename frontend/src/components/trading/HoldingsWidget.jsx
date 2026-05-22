@@ -94,7 +94,7 @@ export default function HoldingsWidget({ refreshKey, refreshTrigger, isMock = tr
               objectFit: 'contain',
             }}
           />
-          보유종목
+          보유 종목
         </span>
 
         <button

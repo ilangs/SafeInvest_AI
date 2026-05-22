@@ -3,7 +3,7 @@ import ChatWidget from '../components/ai/ChatWidget'
 
 export default function AiChatPage() {
   return (
-    <div className="app-layout" style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <div className="app-layout ai-chat-layout" style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
       <Navbar />
 
       <main className="ai-chat-main" style={{ padding: '44px 24px 64px' }}>
@@ -17,7 +17,7 @@ export default function AiChatPage() {
                 fontSize: 40,
                 marginBottom: 10,
                 fontWeight: 800,
-                letterSpacing: '-0.03em',
+                letterSpacing: '-0.01em',
                 color: 'var(--brand)',
               }}
             >
@@ -29,7 +29,7 @@ export default function AiChatPage() {
           </div>
 
           {/* 챗봇 카드 */}
-          <div
+          <div className="ai-page-chat-only"
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border)',

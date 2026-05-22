@@ -20,11 +20,15 @@ export default function Navbar() {
 
   // 3-상태 순환 토글: light → dark → system → light
   const cycleTheme = () => {
-    const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
+    const next = theme === 'light' ? 'dark' : 'light'
     setTheme(next)
   }
-  const themeIcon = theme === 'system' ? '🖥️' : effective === 'dark' ? '🌙' : '☀️'
-  const themeLabel = theme === 'system' ? '기기 설정' : effective === 'dark' ? '다크' : '라이트'
+  const themeLabel = effective === 'dark' ? 'Dark Mode' : 'Light Mode'
+
+  const resetChatStorage = () => {
+    localStorage.removeItem('judy:aiChatMessages')
+    localStorage.removeItem('judy:aiChatInput')
+  }
 
   // 햄버거 메뉴 바깥을 클릭하면 메뉴를 닫습니다.
   useEffect(() => {
@@ -58,7 +62,7 @@ export default function Navbar() {
           title={`화면 스타일: ${themeLabel} (클릭하여 변경)`}
           aria-label={`현재 화면 스타일 ${themeLabel}, 클릭하여 변경`}
         >
-          <span aria-hidden="true">{themeIcon}</span>
+          {themeLabel}
         </button>
 
         <button className="btn-logout" onClick={signOut}>
@@ -68,15 +72,15 @@ export default function Navbar() {
 
       {menuOpen && (
         <div className={`nav-menu ${isHomePage ? '' : 'green-nav-menu'}`}>
-          <Link to="/home" className={isActive('/home') ? 'active' : ''}>홈</Link>
-          <Link to="/education" className={isActive('/education') ? 'active' : ''}>교육센터</Link>
-          <Link to="/market" className={isActive('/market') ? 'active' : ''}>마켓분석</Link>
-          <Link to="/trade" className={isActive('/trade') ? 'active' : ''}>주식매매</Link>
-          <Link to="/mypage" className={isActive('/mypage') ? 'active' : ''}>계좌 연결</Link>
+          <Link to="/home" onClick={resetChatStorage} className={isActive('/home') ? 'active' : ''}>Home</Link>
+          <Link to="/education" onClick={resetChatStorage} className={isActive('/education') ? 'active' : ''}>교육센터</Link>
+          <Link to="/market" onClick={resetChatStorage} className={isActive('/market') ? 'active' : ''}>마켓분석</Link>
+          <Link to="/trade" onClick={resetChatStorage} className={isActive('/trade') ? 'active' : ''}>주식매매</Link>
+          <Link to="/mypage" onClick={resetChatStorage} className={isActive('/mypage') ? 'active' : ''}>계좌연결</Link>
           <Link to="/ai-chat" className={isActive('/ai-chat') ? 'active' : ''}>AI 챗봇</Link>
-          <Link to="/study-log" className={isActive('/study-log') ? 'active' : ''}>Study Log</Link>
-          <Link to="/notice" className={isActive('/notice') ? 'active' : ''}>공지사항</Link>
-          <Link to="/faq" className={isActive('/faq') ? 'active' : ''}>FAQ</Link>
+          <Link to="/study-log" onClick={resetChatStorage} className={isActive('/study-log') ? 'active' : ''}>Study Log</Link>
+          <Link to="/notice" onClick={resetChatStorage} className={isActive('/notice') ? 'active' : ''}>공지사항</Link>
+          <Link to="/faq" onClick={resetChatStorage} className={isActive('/faq') ? 'active' : ''}>FAQ</Link>
         </div>
       )}
     </nav>

@@ -98,7 +98,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
 
   const rowStyle = {
     display: 'grid',
-    gridTemplateColumns: '68px 1.4fr 30px',
+    gridTemplateColumns: '55px 1.4fr 30px',
     alignItems: 'center',
     gap: 10,
     padding: '4px 0',
@@ -175,7 +175,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '70px 1fr 46px',
+            gridTemplateColumns: '60px 1fr 50px',
             gap: 4,
             paddingBottom: 4,
             marginBottom: 10,
@@ -203,7 +203,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '70px 1fr',
+                gridTemplateColumns: '56px 1fr',
                 alignItems: 'center',
                 gap: 4,
                 padding: '5px 0',
@@ -305,7 +305,7 @@ export default function Orderbook({ symbol, currentPrice, onPriceSelect, isMock 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '70px 1fr',
+                gridTemplateColumns: '56px 1fr',
                 alignItems: 'center',
                 gap: 4,
                 padding: '5px 0',

@@ -32,7 +32,7 @@ from app.dependencies import get_current_user
 from app.core.security import TokenData
 from app.core.supabase import supabase_admin
 from app.core.encryption import decrypt, encrypt, mask_account
-from app.services.kis_client import get_access_token_with_key
+from app.services.kis_client import get_access_token_with_key, REAL_TRADING_ENABLED
 
 router = APIRouter(prefix="/api/v1/credentials", tags=["credentials"])
 
@@ -179,10 +179,39 @@ async def connect(
     body: KISConnectRequest,
     current_user: TokenData = Depends(get_current_user),
 ):
-    """KIS 키 등록 및 연결 테스트."""
+    """KIS 키 등록 및 연결 테스트.
+
+    ★ 현재 모의투자 계좌만 등록 가능 (실거래는 차후 서비스 예정).
+    ★ 저장 전 KIS 모의 도메인으로 토큰 발급을 선검증 —
+      실거래 APP_KEY 는 모의 도메인에서 토큰이 발급되지 않으므로,
+      검증 실패 시 저장 자체를 차단해 실거래 키가 모의 슬롯에 들어오는 것을 막는다.
+    """
     masked = mask_account(body.account_no)
 
-    # ── 1) 암호화 키 저장 (upsert) ────────────────────────────────────────────
+    # ── 0) 실거래 계좌 등록 차단 ──────────────────────────────────────────────
+    if not body.is_mock and not REAL_TRADING_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="실거래 계좌 등록은 차후 서비스 예정입니다. 현재는 모의투자 계좌만 등록할 수 있습니다.",
+        )
+
+    # ── 1) KIS 토큰 발급 선검증 (저장 전) ─────────────────────────────────────
+    #   모의투자 APP_KEY 는 모의 도메인(openapivts)에서만 토큰이 발급됨.
+    #   실거래 키를 입력하면 여기서 실패 → 저장하지 않고 즉시 거부.
+    try:
+        token = await get_access_token_with_key(body.app_key, body.app_secret, body.is_mock)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "모의투자 계좌 검증에 실패했습니다. 모의투자 전용 APP KEY·SECRET 인지 "
+                "확인해 주세요. (실거래 키는 등록할 수 없습니다.) "
+                f"[{str(e)[:80]}]"
+            ),
+        )
+
+    # ── 2) 검증 성공 → 암호화 저장 (upsert) ──────────────────────────────────
+    expires_at = (datetime.now(tz=timezone.utc) + timedelta(hours=23)).isoformat()
     upsert_data: dict = {
         "user_id":           current_user.user_id,
         "enc_app_key":       encrypt(body.app_key),
@@ -190,6 +219,8 @@ async def connect(
         "account_no_masked": masked,
         "is_mock":           body.is_mock,
         "is_active":         True,
+        "access_token":      token,
+        "token_expires_at":  expires_at,
     }
     # enc_account_no 컬럼이 있을 때만 포함 (없으면 DB 에러 방지)
     try:
@@ -223,31 +254,10 @@ async def connect(
                 detail=f"계좌 정보 저장 실패: {err_msg[:120]}",
             )
 
-    # ── 2) KIS 토큰 발급 테스트 ───────────────────────────────────────────────
-    message    = f"{'모의투자' if body.is_mock else '실거래'} 계좌 저장 완료 ({masked})"
-    token_valid = False
-
-    try:
-        token      = await get_access_token_with_key(body.app_key, body.app_secret, body.is_mock)
-        expires_at = (datetime.now(tz=timezone.utc) + timedelta(hours=23)).isoformat()
-        # update 사용 – 불완전 INSERT 로 인한 NOT NULL 위반 방지
-        supabase_admin.table("user_kis_credentials").update(
-            {"access_token": token, "token_expires_at": expires_at}
-        ).eq("user_id", current_user.user_id).eq("is_mock", body.is_mock).execute()
-
-        message     = f"{'모의투자' if body.is_mock else '실거래'} 계좌 연결 완료 ({masked})"
-        token_valid = True
-    except Exception as e:
-        message = (
-            f"{'모의투자' if body.is_mock else '실거래'} 계좌는 저장됐지만 "
-            f"KIS 토큰 확인에 실패했습니다. APP KEY·SECRET을 확인해 주세요. "
-            f"({str(e)[:100]})"
-        )
-
     return {
         "success":          True,
-        "message":          message,
-        "token_valid":      token_valid,
+        "message":          f"모의투자 계좌 연결 완료 ({masked})",
+        "token_valid":      True,
         "account_no_masked": masked,
     }
 

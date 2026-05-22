@@ -118,56 +118,57 @@ export default function ContentViewerPage() {
       <Navbar />
 
       <style>{`
-        /* ── ContentViewerPage 반응형 ── */
-        @media (max-width: 1024px) {
-          .cv-layout .cv-page-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .cv-layout .cv-chat-wrap {
-            position: static !important;
-            margin-top: 16px !important;
-            height: 560px !important;
-          }
-        }
-        @media (max-width: 768px) {
-          .cv-layout .cv-page-grid { padding: 20px 16px 32px !important; gap: 16px !important; }
-          .cv-layout .cv-content-card { padding: 18px !important; border-radius: 14px !important; }
-          .cv-layout .cv-content-title { font-size: 19px !important; }
-          .cv-layout .cv-content-summary { font-size: 14px !important; }
-          .cv-layout .cv-breadcrumb { font-size: 13px !important; margin-bottom: 12px !important; }
-          .cv-layout .cv-breadcrumb button { font-size: 13px !important; }
-          .cv-layout .cv-pdf-box { height: 420px !important; }
-          .cv-layout .cv-audio-box, .cv-layout .cv-fallback-card { padding: 22px !important; }
-        }
-        @media (max-width: 480px) {
-          .cv-layout .cv-page-grid { padding: 14px 12px 28px !important; }
-          .cv-layout .cv-content-card { padding: 14px !important; border-radius: 12px !important; }
-          .cv-layout .cv-content-title { font-size: 17px !important; }
-          .cv-layout .cv-content-summary { font-size: 13px !important; }
-          .cv-layout .cv-related-grid {
-            grid-template-columns: 1fr !important;
-          }
-          /* 챗 영역: 화면 거의 풀스크린 드로어 형태 */
-          .cv-layout .cv-chat-wrap {
-            position: fixed !important;
-            top: auto !important;
-            left: 8px !important;
-            right: 8px !important;
-            bottom: 8px !important;
-            margin-top: 0 !important;
-            height: 75vh !important;
-            z-index: 999;
-          }
-          .cv-layout .cv-pdf-box { height: 340px !important; }
-          .cv-layout .cv-open-chat-btn {
-            right: 16px !important;
-            bottom: 16px !important;
-            width: 52px !important;
-            height: 52px !important;
-          }
-          .cv-layout .cv-open-chat-btn img { width: 30px !important; height: 30px !important; }
-        }
-      `}</style>
+  /* ── ContentViewerPage 반응형 ── */
+  @media (max-width: 1024px) {
+    .cv-layout .cv-page-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .cv-layout .cv-page-grid { padding: 20px 16px 32px !important; gap: 16px !important; }
+    .cv-layout .cv-content-card { padding: 18px !important; border-radius: 14px !important; }
+    .cv-layout .cv-content-title { font-size: 19px !important; }
+    .cv-layout .cv-content-summary { font-size: 14px !important; }
+    .cv-layout .cv-breadcrumb { font-size: 13px !important; margin-bottom: 12px !important; }
+    .cv-layout .cv-breadcrumb button { font-size: 13px !important; }
+    .cv-layout .cv-pdf-box { height: 420px !important; }
+    .cv-layout .cv-audio-box, .cv-layout .cv-fallback-card { padding: 22px !important; }
+  }
+
+  @media (max-width: 480px) {
+    .cv-layout .cv-page-grid { padding: 14px 12px 28px !important; }
+    .cv-layout .cv-content-card { padding: 14px !important; border-radius: 12px !important; }
+    .cv-layout .cv-content-title { font-size: 17px !important; }
+    .cv-layout .cv-content-summary { font-size: 13px !important; }
+
+    .cv-layout .cv-related-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* 모바일에서는 챗봇을 영상 아래에 일반 카드처럼 배치 */
+    .cv-layout .cv-chat-wrap {
+      position: static !important;
+      margin-top: 16px !important;
+      height: 500px !important;
+      z-index: auto !important;
+    }
+
+    .cv-layout .cv-pdf-box { height: 340px !important; }
+
+    .cv-layout .cv-open-chat-btn {
+      right: 16px !important;
+      bottom: 16px !important;
+      width: 52px !important;
+      height: 52px !important;
+    }
+
+    .cv-layout .cv-open-chat-btn img {
+      width: 30px !important;
+      height: 30px !important;
+    }
+  }
+`}</style>
 
       <div
         className="cv-page-grid"
@@ -182,6 +183,12 @@ export default function ContentViewerPage() {
               교육센터
             </button>
             <span>›</span>
+            
+            <button onClick={() => navigate('/education', { state: { activeSection: 'video' } })} style={styles.breadcrumbBtn}>
+              기본기 영상
+            </button>
+            <span>›</span>
+            
             {!isSelf && content.topic_code && (
               <>
                 <button
@@ -203,7 +210,7 @@ export default function ContentViewerPage() {
               </span>
 
               {content.is_self_content && (
-                <span style={styles.badgeGreen}>Team4 제작</span>
+                <span style={styles.badgeGreen}>Team2 제작</span>
               )}
 
               {content.is_playable && (
@@ -550,33 +557,33 @@ const styles = {
 
   badgeRow: {
     display: 'flex',
-    gap: 8,
+    gap: 6,
     flexWrap: 'wrap',
     marginBottom: 12,
   },
 
   badgeBlue: {
-    fontSize: 12,
-    background: 'var(--bg-subtle)',
-    color: 'var(--text-secondary)',
-    padding: '4px 10px',
-    borderRadius: 20,
-    fontWeight: 700,
+   fontSize: 12,
+   background: '#f6e4ec',
+   color: '#c05b82',
+   padding: '4px 10px',
+   borderRadius: 20,
+   fontWeight: 700,
   },
 
   badgeGreen: {
-    fontSize: 12,
-    background: 'var(--brand-bg)',
-    color: 'var(--brand)',
-    padding: '4px 10px',
-    borderRadius: 20,
-    fontWeight: 700,
+   fontSize: 12,
+   background: '#dff1e5',
+   color: '#2f6f4f',
+   padding: '4px 10px',
+   borderRadius: 20,
+   fontWeight: 700,
   },
 
   badgeMint: {
     fontSize: 12,
-    background: 'rgba(106,90,163,0.14)',
-    color: '#8b7ec0',
+    background: '#ebe7f8',
+    color: '#7b6db4',
     padding: '4px 10px',
     borderRadius: 20,
     fontWeight: 700,
@@ -584,8 +591,8 @@ const styles = {
 
   badgeCream: {
     fontSize: 12,
-    background: 'rgba(245,158,11,0.15)',
-    color: 'var(--warning)',
+    background: '#f3ecd8',
+    color: '#b68b2d',
     padding: '4px 10px',
     borderRadius: 20,
     fontWeight: 700,

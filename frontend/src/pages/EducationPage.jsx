@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 import BeginnerGuide from '../components/education/BeginnerGuide'
 import StockDictionary from '../components/education/StockDictionary'
@@ -27,19 +27,27 @@ const STEP_INFO = {
 
 export default function EducationPage() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [selfContents, setSelfContents] = useState([])
   const [selfCategories, setSelfCategories] = useState([])
   const [selectedCat, setSelectedCat] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const [activeSection, setActiveSection] = useState('ready')
+  const [activeSection, setActiveSection] = useState(location.state?.activeSection || 'ready')
   const [openSteps, setOpenSteps] = useState({
     '1단계': false,
     '2단계': false,
     '3단계': false,
     '4단계': false,
   })
+
+  // 콘텐츠 페이지에서 돌아올 때 기본기 영상 탭 유지
+  useEffect(() => {
+    if (location.state?.activeSection) {
+      setActiveSection(location.state.activeSection)
+    }
+  }, [location.state])
 
   useEffect(() => {
     fetch(`${EDU_API}/api/self-contents`)
@@ -275,6 +283,7 @@ const styles = {
     fontWeight: 800,
     color: 'var(--brand)',
     marginBottom: 10,
+    letterSpacing: '-0.01em',
   },
   subtitle: {
     color: 'var(--text-secondary)',
@@ -337,7 +346,7 @@ const styles = {
   roadmap: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 18,
+    gap: 15,
   },
   stepBlock: {
     background: 'var(--bg-card)',
@@ -350,7 +359,7 @@ const styles = {
     width: '100%',
     background: 'linear-gradient(135deg, var(--brand-dim) 0%, var(--brand) 55%, var(--brand-bright) 100%)',
     color: 'var(--text-on-brand)',
-    padding: '17px 28px',
+    padding: '15px 28px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',

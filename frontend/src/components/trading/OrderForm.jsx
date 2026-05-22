@@ -174,7 +174,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
               objectFit: 'contain',
             }}
           />
-          {isMock ? '모의투자' : '실전투자'}
+          {isMock ? '모의 투자' : '실전 투자'}
         </span>
       </div>
 
@@ -186,6 +186,8 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
             color: 'var(--color-text-secondary)',
             fontWeight: 500,
             marginBottom: 3,
+            textAlign: 'center',
+            marginTop: 2,
           }}
         >
           ⚠️ 실제 돈이 사용되지 않습니다.
@@ -317,7 +319,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
         />
 
         {/* 비율 버튼 */}
-        <div style={{ display: 'flex', gap: 4, marginTop: 7 }}>
+        <div style={{ display: 'flex', gap: 4, marginTop: 9 }}>
           {[0.1, 0.25, 0.5, 1].map(pct => (
             <button
               key={pct}
@@ -364,8 +366,8 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
           disabled={loading}
           style={{
             width: '100%',
-            padding: '12px',
-            fontSize: 16,
+            padding: '8px',
+            fontSize: 14,
             fontWeight: 600,
             background: tab === 'buy' ? 'var(--up)' : 'var(--down)',
             color: '#fff',
@@ -373,7 +375,7 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
             borderRadius: 'var(--border-radius-md)',
             cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.7 : 1,
-            marginTop: '10px'
+            marginTop: '1px'
           }}
         >
           {loading ? '처리 중...' : `${tab === 'buy' ? '매수' : '매도'} 주문`}
@@ -386,11 +388,11 @@ export default function OrderForm({ symbol, currentPrice, defaultPrice, onOrderC
           background: 'var(--bg-subtle)',
           borderRadius: '8px',
           color: 'var(--text-secondary)',
-          fontSize: '14px',
-          marginTop: '10px',
+          fontSize: '13.5px',
+          marginTop: '5px',
           border: '1px solid var(--border)'
         }}>
-          지금은 장 마감 상태입니다. (평일 09:00~15:30 이용 가능)
+          지금은 장 마감 상태입니다.<br />(평일 09:00~15:30 이용 가능)
         </div>
       )}
 

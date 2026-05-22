@@ -7,18 +7,22 @@ import TabFinancial from './tabs/TabFinancial.jsx'
 import TabPrice     from './tabs/TabPrice.jsx'
 import TabTechnical from './tabs/TabTechnical.jsx'
 
-
 const TABS = ['① 종합진단','② 안전점검','③ 재무분석','④ 가격추이 ','⑤ 기술적분석']
 
 export default function AnalysisDetail({ ticker, stocks, onBack }) {
-  const [activeTab, setActiveTab] = useState(0)
+  // 마지막으로 본 탭을 저장해 새로고침 후에도 같은 탭을 유지
+  const [activeTab, setActiveTab] = useState(() => {
+    return Number(localStorage.getItem('judy:lastMarketTab') || 0)
+  })
+
   const [data,      setData]      = useState(null)
   const [loading,   setLoading]   = useState(true)
 
   const stock = stocks.find(s => s.ticker === ticker)
 
   useEffect(() => {
-    setLoading(true); setActiveTab(0)
+    setLoading(true)
+
     Promise.all([
       api.stockScore(ticker),
       api.stockFinancials(ticker),
@@ -144,7 +148,7 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
                 objectFit: 'contain',
               }}
             />
-            <strong style={{ color: 'var(--brand-dim)', fontSize: 15 }}>
+            <strong className="checkpoint-title" style={{ color: 'var(--brand-dim)', fontSize: 15 }}>
               Check Point
             </strong>
           </div>
@@ -157,7 +161,14 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
 
       <div className="an-tab-bar" style={{ marginTop: 24 }}>
         {TABS.map((t, i) => (
-          <button key={i} className={`an-tab-btn${activeTab === i ? ' active' : ''}`} onClick={() => setActiveTab(i)}>
+          <button
+            key={i}
+            className={`an-tab-btn${activeTab === i ? ' active' : ''}`}
+            onClick={() => {
+              setActiveTab(i)
+              localStorage.setItem('judy:lastMarketTab', String(i))
+            }}
+          >
             {t}
           </button>
         ))}
@@ -172,7 +183,6 @@ export default function AnalysisDetail({ ticker, stocks, onBack }) {
           {activeTab === 2 && <TabFinancial  financials={financials} />}
           {activeTab === 3 && <TabPrice      prices={prices}    score={score} />}
           {activeTab === 4 && <TabTechnical  prices={prices} />}
-          {activeTab === 5 && <TabAI         ticker={ticker}    stock={stock} score={score} />}
         </div>
       )}
     </div>

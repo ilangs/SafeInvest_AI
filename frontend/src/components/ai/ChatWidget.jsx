@@ -8,15 +8,37 @@ const INIT_MSG = {
   sourceUrl: null,
 }
 
+const CHAT_MESSAGES_KEY = 'judy:aiChatMessages'
+const CHAT_INPUT_KEY = 'judy:aiChatInput'
+
 export default function ChatWidget() {
-  const [messages, setMessages] = useState([INIT_MSG])
-  const [input, setInput] = useState('')
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CHAT_MESSAGES_KEY)
+      return saved ? JSON.parse(saved) : [INIT_MSG]
+    } catch {
+      return [INIT_MSG]
+    }
+  })
+
+  const [input, setInput] = useState(() => {
+    return localStorage.getItem(CHAT_INPUT_KEY) || ''
+  })
+
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
 
   useEffect(() => {
+    localStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(messages))
+  }, [messages])
+
+  useEffect(() => {
+    localStorage.setItem(CHAT_INPUT_KEY, input)
+  }, [input])
+
+  useEffect(() => {
     if (messages.length > 1) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }, [messages])
 
@@ -106,7 +128,9 @@ export default function ChatWidget() {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="투자 용어, 주식 기초, 학습 방향을 질문해 보세요. (Enter로 전송)"
+          placeholder={window.innerWidth <= 480
+            ? "질문해 보세요. (Enter로 전송)"
+            : "투자 용어, 주식 기초, 학습 방향을 질문해 보세요. (Enter로 전송)"}
           rows={2}
           disabled={loading}
         />

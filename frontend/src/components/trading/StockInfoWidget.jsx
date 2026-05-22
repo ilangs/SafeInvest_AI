@@ -43,7 +43,7 @@ export default function StockInfoWidget({ symbol, currentPrice, isMock = true })
 
   return (
     <div
-      className="card"
+      className="card trade-info-card"
       style={{
         minWidth: 0,
         height: '100%',

@@ -494,7 +494,7 @@ export default function TradePage() {
     .trade-search-bar > div[style*="width: 1px"] { display: none; }
 
     .trade-chart-area,
-    .trade-chart-area > * { min-height: 360px !important; }
+    .trade-chart-area > * { min-height: 300px !important; }
   }
 
   /* ── mobile (≤480px): 모든 위젯 1열 풀폭, 높이 더 축소 ── */
@@ -516,9 +516,6 @@ export default function TradePage() {
 
     .trade-chart-area,
     .trade-chart-area > * { min-height: 300px !important; }
-    .trade-side-top > * { min-height: 280px !important; }
-    .trade-bottom-wide > .trade-widget-frame,
-    .trade-bottom-right > .trade-widget-frame { min-height: 320px !important; }
 
     /* 검색바 input/버튼 풀폭 */
     .trade-search-bar > div:first-child {
@@ -540,6 +537,67 @@ export default function TradePage() {
       margin-left: 0 !important;
       font-size: 12px !important;
     }
+    
+    /* 카드 묶어서 크기 고정시켜논거 각각 다르게 수정 */
+  @media (max-width: 480px) {
+    .trade-info-widget {
+      min-height: 310px !important;
+    }
+
+    .trade-balance-widget {
+      min-height: 182px !important;
+    }
+
+    .trade-orderbook-widget {
+      min-height: 490px !important;
+    }
+
+    .trade-orderform-widget {
+      min-height: 490px !important;
+    }
+    
+    .trade-orderbook-widget .card-header,
+    .trade-orderform-widget .card-header {
+      padding: 14px 12px !important;
+    }
+    
+    .trade-orders-header {
+  flex-wrap: wrap !important;
+  row-gap: 5px !important;
+}
+
+.trade-orders-header > div:last-child {
+  width: 100% !important;
+  justify-content: flex-start !important;
+}
+
+.trade-orders-header svg {
+  margin: 0 5px !important;
+}
+
+.trade-orders-header button {
+  white-space: nowrap !important;
+}
+
+.trade-holdings-widget {
+  min-height: 300px !important;
+}
+
+.trade-orders-widget {
+  min-height: 325px !important;
+}
+
+/* 그래프 카드 부분 조정 */
+
+.trade-candle-card {
+  min-height: 350px !important;
+}
+
+.trade-candle-plot {
+  flex: none !important;
+  height: 320px !important;
+  overflow: hidden !important;
+}
   }
 `}</style>
 
@@ -706,11 +764,11 @@ export default function TradePage() {
 
             {/* 오른쪽 상단: 투자정보 + 잔고현황 */}
             <div className="trade-side-top">
-              <div className="trade-widget-frame">
+              <div className="trade-widget-frame trade-info-widget">
                 <StockInfoWidget symbol={symbol} currentPrice={currentPrice} isMock={kisMode} />
               </div>
 
-              <div className="trade-widget-frame">
+              <div className="trade-widget-frame trade-balance-widget">
                 <BalanceWidget refreshTrigger={refreshTick} isMock={kisMode} kisReady={kisReady} />
               </div>
             </div>
@@ -719,7 +777,7 @@ export default function TradePage() {
             <div className="trade-bottom-wide">
 
               {/* 호가창 */}
-              <div className="trade-widget-frame">
+              <div className="trade-widget-frame trade-orderbook-widget">
                 <Orderbook
                   symbol={symbol}
                   currentPrice={currentPrice}
@@ -729,7 +787,7 @@ export default function TradePage() {
               </div>
 
               {/* 매수/매도창 */}
-              <div className="trade-widget-frame">
+              <div className="trade-widget-frame trade-orderform-widget">
                 <OrderForm
                   symbol={symbol}
                   currentPrice={currentPrice}
@@ -741,7 +799,7 @@ export default function TradePage() {
 
               {/* 보유종목 + 매매내역 */}
               <div className="trade-bottom-right">
-                <div className="trade-widget-frame">
+                <div className="trade-widget-frame trade-holdings-widget">
                   <HoldingsWidget
                     refreshTrigger={refreshTick}
                     isMock={kisMode}
@@ -750,7 +808,7 @@ export default function TradePage() {
                   />
                 </div>
 
-                <div className="trade-widget-frame">
+                <div className="trade-widget-frame trade-orders-widget">
                   <TodayOrdersWidget refreshTrigger={refreshTick} isMock={kisMode} />
                 </div>
               </div>

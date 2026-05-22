@@ -65,6 +65,14 @@ class KISNotConnectedError(Exception):
     pass
 
 
+# ══════════════════════════════════════════════════════════════════
+# 실거래 차단 플래그
+#   현재 서비스는 모의투자만 지원. 실거래는 차후 서비스 예정.
+#   실거래 오픈 시 이 값을 True 로 변경하면 주문·계좌등록이 모두 열림.
+# ══════════════════════════════════════════════════════════════════
+REAL_TRADING_ENABLED = False
+
+
 def _base_url(is_mock: bool) -> str:
     if is_mock:
         return "https://openapivts.koreainvestment.com:29443"
@@ -1249,6 +1257,18 @@ async def place_order(
     is_mock: bool = True,
 ) -> dict:
     """주문 실행."""
+    # ★ 실거래 차단 — 현재 모의투자만 지원, 실거래는 차후 서비스 예정
+    if not is_mock and not REAL_TRADING_ENABLED:
+        return {
+            "order_id":   "",
+            "symbol":     symbol,
+            "order_type": order_type,
+            "quantity":   quantity,
+            "price":      price,
+            "status":     "rejected",
+            "message":    "실거래는 차후 서비스 예정입니다. 현재는 모의투자만 지원합니다.",
+        }
+
     # ★ 거래시간 체크 — 장 마감 / 주말 / 공휴일에는 주문 거부 (가짜 체결 방지)
     market_open, market_msg = _is_market_open()
     if not market_open:

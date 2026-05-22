@@ -307,10 +307,10 @@ export default function StudyLogPage() {
     <div className="app-layout">
       <Navbar />
 
-      <main style={styles.page}>
+      <main className="study-log-page" style={styles.page}>
         <section style={styles.header}>
-          <h1 style={styles.title}>Study Log</h1>
-          <p style={styles.subtitle}>
+          <h1 className="study-log-title" style={styles.title}>Study Log</h1>
+          <p className="study-log-subtitle" style={styles.subtitle}>
             주식 공부 기록과 투자 학습 일기를 자유롭게 남깁니다.
           </p>
         </section>
@@ -389,6 +389,7 @@ const styles = {
     fontWeight: 800,
     color: 'var(--brand)',
     marginBottom: 10,
+    letterSpacing: '-0.01em',
   },
   subtitle: {
     color: 'var(--text-secondary)',

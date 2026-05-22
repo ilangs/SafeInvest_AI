@@ -31,7 +31,7 @@ export default function HomePage() {
 
         <section className="home-section-grid">
           <Link to="/education" className="home-section-card">
-            <h2>교육센터</h2>
+            <h2>교육 센터</h2>
             <p>
               주식 기본 개념과 학습 경로를<br />
               단계별로 확인할 수 있습니다.
@@ -39,7 +39,7 @@ export default function HomePage() {
           </Link>
 
           <Link to="/market" className="home-section-card">
-            <h2>마켓분석</h2>
+            <h2>마켓 분석</h2>
             <p>
               관심 종목의 재무 안정성과<br />
               위험도를 분석합니다.
@@ -47,9 +47,9 @@ export default function HomePage() {
           </Link>
 
           <Link to="/trade" className="home-section-card">
-            <h2>주식매매</h2>
+            <h2>주식 매매</h2>
             <p>
-              모의투자를 통해 주문과<br />
+              모의 투자를 통해 주문과<br />
               매매 흐름을 연습합니다.
             </p>
           </Link>
@@ -71,7 +71,6 @@ export default function HomePage() {
           </Link>
         </section>
 
-
         <section className="home-bottom-row">
           <Link to="/study-log" className="home-wide-card">
             <h2>Study Log</h2>
@@ -88,22 +87,23 @@ export default function HomePage() {
             <p>자주 묻는 질문과 답변을 확인합니다.</p>
           </Link>
         </section>
+
+        <footer className="home-footer">
+          <div className="footer-links">
+            <span>유주석 · 강승호 · 이은미 · 민덕기 · 오지수 · 이미지</span>
+          </div>
+
+          <div className="footer-info">
+            <p>Ju-Dy는 AI 기반으로 설계된 개인 맞춤형 투자 교육 서비스입니다.</p>
+            <p>Dong-A [ AI Agent Final Project ]</p>
+          </div>
+
+          <div className="footer-copy">
+            <p>Copyright © 2026 Ju-Dy. All Rights Reserved.</p>
+            <p>Learn. Practice. Invest with Ju-Dy.</p>
+          </div>
+        </footer>
       </main>
-      <footer className="home-footer">
-        <div className="footer-links">
-          <span>유주석 · 강승호 · 이은미 · 민덕기 · 오지수 · 이미지</span>
-        </div>
-
-        <div className="footer-info">
-          <p>Ju-Dy는 AI 기반으로 설계된 개인 맞춤형 투자 교육 서비스입니다.</p>
-          <p>Dong-A [ AI Agent Final Project ]</p>
-        </div>
-
-        <div className="footer-copy">
-          <p>Copyright © 2026 Ju-Dy. All Rights Reserved.</p>
-          <p>Learn. Practice. Invest with Ju-Dy.</p>
-        </div>
-      </footer>
     </div>
   )
 }

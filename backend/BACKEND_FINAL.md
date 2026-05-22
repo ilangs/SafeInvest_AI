@@ -113,7 +113,7 @@ backend/
 ### 주문·매매
 | Method | Path | 설명 |
 |---|---|---|
-| POST | `/api/v1/order` | 매수/매도 주문 (거래시간 외 차단) |
+| POST | `/api/v1/order` | 매수/매도 주문 (거래시간 외 차단, 현재 모의투자만 — 실거래는 `rejected` 응답) |
 | GET | `/api/v1/orders/today` | 당일 주문내역 |
 | GET | `/api/v1/orders/history` | 기간 매매내역 |
 
@@ -122,7 +122,7 @@ backend/
 |---|---|---|
 | GET | `/api/v1/account/balance` | 예수금·평가금액·총손익 |
 | GET | `/api/v1/account/holdings` | 보유종목 |
-| GET/POST/DELETE | `/api/v1/credentials/*` | KIS 자격증명 관리 (AES-256 암호화) |
+| GET/POST/DELETE | `/api/v1/credentials/*` | KIS 자격증명 관리 (AES-256 암호화, 현재 모의투자 계좌만 등록 가능) |
 
 ### 종목 분석
 | Method | Path | 설명 |
@@ -164,6 +164,7 @@ backend/
 | **KIS 자격증명** | `user_kis_credentials` 테이블에 AES-256 (Fernet) 암호화 저장 |
 | **거래시간 차단** | `kis_client._is_market_open()` — 주말·공휴일·정규장 외 주문 거부 |
 | **잔고 동기화** | `_record_local_order(status='접수')` → KIS 체결 확인 후 `_sync_local_with_kis_fills()` |
+| **실거래 차단** | `kis_client.REAL_TRADING_ENABLED = False` — 현재 모의투자만 지원. 실거래 계좌 등록·주문 모두 차단 (실거래 오픈 시 `True` 로 변경) |
 
 ---
 
@@ -235,6 +236,7 @@ PYTHONPATH=. ../.venv/Scripts/pytest tests/ -v
 
 ## 7. 알려진 한계
 
+- **실거래 미지원 (의도된 제약)**: 현재 모의투자만 지원. `kis_client.REAL_TRADING_ENABLED = False` 로 실거래 계좌 등록·주문을 모두 차단. 실거래 오픈 시 해당 플래그를 `True` 로 변경
 - **KIS 모의계좌 환원**: 매수가 KIS 서버에 반영되면 사용자가 직접 환원 불가. KIS 모의투자 사이트의 "계좌 초기화"만 가능
 - **FSS 데이터 도메인**: 저축/신용카드/임차 중심이라 주식 도메인 용어 마이닝엔 한계 (현재 카테고리 큐레이션 방식으로 보강)
 - **Free tier Cold Start**: Render 무료 플랜은 15분 idle 시 슬립 → 첫 요청 30초 지연 가능. GitHub Actions `keep_alive.yml` 워크플로우가 12분마다 `/health` 핑으로 완화

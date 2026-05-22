@@ -49,7 +49,7 @@ export default function BalanceWidget({ refreshKey, refreshTrigger, onBalanceLoa
 
   return (
     <div
-      className="card"
+      className="card trade-balance-card"
       style={{
         minWidth: 0,
         height: '100%',

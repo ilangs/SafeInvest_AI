@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import Navbar from '../components/layout/Navbar'
-import ThemeSelector from '../components/settings/ThemeSelector'
 import api from '../services/api'
 
 const EMPTY_FORM = {
@@ -117,8 +116,6 @@ export default function MyPage() {
       <Navbar />
 
       <div className="mypage-wrap" style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px' }}>
-        {/* 화면 스타일 선택 */}
-        <ThemeSelector />
 
         <div style={{ marginBottom: 28 }}>
           <h1 className="mypage-title" style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
@@ -207,7 +204,7 @@ export default function MyPage() {
                       메뉴에서 <strong>OpenAPI</strong> 또는 <strong>앱 등록</strong> 항목을 찾습니다.
                     </li>
                     <li>
-                      모의투자는 <strong>모의투자 APP KEY</strong>, 실거래는 <strong>실거래 APP KEY</strong>를 사용합니다.
+                      현재는 <strong>모의 투자 APP KEY</strong>만 등록할 수 있습니다. (실거래는 차후 서비스 예정)
                     </li>
                     <li>
                       발급받은 <strong>APP KEY</strong> / <strong>APP SECRET</strong> 을 입력합니다.
@@ -220,10 +217,10 @@ export default function MyPage() {
                     style={{
                       marginTop: 12,
                       padding: '10px 14px',
-                      background: 'rgba(245,158,11,0.12)',
+                      background: 'rgba(222, 143, 6, 0.12)',
                       borderRadius: 8,
-                      fontSize: 12,
-                      color: 'var(--warning)',
+                      fontSize: 13.5,
+                      color: '#e6771c',
                     }}
                   >
                     APP SECRET은 암호화되어 DB에 저장됩니다. 화면에는 복원되고, 서버에는 암호문으로 보관합니다.
@@ -285,14 +282,14 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
           <span
             style={{
               fontSize: 12,
-              background: 'rgba(220,38,38,0.12)',
-              color: 'var(--danger)',
+              background: 'var(--bg-subtle)',
+              color: 'var(--text-muted)',
               padding: '5px 12px',
               borderRadius: 20,
               fontWeight: 600,
             }}
           >
-            실거래 주의
+            차후 서비스 예정
           </span>
         )}
       </div>
@@ -318,23 +315,22 @@ function KISCard({ isMock, status, form, onFormChange, onConnect, onDisconnect }
             연결 삭제
           </button>
         </div>
+      ) : !isMock ? (
+        <div
+          style={{
+            padding: '14px 16px',
+            background: 'var(--bg-subtle)',
+            borderRadius: 10,
+            fontSize: 13.5,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.7,
+          }}
+        >
+          실거래 계좌 연결은 <strong style={{ color: 'var(--text-primary)' }}>차후 서비스 예정</strong>입니다.
+          현재는 모의투자 계좌만 등록할 수 있습니다.
+        </div>
       ) : (
         <div>
-          {!isMock && (
-            <div
-              style={{
-                padding: '10px 14px',
-                background: 'rgba(245,158,11,0.12)',
-                borderRadius: 8,
-                fontSize: 12,
-                color: 'var(--warning)',
-                marginBottom: 14,
-              }}
-            >
-              실거래는 먼저 모의투자 연결이 필요할 수 있습니다.
-            </div>
-          )}
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <FormField
               label="APP KEY"

@@ -112,7 +112,7 @@ export default function AnalysisHome({ stocks, recentTickers, onSelect, onRefres
           <div className="an-guide-panel" style={styles.guidePanel}>
             <div style={styles.sectionHeaderCompact}>
               <p style={styles.sectionEyebrow}>Market Overview</p>
-              <h2 className="an-section-title" style={styles.sectionTitle}>시장 요약</h2>
+              <h2 className="an-section-title analysis-home-title" style={styles.sectionTitle}>시장 요약</h2>
             </div>
 
             <div className="an-grid-4" style={styles.metricGridCompact}>
@@ -126,7 +126,7 @@ export default function AnalysisHome({ stocks, recentTickers, onSelect, onRefres
           <div className="an-guide-panel" style={styles.guidePanel}>
             <div style={styles.sectionHeaderCompact}>
               <p style={styles.sectionEyebrow}>Safety Score</p>
-              <h2 className="an-section-title" style={styles.sectionTitle}>안전점수 등급 기준</h2>
+              <h2 className="an-section-title analysis-score-title" style={styles.sectionTitle}>안전점수 등급 기준</h2>
             </div>
 
             <div className="an-grid-5" style={styles.scoreGridCompact}>
@@ -147,7 +147,7 @@ export default function AnalysisHome({ stocks, recentTickers, onSelect, onRefres
           <div className="an-search-top-row" style={styles.searchTopRow}>
             <div style={styles.searchHeaderCompact}>
               <p style={styles.sectionEyebrow}>Stock Search</p>
-              <h2 className="an-section-title" style={styles.sectionTitle}>종목 검색</h2>
+              <h2 className="an-section-title analysis-search-title" style={styles.sectionTitle}>종목 검색</h2>
             </div>
 
             <div className="an-search-wrapper" style={styles.searchWrap}>
@@ -199,7 +199,7 @@ export default function AnalysisHome({ stocks, recentTickers, onSelect, onRefres
           {recentStocks.length > 0 && (
             <div style={styles.recentWrap}>
               <div style={styles.recentHeader}>
-                <span style={styles.recentTitle}>최근 검색 종목</span>
+                <span className="analysis-recent-title" style={styles.recentTitle}>최근 검색 종목</span>
 
                 <button className="an-btn-ghost" onClick={clearAllRecent} style={styles.clearBtn}>
                   전체 삭제
@@ -264,7 +264,7 @@ const styles = {
     fontSize: 40,
     fontWeight: 800,
     color: 'var(--brand)',
-    letterSpacing: '-0.03em',
+    letterSpacing: '-0.01em',
   },
 
   pageSubtitle: {

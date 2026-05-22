@@ -184,7 +184,7 @@ export default function NoticePage() {
               fontSize: 40,
               fontWeight: 800,
               color: 'var(--brand)',
-              letterSpacing: '-0.04em',
+              letterSpacing: '-0.01em',
             }}
           >
             Notice

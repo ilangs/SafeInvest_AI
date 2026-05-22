@@ -16,7 +16,7 @@ export default function BeginnerGuide() {
   return (
     <section className="beginner-guide" style={styles.guideWrap}>
       
-      <div style={styles.tabBar}>
+      <div className="beginner-tab-bar" style={styles.tabBar}>
         {GUIDE_TABS.map((tab, index) => (
           <button
             key={tab}
@@ -35,7 +35,7 @@ export default function BeginnerGuide() {
         ))}
       </div>
 
-      <div style={styles.contentCard}>
+      <div className="beginner-content-card" style={styles.contentCard}>
         {activeTab === 0 && <EduStock />}
         {activeTab === 1 && <EduFinancial />}
         {activeTab === 2 && <EduIndicators />}
@@ -80,6 +80,7 @@ function EduStock() {
       <WarningBox>
         <b>📌 Check point</b>
         <br />
+        <span style={{ marginLeft: '22px' }}></span>
         주식 투자는 원금 손실이 발생할 수 있습니다. 투자 전 반드시 본인의 재정 상황을 점검하세요.
       </WarningBox>
     </div>
@@ -226,7 +227,7 @@ function EduRisks() {
 
       {items.map(({ icon, title, desc, caution }) => (
         <div key={title} style={styles.riskItem}>
-          <p style={styles.riskTitle}>
+          <p className="risk-title" style={styles.riskTitle}>
             {icon} {title}
           </p>
           <p style={styles.mutedText}><strong>Meaning - </strong>{desc}</p>
@@ -237,9 +238,8 @@ function EduRisks() {
       <WarningBox>
         <b>⚠️ 이 앱의 경고 데이터는 투자 권유가 아닙니다.</b>
         <br />
-        경고 표시는 공개 공시 데이터를 기반으로 한 사실 정보입니다.
-        <br />
-        최종 투자 판단은 반드시 본인이 직접 하시기 바랍니다.
+        <span style={{ marginLeft: '22px' }}></span>
+        경고 표시는 공개 공시 데이터를 기반으로 한 사실 정보입니다. 최종 투자 판단은 반드시 본인이 직접 하시기 바랍니다.
       </WarningBox>
     </div>
   )
@@ -275,7 +275,7 @@ function EduChecklist() {
 
   return (
     <div>
-      <h3 style={styles.contentTitle}>✅ 투자 전 스스로 확인하는 체크리스트</h3>
+      <h3 style={styles.contentTitle}>투자 전 스스로 확인하는 체크리스트</h3>
 
       <div style={styles.accordionList}>
         {items.map(({ q, a }, i) => (
@@ -298,12 +298,16 @@ function EduChecklist() {
   <b>Ju-Dy 종목분석 사용 방법</b>
 </div>
         <br />
+        <span style={{ marginLeft: '25px' }}></span>
         1. 검색창에서 관심 있는 종목명 또는 종목코드를 입력하세요.
         <br />
+        <span style={{ marginLeft: '25px' }}></span>
         2. 재무 데이터, 가격 추이 등 <b>사실 정보</b>를 확인하세요.
         <br />
+        <span style={{ marginLeft: '25px' }}></span>
         3. 경고 항목이 있다면 그 의미를 위의 ‘투자 위험 이해’ 탭에서 확인하세요.
         <br />
+        <span style={{ marginLeft: '25px' }}></span>
         4. 모든 판단은 스스로 내리세요. 이 앱은 판단을 대신하지 않습니다.
       </GoodBox>
     </div>
@@ -422,7 +426,7 @@ tabButtonActive: {
   contentTitle: {
     fontSize: 24,
     fontWeight: 800,
-    color: 'var(--brand-dim)',
+    color: '#518868',
     margin: '0 0 18px',
   },
   pointTitle: {
@@ -485,7 +489,7 @@ tabButtonActive: {
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
-    marginTop: 16,
+    marginTop: 25,
   },
   accordion: {
     border: '1px solid var(--border)',
@@ -501,8 +505,8 @@ tabButtonActive: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    fontWeight: 800,
-    color: 'var(--brand-dim)',
+    fontWeight: 700,
+    color: document.documentElement.dataset.theme === 'dark' ? '#539469' : 'var(--brand-dim)',
     cursor: 'pointer',
     fontFamily: 'inherit',
     fontSize: 15,
@@ -547,9 +551,9 @@ tabButtonActive: {
     borderBottom: '1px solid var(--border)',
   },
   riskTitle: {
-    fontWeight: 800,
+    fontWeight: 700,
     fontSize: 16,
-    color: 'var(--brand-dim)',
+    color: '#376548',
     margin: 0,
   },
 }

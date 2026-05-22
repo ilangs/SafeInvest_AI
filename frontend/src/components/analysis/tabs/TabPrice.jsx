@@ -127,7 +127,7 @@ export default function TabPrice({ prices, score }) {
       family:
         'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
     },
-    margin: { l: 50, r: 8, t: 28, b: 2 },
+    margin: { l: 27, r: 12, t: 28, b: 2 },
     xaxis: {
       gridcolor: '#dfe9dd',
       zerolinecolor: '#dfe9dd',
@@ -317,15 +317,8 @@ export default function TabPrice({ prices, score }) {
           marginBottom: 33,
         }}
       >
-        <div
-          style={{
-            flex: 1,
-            height: 1,
-            background: 'var(--border)',
-          }}
-        />
-        <div
-          style={{
+        <div style={{ flex: 1, height: 1, background: '#d7e4d5' }} />
+        <div className="an-tab-guide-text" style={{
             fontSize: 15,
             fontWeight: 590,
             color: '#3b3e43',
@@ -338,13 +331,7 @@ export default function TabPrice({ prices, score }) {
         >
           가격추이 탭은 현재 가격 위치와 위험도를 점검하는 화면입니다.
         </div>
-        <div
-          style={{
-            flex: 1,
-            height: 1,
-            background: 'var(--border)',
-          }}
-        />
+        <div style={{ flex: 1, height: 1, background: '#d7e4d5' }} />
       </div>
 
       {/* 카드 4개 */}
@@ -429,19 +416,12 @@ export default function TabPrice({ prices, score }) {
       </div>
 
       {/* 그래프 */}
-      <div
-        style={{
-          width: '100%',
-          background: 'transparent',
-          padding: '0 4px',
-          marginBottom: 20,
-        }}
-      >
-        <PlotlyChart data={priceData} layout={priceLayout} />
+      <div className="price-chart-wrap" style={{ width: '100%', background: 'transparent', padding: '0 4px', marginBottom: 20 }}>
+        <PlotlyChart data={priceData} layout={priceLayout} config={{ staticPlot: true, displayModeBar: false, scrollZoom: false }} />
       </div>
 
       {/* 52주 가격 위치 해석 */}
-      <div
+      <div className="price-analysis-section"
         style={{
           marginTop: 22,
           padding: '24px 26px',
@@ -472,7 +452,7 @@ export default function TabPrice({ prices, score }) {
           52주 가격 위치 해석
         </h3>
 
-        <div
+        <div className="price-analysis-section"
           style={{
             background: 'var(--bg-card)',
             borderRadius: 12,
@@ -486,9 +466,9 @@ export default function TabPrice({ prices, score }) {
               style={{
                 display: 'flex', // 반응형을 위해 grid 대신 flex 사용
                 flexWrap: 'wrap', // 좁아지면 아래로 떨어지도록 설정
-                gap: '12px 16px',
+                gap: '12px 40px',
                 alignItems: 'center',
-                padding: '16px 22px', // 터치 영역 및 시각적 안정감을 위해 패딩 약간 증가
+                padding: '13px 22px', // 터치 영역 및 시각적 안정감을 위해 패딩 약간 증가
                 borderBottom:
                   idx === priceRows.length - 1 ? 'none' : '1px solid var(--border-subtle)',
               }}
@@ -503,7 +483,7 @@ export default function TabPrice({ prices, score }) {
                   fontWeight: 700,
                   color: 'var(--text-primary)',
                   letterSpacing: '-0.03em',
-                  width: 160, // 모바일에서도 타이틀이 차지할 최소 넓이 확보
+                  width: 180, // 모바일에서도 타이틀이 차지할 최소 넓이 확보
                   flex: '0 0 auto',
                 }}
               >

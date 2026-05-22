@@ -76,7 +76,7 @@
 - 종목 검색 · 자동완성 · 시장/업종 표시
 - 실시간 캔들 차트 + MA5/20/60 + 거래량
 - KIS 호가창 (10단계) + 클릭 시 가격 자동 입력
-- 모의/실거래 매수·매도 (지정가·시장가)
+- 모의투자 매수·매도 (지정가·시장가) — **실거래는 차후 서비스 예정**
 - **거래시간 외 주문 자동 차단** (주말·공휴일·정규장 외)
 - 잔고·보유종목·매매내역 자동 로드 + 사용자별 마지막 종목 복원
 - 첫 진입 시 보유종목 최상단 자동 선택
@@ -100,7 +100,7 @@
 - FSS 교육 콘텐츠 통합
 
 ### 3.5 마이페이지 (`/mypage`)
-- KIS 계좌 연결 (AES-256 암호화 저장)
+- KIS 계좌 연결 (AES-256 암호화 저장) — 현재 모의투자 계좌만 등록 가능, 실거래는 차후 서비스 예정
 - 학습 기록 · 관심종목 관리
 
 ---
@@ -332,6 +332,7 @@ PYTHONPATH=. ../.venv/Scripts/pytest tests/ -v
 | 항목 | 상태 |
 |---|---|
 | 거래시간 외 주문 차단? | ✅ Backend `_is_market_open()` + Frontend OrderForm `isMarketOpenClient()` |
+| 실거래 계좌·주문 차단? | ✅ `kis_client.REAL_TRADING_ENABLED = False` — 등록 403, 주문 `rejected`. Frontend MyPage 실거래 카드 "차후 서비스 예정" 안내 |
 | 한국 공휴일 자동 인식? | ✅ `holidays` 패키지 KR 공휴일 + KRX 12/31 휴장 |
 | KIS API 실패 시 가짜 체결 기록 금지? | ✅ `status="rejected"` 명시 응답, user_orders INSERT 안 함 |
 | 옵티미스틱 잔고가 KIS 실제 데이터와 동기화? | ✅ `_sync_local_with_kis_fills()` 가 status를 "접수→체결" 업데이트 |
@@ -359,6 +360,7 @@ PYTHONPATH=. ../.venv/Scripts/pytest tests/ -v
 ## 12. 알려진 한계와 향후 계획
 
 ### 12.1 알려진 한계
+- **실거래 미지원 (의도된 제약)**: 현재 모의투자만 지원. `kis_client.REAL_TRADING_ENABLED = False` 로 실거래 계좌 등록·주문을 차단. 실거래 전환은 향후 계획 참조
 - **KIS 모의계좌 환원 불가**: 매수가 KIS 서버에 반영되면 사용자가 직접 환원할 수 없음. KIS 모의투자 사이트의 "계좌 초기화" 기능으로만 가능
 - **FSS 데이터 도메인 한계**: FSS 자료는 신용카드/임차/노후 중심으로 주식 도메인 용어 추출에 제한 → 카테고리 타깃 LLM 큐레이션 방식으로 보강
 - **Free tier Cold Start**: Render 무료 플랜은 15분 idle 시 슬립 → 첫 요청 30초 지연. GitHub Actions `keep_alive.yml` 워크플로우가 12분마다 `/health` 핑으로 완화 중
@@ -366,6 +368,7 @@ PYTHONPATH=. ../.venv/Scripts/pytest tests/ -v
 - **Supabase Auth ES256/HS256 혼용**: JWT 검증 로직 복잡 → `security.py` 에서 자동 분기 처리됨
 
 ### 12.2 향후 계획
+- **KIS 실거래 지원** (`REAL_TRADING_ENABLED` 활성화 + `REAL_TRADING_GUIDE.md` 절차)
 - 실시간 시세 WebSocket (현재 5초 폴링)
 - 종목 추천 모델 (안전성 스코어 기반)
 - 다국어 (영문 UI)

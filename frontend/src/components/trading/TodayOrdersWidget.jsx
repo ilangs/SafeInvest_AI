@@ -79,7 +79,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
       }}
     >
       <div
-        className="card-header"
+        className="card-header trade-orders-header"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -107,10 +107,10 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
             alt="Ju-Dy"
             style={{ width: 22, height: 22, objectFit: 'contain' }}
           />
-          매매내역
+          매매 내역
         </span>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
           <input
             type="date"
             value={startDate}
@@ -119,7 +119,7 @@ export default function TodayOrdersWidget({ refreshTrigger, isMock = true }) {
             style={dateInputStyle}
           />
 
-          <span style={{ fontSize: 15, color: '#ffffff' }}>~</span>
+          <span style={{ fontSize: 15, color: '#ffffff', marginLeft: -1, marginRight: -1 }}>~</span>
 
           <input
             type="date"
