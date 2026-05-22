@@ -1052,6 +1052,57 @@ def _normalize_date(s: str | None) -> str | None:
     return digits[:8] if len(digits) >= 8 else None
 
 
+async def _fetch_kis_fills(user_id: str, is_mock: bool, start: str, end: str) -> list:
+    """KIS 일별 체결내역(inquire-daily-ccld) 조회 — 기간(YYYYMMDD) 내 체결/부분체결 주문.
+
+    당일주문 탭을 열지 않고 지나간 과거 주문의 체결 여부를 확인하기 위한 용도.
+    실패·미연결 시 빈 리스트 반환 → 호출측은 DB status 그대로 폴백.
+    """
+    try:
+        creds = await get_user_token(user_id, is_mock)
+    except KISNotConnectedError:
+        return []
+
+    tr_id  = "VTTC8001R" if is_mock else "TTTC8001R"
+    url    = f"{_base_url(is_mock)}/uapi/domestic-stock/v1/trading/inquire-daily-ccld"
+    params = {
+        "CANO":            creds["cano"],
+        "ACNT_PRDT_CD":    creds["acnt_prdt_cd"],
+        "INQR_STRT_DT":    start,
+        "INQR_END_DT":     end,
+        "SLL_BUY_DVSN_CD": "00",
+        "INQR_DVSN":       "00",
+        "PDNO":            "",
+        "CCLD_DVSN":       "00",
+        "ORD_GNO_BRNO":    "",
+        "ODNO":            "",
+        "INQR_DVSN_3":     "00",
+        "INQR_DVSN_1":     "",
+        "CTX_AREA_FK100":  "",
+        "CTX_AREA_NK100":  "",
+    }
+    headers = _kis_headers(creds, tr_id)
+
+    fills: list = []
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers=headers, params=params, timeout=10)
+            resp.raise_for_status()
+        for item in resp.json().get("output1", []):
+            qty        = int(item.get("ord_qty",      0) or 0)
+            filled_qty = int(item.get("tot_ccld_qty", 0) or 0)
+            oid        = item.get("odno", "")
+            if not oid or filled_qty <= 0:
+                continue
+            fills.append({
+                "order_id": oid,
+                "status":   "체결" if filled_qty >= qty else "부분체결",
+            })
+    except Exception as e:
+        print(f"[order_history KIS 체결조회 실패] {e}")
+    return fills
+
+
 async def get_order_history(
     user_id: str,
     is_mock: bool = True,
@@ -1059,13 +1110,24 @@ async def get_order_history(
     end_date:   str | None = None,
 ) -> list:
     """기간 매매내역 조회 — Supabase user_orders 테이블 기반.
-    날짜 미지정 시 오늘 하루."""
+    날짜 미지정 시 오늘 하루.
+
+    조회 전 KIS 일별 체결내역으로 user_orders.status 를 동기화 —
+    당일주문 탭을 열지 않고 지나간 과거 주문도 '접수' → '체결' 반영된다."""
     today = _today_kst()
     start = _normalize_date(start_date) or today
     end   = _normalize_date(end_date)   or today
     # 시작일 > 종료일 인 경우 swap
     if start > end:
         start, end = end, start
+
+    # ★ KIS 체결내역으로 DB status 선동기화 (실패해도 DB 조회는 계속 진행)
+    try:
+        kis_fills = await _fetch_kis_fills(user_id, is_mock, start, end)
+        if kis_fills:
+            _sync_local_with_kis_fills(user_id, is_mock, kis_fills)
+    except Exception as e:
+        print(f"[order_history sync 실패] {e}")
 
     try:
         from app.core.supabase import supabase_admin
