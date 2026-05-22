@@ -1091,12 +1091,15 @@ async def _fetch_kis_fills(user_id: str, is_mock: bool, start: str, end: str) ->
         for item in resp.json().get("output1", []):
             qty        = int(item.get("ord_qty",      0) or 0)
             filled_qty = int(item.get("tot_ccld_qty", 0) or 0)
-            oid        = item.get("odno", "")
-            if not oid or filled_qty <= 0:
+            if qty == 0 or filled_qty <= 0:
                 continue
             fills.append({
-                "order_id": oid,
-                "status":   "체결" if filled_qty >= qty else "부분체결",
+                "order_id":   item.get("odno", ""),
+                "status":     "체결" if filled_qty >= qty else "부분체결",
+                "stock_code": item.get("pdno", ""),
+                "order_date": item.get("ord_dt", ""),
+                "order_type": "buy" if item.get("sll_buy_dvsn_cd") == "02" else "sell",
+                "quantity":   qty,
             })
     except Exception as e:
         print(f"[order_history KIS 체결조회 실패] {e}")
@@ -1121,13 +1124,22 @@ async def get_order_history(
     if start > end:
         start, end = end, start
 
-    # ★ KIS 체결내역으로 DB status 선동기화 (실패해도 DB 조회는 계속 진행)
+    # ★ KIS 체결내역 조회 (실패해도 DB 조회는 계속 진행)
+    kis_fills: list = []
     try:
         kis_fills = await _fetch_kis_fills(user_id, is_mock, start, end)
-        if kis_fills:
-            _sync_local_with_kis_fills(user_id, is_mock, kis_fills)
     except Exception as e:
-        print(f"[order_history sync 실패] {e}")
+        print(f"[order_history KIS 조회 실패] {e}")
+
+    # 체결 매칭 인덱스 — ① order_id 정확매칭 ② 복합키 폴백매칭
+    #   (구 데이터는 order_id_ext 가 잘못 저장돼 정확매칭이 안 되므로 복합키로 보완)
+    fill_by_id:  dict = {}
+    fill_by_key: dict = {}
+    for f in kis_fills:
+        if f["order_id"]:
+            fill_by_id[f["order_id"]] = f
+        key = (f["stock_code"], f["order_date"], f["order_type"], f["quantity"])
+        fill_by_key.setdefault(key, f)
 
     try:
         from app.core.supabase import supabase_admin
@@ -1147,10 +1159,24 @@ async def get_order_history(
         print(f"[order_history 조회 실패] {e}")
         rows = []
 
+    # status 갱신 대상 — {new_status: [row id, ...]}
+    sync_ids: dict = {"체결": [], "부분체결": []}
+
     out = []
     for r in rows:
         r_status = r.get("status") or "접수"   # ★ NULL fallback: "접수"
         r_qty    = int(r.get("quantity") or 0)
+
+        # 미체결류 행만 KIS 체결내역과 대조
+        if r_status not in ("체결", "부분체결"):
+            key   = (r.get("stock_code", ""), r.get("order_date", ""),
+                     r.get("order_type", ""), r_qty)
+            match = fill_by_id.get(r.get("order_id_ext") or "") or fill_by_key.get(key)
+            if match:
+                r_status = match["status"]
+                if r.get("id"):
+                    sync_ids[match["status"]].append(r["id"])
+
         out.append({
             "stock_code":  r.get("stock_code", ""),
             "stock_name":  r.get("stock_name") or _stock_name(r.get("stock_code", "")),
@@ -1164,6 +1190,19 @@ async def get_order_history(
             "order_time":  r.get("order_time", ""),
             "order_id":    r.get("order_id_ext", ""),
         })
+
+    # ★ 확인된 체결분을 DB 에 영구 반영 (다음 조회부터는 KIS 호출 없이도 정상)
+    for new_status, ids in sync_ids.items():
+        if not ids:
+            continue
+        try:
+            supabase_admin.table("user_orders") \
+                .update({"status": new_status}) \
+                .in_("id", ids) \
+                .execute()
+        except Exception as e:
+            print(f"[order_history status 갱신 실패] {e}")
+
     return out
 
 
@@ -1373,7 +1412,9 @@ async def place_order(
             resp = await client.post(url, json=body, headers=headers, timeout=10)
             resp.raise_for_status()
         output   = resp.json().get("output", {})
-        order_id = output.get("KRX_FWDG_ORD_ORGNO", "") or f"KIS-{symbol}-{datetime.now().strftime('%H%M%S')}"
+        # ★ KIS 주문번호는 ODNO. (KRX_FWDG_ORD_ORGNO 는 거래소 전송 지점번호로
+        #   주문 식별자가 아니며, 체결 동기화 시 inquire-daily-ccld 의 odno 와 매칭되지 않는다.)
+        order_id = output.get("ODNO", "") or f"KIS-{symbol}-{datetime.now().strftime('%H%M%S')}"
         # 로컬 주문 로그에 기록 — KIS inquire-daily-ccld 지연/누락 보완
         _record_local_order(user_id, is_mock, symbol, order_type, quantity, price, order_id)
         return {
