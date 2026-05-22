@@ -55,6 +55,7 @@ app/services/kis_client.py — 한국투자증권 KIS API 통합 (가장 복잡�
 """
 
 import re
+import time
 import httpx
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, status
@@ -374,24 +375,38 @@ def _record_local_order(
         "order_time":  now,
         "order_id":    order_id,
     }
-    # 1) Supabase 영구 저장
-    try:
-        from app.core.supabase import supabase_admin
-        supabase_admin.table("user_orders").insert({
-            "user_id":      user_id,
-            "is_mock":      is_mock,
-            "stock_code":   symbol,
-            "stock_name":   record["stock_name"],
-            "order_type":   order_type,
-            "quantity":     int(quantity),
-            "price":        int(price or 0),
-            "status":       status,
-            "order_id_ext": order_id,
-            "order_date":   today,
-            "order_time":   now,
-        }).execute()
-    except Exception as e:
-        print(f"[user_orders insert 실패] {e}")
+    # 1) Supabase 영구 저장 — insert 실패 시 재시도.
+    #    KIS 주문은 이미 접수됐으므로, 일시적 DB 오류로 주문이 영구 누락되지
+    #    않도록 최대 3회 재시도한다. (최종 실패해도 주문 자체는 유효 —
+    #    경고 로그를 남기고, 잔고 정합으로 보유수량은 KIS 기준 보정됨.)
+    payload = {
+        "user_id":      user_id,
+        "is_mock":      is_mock,
+        "stock_code":   symbol,
+        "stock_name":   record["stock_name"],
+        "order_type":   order_type,
+        "quantity":     int(quantity),
+        "price":        int(price or 0),
+        "status":       status,
+        "order_id_ext": order_id,
+        "order_date":   today,
+        "order_time":   now,
+    }
+    from app.core.supabase import supabase_admin
+    saved = False
+    for attempt in range(1, 4):
+        try:
+            supabase_admin.table("user_orders").insert(payload).execute()
+            saved = True
+            break
+        except Exception as e:
+            print(f"[user_orders insert 실패 {attempt}/3] {e}")
+            if attempt < 3:
+                time.sleep(0.4)
+    if not saved:
+        print(f"[user_orders insert 최종 실패 — 주문 미기록] "
+              f"user={user_id} {symbol} {order_type} {quantity}주 "
+              f"price={price} order_id={order_id}")
     # 2) 메모리 캐시에 추가 (즉시 다음 GET에 반영)
     key = (user_id, is_mock, today)
     _LOCAL_ORDER_CACHE.setdefault(key, []).append(record)
@@ -1106,6 +1121,11 @@ async def _reconcile_orders_via_balance(user_id: str, is_mock: bool) -> None:
         diff < 0 → 미체결 매도가 실행됨 → 매도 주문을 '체결' 처리
         diff = 0 → 미체결 주문 미실행 → 그대로 유지
 
+    ★ KIS 보유 0 규칙 — 해당 종목 보유수량이 0이면 미체결 매도는 모두 체결 확정.
+      매도가 실행되지 않았다면 보유분이 그대로 남아 있어야 하므로, 0이라는 것은
+      매도가 실행돼 소진됐다는 의미. DB 매수 기록이 누락돼 확정 보유가
+      과소 계산된 경우(예: SK하이닉스)에도 매도 체결을 정확히 잡아낸다.
+
     오래된 주문부터 채우며, 수량이 diff 를 초과하는 주문은 미체결로 남긴다.
     실패·미연결 시 조용히 종료 (DB status 유지)."""
     kis_qty = await _fetch_kis_holdings_raw(user_id, is_mock)
@@ -1149,7 +1169,16 @@ async def _reconcile_orders_via_balance(user_id: str, is_mock: bool) -> None:
     for code, s in stocks.items():
         if not s["pending"]:
             continue
-        diff = kis_qty.get(code, 0) - s["confirmed"]
+        actual = kis_qty.get(code, 0)
+
+        # ★ KIS 보유 0 → 해당 종목 미체결 매도는 모두 체결 확정
+        if actual == 0:
+            for p in s["pending"]:
+                if (not p["is_buy"]) and p["qty"] > 0 and p["id"]:
+                    fill_ids.append(p["id"])
+            continue
+
+        diff = actual - s["confirmed"]
         if diff == 0:
             continue
         want_buy  = diff > 0          # diff>0 → 매수 체결 / diff<0 → 매도 체결
