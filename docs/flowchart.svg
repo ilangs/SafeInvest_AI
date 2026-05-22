@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="1320" viewBox="0 0 1180 1320" font-family="'Segoe UI','IBM Plex Sans KR',sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect width="1180" height="1320" fill="#f8fafc"/>
+  <text x="40" y="48" font-size="26" font-weight="700" fill="#0f172a">SafeInvest AI — 시스템 전체 플로우차트</text>
+
+  <!-- 범례 -->
+  <g font-size="13" font-weight="600">
+    <rect x="40"  y="66" width="16" height="16" rx="3" fill="#3b82f6"/><text x="62"  y="79" fill="#334155">Frontend</text>
+    <rect x="160" y="66" width="16" height="16" rx="3" fill="#22c55e"/><text x="182" y="79" fill="#334155">Backend</text>
+    <rect x="278" y="66" width="16" height="16" rx="3" fill="#f59e0b"/><text x="300" y="79" fill="#334155">Supabase</text>
+    <rect x="402" y="66" width="16" height="16" rx="3" fill="#ef4444"/><text x="424" y="79" fill="#334155">KIS</text>
+    <rect x="486" y="66" width="16" height="16" rx="3" fill="#a855f7"/><text x="508" y="79" fill="#334155">OpenAI</text>
+  </g>
+
+  <!-- 박스/화살표 스타일 헬퍼는 인라인으로 작성 -->
+  <!-- box: x,y 220x60 -->
+
+  <!-- ========== 1. 로그인 ========== -->
+  <text x="40" y="128" font-size="17" font-weight="700" fill="#0f172a">1. 로그인</text>
+  <g font-size="12.5" fill="#fff" text-anchor="middle">
+    <rect x="40"  y="142" width="220" height="56" rx="9" fill="#3b82f6"/><text x="150" y="166">이메일·비밀번호 입력</text><text x="150" y="184">LoginPage.jsx</text>
+    <rect x="320" y="142" width="220" height="56" rx="9" fill="#f59e0b"/><text x="430" y="166">Supabase Auth</text><text x="430" y="184">signInWithPassword</text>
+    <rect x="600" y="142" width="220" height="56" rx="9" fill="#f59e0b"/><text x="710" y="166">JWT 발급 (ES/HS256)</text><text x="710" y="184">세션 저장</text>
+    <rect x="880" y="142" width="220" height="56" rx="9" fill="#3b82f6"/><text x="990" y="166">api.js — JWT 헤더</text><text x="990" y="184">자동 주입</text>
+  </g>
+  <g stroke="#475569" stroke-width="2" marker-end="url(#arrow)">
+    <line x1="260" y1="170" x2="318" y2="170"/>
+    <line x1="540" y1="170" x2="598" y2="170"/>
+    <line x1="820" y1="170" x2="878" y2="170"/>
+  </g>
+
+  <!-- ========== 2. KIS 계좌 연결 ========== -->
+  <text x="40" y="262" font-size="17" font-weight="700" fill="#0f172a">2. KIS 계좌 연결</text>
+  <g font-size="12.5" fill="#fff" text-anchor="middle">
+    <rect x="40"  y="276" width="220" height="56" rx="9" fill="#3b82f6"/><text x="150" y="300">APP KEY·SECRET 입력</text><text x="150" y="318">MyPage.jsx</text>
+    <rect x="320" y="276" width="220" height="56" rx="9" fill="#22c55e"/><text x="430" y="300">/credentials/connect</text><text x="430" y="318">credentials.py</text>
+    <rect x="600" y="276" width="220" height="56" rx="9" fill="#ef4444"/><text x="710" y="300">KIS 토큰 발급 선검증</text><text x="710" y="318">모의 도메인</text>
+    <rect x="880" y="276" width="220" height="56" rx="9" fill="#22c55e"/><text x="990" y="300">AES-256 암호화</text><text x="990" y="318">encryption.py</text>
+    <rect x="600" y="362" width="220" height="56" rx="9" fill="#f59e0b"/><text x="710" y="386">user_kis_credentials</text><text x="710" y="404">enc_app_key / secret</text>
+  </g>
+  <g stroke="#475569" stroke-width="2" marker-end="url(#arrow)">
+    <line x1="260" y1="304" x2="318" y2="304"/>
+    <line x1="540" y1="304" x2="598" y2="304"/>
+    <line x1="820" y1="304" x2="878" y2="304"/>
+    <path d="M990,332 L990,420 L822,420" fill="none"/>
+  </g>
+
+  <!-- ========== 3. 시세 / 차트 조회 ========== -->
+  <text x="40" y="468" font-size="17" font-weight="700" fill="#0f172a">3. 시세 / 차트 조회 (5초 폴링)</text>
+  <g font-size="12.5" fill="#fff" text-anchor="middle">
+    <rect x="40"  y="482" width="220" height="56" rx="9" fill="#3b82f6"/><text x="150" y="506">5초 폴링 · QuoteWidget</text><text x="150" y="524">usePolling</text>
+    <rect x="320" y="482" width="220" height="56" rx="9" fill="#22c55e"/><text x="430" y="506">/market/quote · chart</text><text x="430" y="524">market.py</text>
+    <rect x="600" y="482" width="220" height="56" rx="9" fill="#f59e0b"/><text x="710" y="506">access_token 조회</text><text x="710" y="524">user_kis_credentials</text>
+    <rect x="880" y="482" width="220" height="56" rx="9" fill="#ef4444"/><text x="990" y="506">KIS REST API</text><text x="990" y="524">kis_client.py</text>
+  </g>
+  <g stroke="#475569" stroke-width="2" marker-end="url(#arrow)">
+    <line x1="260" y1="510" x2="318" y2="510"/>
+    <line x1="540" y1="510" x2="598" y2="510"/>
+    <line x1="820" y1="510" x2="878" y2="510"/>
+    <path d="M990,538 L990,566 L150,566 L150,540" fill="none"/>
+  </g>
+  <text x="570" y="584" font-size="11" fill="#64748b" text-anchor="middle">현재가·OHLCV 응답 → CandleChart 렌더 → 5초 후 재폴링</text>
+
+  <!-- ========== 4. 주문 실행 ========== -->
+  <text x="40" y="640" font-size="17" font-weight="700" fill="#0f172a">4. 주문 실행</text>
+  <g font-size="12.5" fill="#fff" text-anchor="middle">
+    <rect x="40"  y="654" width="220" height="56" rx="9" fill="#3b82f6"/><text x="150" y="678">호가 클릭 · 주문창</text><text x="150" y="696">Orderbook / OrderForm</text>
+    <rect x="320" y="654" width="220" height="56" rx="9" fill="#22c55e"/><text x="430" y="678">POST /api/v1/order</text><text x="430" y="696">order.py</text>
+    <rect x="600" y="654" width="220" height="56" rx="9" fill="#22c55e"/><text x="710" y="674">거래시간·실거래</text><text x="710" y="690">차단 검사</text><text x="710" y="706">_is_market_open</text>
+    <rect x="880" y="654" width="220" height="56" rx="9" fill="#ef4444"/><text x="990" y="678">KIS 주문 TR</text><text x="990" y="696">place_order</text>
+    <rect x="880" y="740" width="220" height="56" rx="9" fill="#f59e0b"/><text x="990" y="764">user_orders</text><text x="990" y="782">status: 접수 → 체결</text>
+  </g>
+  <g stroke="#475569" stroke-width="2" marker-end="url(#arrow)">
+    <line x1="260" y1="682" x2="318" y2="682"/>
+    <line x1="540" y1="682" x2="598" y2="682"/>
+    <line x1="820" y1="682" x2="878" y2="682"/>
+    <line x1="990" y1="710" x2="990" y2="738"/>
+  </g>
+  <g stroke="#ef4444" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)">
+    <path d="M710,710 L710,726 L430,726 L430,712" fill="none"/>
+  </g>
+  <text x="500" y="744" font-size="11" fill="#ef4444">장 외 / 실거래 → rejected</text>
+
+  <!-- ========== 5. AI Q&A ========== -->
+  <text x="40" y="852" font-size="17" font-weight="700" fill="#0f172a">5. AI Q&amp;A</text>
+  <g font-size="12.5" fill="#fff" text-anchor="middle">
+    <rect x="40"  y="866" width="220" height="56" rx="9" fill="#3b82f6"/><text x="150" y="890">질문 입력</text><text x="150" y="908">ChatWidget.jsx</text>
+    <rect x="320" y="866" width="220" height="56" rx="9" fill="#22c55e"/><text x="430" y="890">/api/v1/ai/chat</text><text x="430" y="908">chatbot_graph.py</text>
+    <rect x="600" y="866" width="220" height="56" rx="9" fill="#f59e0b"/><text x="710" y="890">RAG 검색</text><text x="710" y="908">match_knowledge RPC</text>
+    <rect x="880" y="866" width="220" height="56" rx="9" fill="#a855f7"/><text x="990" y="890">GPT-4o-mini</text><text x="990" y="908">답변 생성</text>
+    <rect x="320" y="952" width="220" height="56" rx="9" fill="#f59e0b"/><text x="430" y="976">chat_history</text><text x="430" y="994">대화·출처 저장</text>
+    <rect x="40"  y="952" width="220" height="56" rx="9" fill="#3b82f6"/><text x="150" y="976">답변 + 출처 URL</text><text x="150" y="994">표시</text>
+  </g>
+  <g stroke="#475569" stroke-width="2" marker-end="url(#arrow)">
+    <line x1="260" y1="894" x2="318" y2="894"/>
+    <line x1="540" y1="894" x2="598" y2="894"/>
+    <line x1="820" y1="894" x2="878" y2="894"/>
+    <path d="M990,922 L990,938 L430,938 L430,950" fill="none"/>
+    <line x1="430" y1="1008" x2="430" y2="1024"/>
+    <path d="M320,980 L262,980" fill="none"/>
+  </g>
+  <text x="700" y="1028" font-size="11" fill="#64748b" text-anchor="middle">RAG 컨텍스트 + GPT 답변을 chatbot_graph 가 통합 → 출처와 함께 반환</text>
+
+  <!-- 공통 진입 안내 -->
+  <rect x="40" y="1070" width="1060" height="56" rx="9" fill="#1e293b"/>
+  <text x="570" y="1095" font-size="13" fill="#e2e8f0" text-anchor="middle" font-weight="600">로그인 완료 후 JWT 가 KIS 계좌 연결 · 시세 조회 · 주문 · AI Q&amp;A 모든 요청에 자동 적용된다.</text>
+  <text x="570" y="1114" font-size="11.5" fill="#94a3b8" text-anchor="middle">Frontend(Vercel) ↔ Backend(Render/FastAPI) ↔ Supabase(Postgres+pgvector) · 외부: KIS REST · OpenAI API</text>
+
+  <text x="40" y="1170" font-size="11" fill="#94a3b8">SafeInvest AI v1.0.0 — 현재 모의투자만 지원, 실거래는 차후 서비스 예정</text>
+</svg>
