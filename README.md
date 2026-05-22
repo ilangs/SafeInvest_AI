@@ -36,3 +36,10 @@ https://safeinvest-ai.vercel.app/
 e-mail: test@safeinvest.dev
 password: Test1234!
 ```
+
+---
+
+## 문서
+
+- [시스템 플로우차트](docs/flowchart.md)
+- [아키텍처 설명](docs/architecture.md)

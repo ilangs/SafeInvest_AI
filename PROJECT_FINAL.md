@@ -420,4 +420,10 @@ safeInvest/
 
 ---
 
-*SafeInvest AI v1.0.0 — 1차 마감 완료 (2026-05-14)*
+  ## 문서
+  - [시스템 플로우차트](docs/flowchart.md)
+  - [아키텍처 설명](docs/architecture.md)
+  
+---
+
+*SafeInvest AI v2.0.0 — 완료 (2026-05-22)*
