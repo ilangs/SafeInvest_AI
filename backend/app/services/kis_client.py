@@ -1052,58 +1052,132 @@ def _normalize_date(s: str | None) -> str | None:
     return digits[:8] if len(digits) >= 8 else None
 
 
-async def _fetch_kis_fills(user_id: str, is_mock: bool, start: str, end: str) -> list:
-    """KIS 일별 체결내역(inquire-daily-ccld) 조회 — 기간(YYYYMMDD) 내 체결/부분체결 주문.
+async def _fetch_kis_holdings_raw(user_id: str, is_mock: bool) -> dict | None:
+    """KIS inquire-balance 원본 보유수량 조회 — {종목코드: 수량}.
 
-    당일주문 탭을 열지 않고 지나간 과거 주문의 체결 여부를 확인하기 위한 용도.
-    실패·미연결 시 빈 리스트 반환 → 호출측은 DB status 그대로 폴백.
+    get_holdings 와 달리 로컬 주문 병합 없이 KIS 가 보고한 실제 보유량만 반환.
+    미연결·실패 시 None (정합 스킵 신호 — 빈 dict 와 구분).
     """
     try:
         creds = await get_user_token(user_id, is_mock)
     except KISNotConnectedError:
-        return []
+        return None
 
-    tr_id  = "VTTC8001R" if is_mock else "TTTC8001R"
-    url    = f"{_base_url(is_mock)}/uapi/domestic-stock/v1/trading/inquire-daily-ccld"
-    params = {
-        "CANO":            creds["cano"],
-        "ACNT_PRDT_CD":    creds["acnt_prdt_cd"],
-        "INQR_STRT_DT":    start,
-        "INQR_END_DT":     end,
-        "SLL_BUY_DVSN_CD": "00",
-        "INQR_DVSN":       "00",
-        "PDNO":            "",
-        "CCLD_DVSN":       "00",
-        "ORD_GNO_BRNO":    "",
-        "ODNO":            "",
-        "INQR_DVSN_3":     "00",
-        "INQR_DVSN_1":     "",
-        "CTX_AREA_FK100":  "",
-        "CTX_AREA_NK100":  "",
-    }
+    tr_id   = "VTTC8434R" if is_mock else "TTTC8434R"
+    url     = f"{_base_url(is_mock)}/uapi/domestic-stock/v1/trading/inquire-balance"
     headers = _kis_headers(creds, tr_id)
-
-    fills: list = []
+    params  = {
+        "CANO":                  creds["cano"],
+        "ACNT_PRDT_CD":          creds["acnt_prdt_cd"],
+        "AFHR_FLPR_YN":          "N",
+        "OFL_YN":                "",
+        "INQR_DVSN":             "02",
+        "UNPR_DVSN":             "01",
+        "FUND_STTL_ICLD_YN":     "N",
+        "FNCG_AMT_AUTO_RDPT_YN": "N",
+        "PRCS_DVSN":             "01",
+        "CTX_AREA_FK100":        "",
+        "CTX_AREA_NK100":        "",
+    }
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(url, headers=headers, params=params, timeout=10)
             resp.raise_for_status()
+        result: dict = {}
         for item in resp.json().get("output1", []):
-            qty        = int(item.get("ord_qty",      0) or 0)
-            filled_qty = int(item.get("tot_ccld_qty", 0) or 0)
-            if qty == 0 or filled_qty <= 0:
-                continue
-            fills.append({
-                "order_id":   item.get("odno", ""),
-                "status":     "체결" if filled_qty >= qty else "부분체결",
-                "stock_code": item.get("pdno", ""),
-                "order_date": item.get("ord_dt", ""),
-                "order_type": "buy" if item.get("sll_buy_dvsn_cd") == "02" else "sell",
-                "quantity":   qty,
-            })
+            code = item.get("pdno", "")
+            qty  = int(item.get("hldg_qty", 0) or 0)
+            if code:
+                result[code] = result.get(code, 0) + qty
+        return result
     except Exception as e:
-        print(f"[order_history KIS 체결조회 실패] {e}")
-    return fills
+        print(f"[잔고 정합 — KIS 보유조회 실패] {e}")
+        return None
+
+
+async def _reconcile_orders_via_balance(user_id: str, is_mock: bool) -> None:
+    """KIS 실제 보유수량으로 미체결 주문의 체결 여부를 역추적 정합.
+
+    KIS 거래내역(inquire-daily-ccld)은 체결 후에도 반영이 지연되지만,
+    잔고(inquire-balance)는 체결 즉시 반영된다는 점을 이용한다.
+
+      종목별 diff = (KIS 실제 보유) − (DB 체결주문 기준 확정 보유)
+        diff > 0 → 미체결 매수가 실행됨 → 매수 주문을 '체결' 처리
+        diff < 0 → 미체결 매도가 실행됨 → 매도 주문을 '체결' 처리
+        diff = 0 → 미체결 주문 미실행 → 그대로 유지
+
+    오래된 주문부터 채우며, 수량이 diff 를 초과하는 주문은 미체결로 남긴다.
+    실패·미연결 시 조용히 종료 (DB status 유지)."""
+    kis_qty = await _fetch_kis_holdings_raw(user_id, is_mock)
+    if kis_qty is None:
+        return
+
+    try:
+        from app.core.supabase import supabase_admin
+        res = (
+            supabase_admin.table("user_orders")
+            .select("id, stock_code, order_type, quantity, status, order_time")
+            .eq("user_id", user_id)
+            .eq("is_mock", is_mock)
+            .execute()
+        )
+        rows = res.data or []
+    except Exception as e:
+        print(f"[잔고 정합 — 주문 조회 실패] {e}")
+        return
+
+    # 종목별 집계 — confirmed(체결 기준 확정 보유) + pending(미체결 후보)
+    stocks: dict = {}
+    for r in rows:
+        code = r.get("stock_code") or ""
+        if not code:
+            continue
+        s      = stocks.setdefault(code, {"confirmed": 0, "pending": []})
+        qty    = int(r.get("quantity") or 0)
+        is_buy = r.get("order_type") == "buy"
+        if (r.get("status") or "접수") == "체결":
+            s["confirmed"] += qty if is_buy else -qty
+        else:
+            s["pending"].append({
+                "id":     r.get("id"),
+                "qty":    qty,
+                "is_buy": is_buy,
+                "time":   r.get("order_time") or "",
+            })
+
+    fill_ids: list = []
+    for code, s in stocks.items():
+        if not s["pending"]:
+            continue
+        diff = kis_qty.get(code, 0) - s["confirmed"]
+        if diff == 0:
+            continue
+        want_buy  = diff > 0          # diff>0 → 매수 체결 / diff<0 → 매도 체결
+        remaining = abs(diff)
+        cands = sorted(
+            (p for p in s["pending"] if p["is_buy"] == want_buy),
+            key=lambda p: p["time"],   # 오래된 주문 우선
+        )
+        for p in cands:
+            if 0 < p["qty"] <= remaining:
+                if p["id"]:
+                    fill_ids.append(p["id"])
+                remaining -= p["qty"]
+            else:
+                break  # 부분 정합분은 미체결 유지
+
+    if not fill_ids:
+        return
+    try:
+        supabase_admin.table("user_orders") \
+            .update({"status": "체결"}) \
+            .in_("id", fill_ids) \
+            .execute()
+        # 캐시 무효화 → 다음 조회 시 최신 상태 반영
+        _LOCAL_ORDER_CACHE.pop((user_id, is_mock, _today_kst()), None)
+        _HOLDINGS_CACHE.pop((user_id, is_mock), None)
+    except Exception as e:
+        print(f"[잔고 정합 — status 갱신 실패] {e}")
 
 
 async def get_order_history(
@@ -1115,8 +1189,9 @@ async def get_order_history(
     """기간 매매내역 조회 — Supabase user_orders 테이블 기반.
     날짜 미지정 시 오늘 하루.
 
-    조회 전 KIS 일별 체결내역으로 user_orders.status 를 동기화 —
-    당일주문 탭을 열지 않고 지나간 과거 주문도 '접수' → '체결' 반영된다."""
+    조회 전 KIS 실제 잔고로 미체결 주문의 체결 여부를 역추적 정합한다
+    (_reconcile_orders_via_balance). KIS 거래내역은 체결 반영이 지연되지만
+    잔고는 즉시 반영되므로, 잔고 변화로 체결을 판정한다."""
     today = _today_kst()
     start = _normalize_date(start_date) or today
     end   = _normalize_date(end_date)   or today
@@ -1124,22 +1199,11 @@ async def get_order_history(
     if start > end:
         start, end = end, start
 
-    # ★ KIS 체결내역 조회 (실패해도 DB 조회는 계속 진행)
-    kis_fills: list = []
+    # ★ KIS 잔고 역추적 정합 (실패해도 DB 조회는 계속 진행)
     try:
-        kis_fills = await _fetch_kis_fills(user_id, is_mock, start, end)
+        await _reconcile_orders_via_balance(user_id, is_mock)
     except Exception as e:
-        print(f"[order_history KIS 조회 실패] {e}")
-
-    # 체결 매칭 인덱스 — ① order_id 정확매칭 ② 복합키 폴백매칭
-    #   (구 데이터는 order_id_ext 가 잘못 저장돼 정확매칭이 안 되므로 복합키로 보완)
-    fill_by_id:  dict = {}
-    fill_by_key: dict = {}
-    for f in kis_fills:
-        if f["order_id"]:
-            fill_by_id[f["order_id"]] = f
-        key = (f["stock_code"], f["order_date"], f["order_type"], f["quantity"])
-        fill_by_key.setdefault(key, f)
+        print(f"[order_history 정합 실패] {e}")
 
     try:
         from app.core.supabase import supabase_admin
@@ -1159,24 +1223,10 @@ async def get_order_history(
         print(f"[order_history 조회 실패] {e}")
         rows = []
 
-    # status 갱신 대상 — {new_status: [row id, ...]}
-    sync_ids: dict = {"체결": [], "부분체결": []}
-
     out = []
     for r in rows:
         r_status = r.get("status") or "접수"   # ★ NULL fallback: "접수"
         r_qty    = int(r.get("quantity") or 0)
-
-        # 미체결류 행만 KIS 체결내역과 대조
-        if r_status not in ("체결", "부분체결"):
-            key   = (r.get("stock_code", ""), r.get("order_date", ""),
-                     r.get("order_type", ""), r_qty)
-            match = fill_by_id.get(r.get("order_id_ext") or "") or fill_by_key.get(key)
-            if match:
-                r_status = match["status"]
-                if r.get("id"):
-                    sync_ids[match["status"]].append(r["id"])
-
         out.append({
             "stock_code":  r.get("stock_code", ""),
             "stock_name":  r.get("stock_name") or _stock_name(r.get("stock_code", "")),
@@ -1190,19 +1240,6 @@ async def get_order_history(
             "order_time":  r.get("order_time", ""),
             "order_id":    r.get("order_id_ext", ""),
         })
-
-    # ★ 확인된 체결분을 DB 에 영구 반영 (다음 조회부터는 KIS 호출 없이도 정상)
-    for new_status, ids in sync_ids.items():
-        if not ids:
-            continue
-        try:
-            supabase_admin.table("user_orders") \
-                .update({"status": new_status}) \
-                .in_("id", ids) \
-                .execute()
-        except Exception as e:
-            print(f"[order_history status 갱신 실패] {e}")
-
     return out
 
 
