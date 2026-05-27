@@ -120,8 +120,8 @@ if _static_dir.exists():
 
 # ── 헬스체크 (UptimeRobot HEAD/GET 요청 대응) ───────────────────────────
 
-# @app.get 대신 @app.route를 사용하고 methods를 명시합니다.
-@app.route("/health", methods=["GET", "HEAD"], tags=["system"], summary="서버 상태 확인")
+# methods를 GET과 HEAD로 명시합니다.
+@app.get("/health", methods=["GET", "HEAD"], tags=["system"], summary="서버 상태 확인")
 async def health_check():
     """
     UptimeRobot이 10~12분마다 HEAD 요청을 보내어 
