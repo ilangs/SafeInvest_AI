@@ -118,10 +118,10 @@ if _static_dir.exists():
 #         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
 #     })
 
-# ── 헬스체크 (UptimeRobot HEAD/GET 요청 대응) ───────────────────────────
+# ── 헬스체크 (UptimeRobot HEAD/GET 요청 완벽 대응) ─────────────────────
 
-# methods를 GET과 HEAD로 명시합니다.
-@app.get("/health", methods=["GET", "HEAD"], tags=["system"], summary="서버 상태 확인")
+# @app.get 대신 @app.api_route를 사용해야 methods 인자가 정상 작동합니다.
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["system"], summary="서버 상태 확인")
 async def health_check():
     """
     UptimeRobot이 10~12분마다 HEAD 요청을 보내어 
@@ -134,7 +134,6 @@ async def health_check():
         "kis_mode":   "user-managed",
         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
     })
-
 
 # ── 루트 ─────────────────────────────────────────────────────────────────────
 
