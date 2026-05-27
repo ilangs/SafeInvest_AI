@@ -103,18 +103,35 @@ if _static_dir.exists():
 
 # ── 헬스체크 (GitHub Actions keep_alive.yml 워크플로우가 12분마다 호출) ─────
 
-@app.get("/health", tags=["system"], summary="서버 상태 확인")
+# @app.get("/health", tags=["system"], summary="서버 상태 확인")
+# async def health_check():
+#     """
+#     GitHub Actions 워크플로우 `.github/workflows/keep_alive.yml` 이 12분마다
+#     이 엔드포인트를 호출하여 Render.com Free tier 의 15분 idle Sleep 을 방지합니다.
+#     (이전에 사용하던 UptimeRobot 은 중단)
+#     인증 불필요.
+#     """
+#     return JSONResponse({
+#         "status":    "ok",
+#         "env":       settings.fastapi_env,
+#         "kis_mode":  "user-managed",
+#         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+#     })
+
+# ── 헬스체크 (UptimeRobot HEAD/GET 요청 대응) ───────────────────────────
+
+# @app.get 대신 @app.route를 사용하고 methods를 명시합니다.
+@app.route("/health", methods=["GET", "HEAD"], tags=["system"], summary="서버 상태 확인")
 async def health_check():
     """
-    GitHub Actions 워크플로우 `.github/workflows/keep_alive.yml` 이 12분마다
-    이 엔드포인트를 호출하여 Render.com Free tier 의 15분 idle Sleep 을 방지합니다.
-    (이전에 사용하던 UptimeRobot 은 중단)
-    인증 불필요.
+    UptimeRobot이 10~12분마다 HEAD 요청을 보내어 
+    Render.com Free tier의 15분 idle Sleep을 방지합니다.
+    (인증 불필요, GET/HEAD 모두 지원)
     """
     return JSONResponse({
-        "status":    "ok",
-        "env":       settings.fastapi_env,
-        "kis_mode":  "user-managed",
+        "status":     "ok",
+        "env":        settings.fastapi_env,
+        "kis_mode":   "user-managed",
         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
     })
 
