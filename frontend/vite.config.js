@@ -43,7 +43,7 @@ export default defineConfig({
 
   server: {
     proxy: {
-      "/api": "http://172.30.1.81:8000",
+      "/api": "http://localhost:8000",
     },
   },
 });
