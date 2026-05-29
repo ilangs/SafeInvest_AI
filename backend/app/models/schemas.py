@@ -55,6 +55,12 @@ class OrderRequest(BaseModel):
     quantity: int         = Field(..., gt=0, description="주문 수량")
     price: int | None     = Field(None, description="지정가 (None=시장가)")
     is_mock: bool         = Field(True, description="True=모의투자, False=실거래")
+    idempotency_key: str | None = Field(
+        None,
+        max_length=64,
+        description="클라이언트 발급 UUID — 동일 키 재전송 시 중복 주문이 거부됩니다. "
+                    "더블클릭/네트워크 재시도 안전을 위해 매 주문마다 새 UUID 권장.",
+    )
 
 
 class OrderResponse(BaseModel):

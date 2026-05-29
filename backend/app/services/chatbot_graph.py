@@ -142,6 +142,26 @@ class GraphState(TypedDict):
     sources:     list[str]         # 출처 제목 목록
     source_url:  str | None        # 대표 URL
     answered_at: datetime          # save_history 노드가 채움
+    # ── LLM 토큰/비용 추적 (generate_* 노드가 채움, save_history 가 DB 기록) ──
+    input_tokens:  int
+    output_tokens: int
+    cost_usd:      float
+
+
+# ── gpt-4o-mini 단가 (2026 기준, 변경 시 한 곳만 수정) ─────────────────────
+# 입력  $0.15 / 1M tokens
+# 출력  $0.60 / 1M tokens
+_PRICE_INPUT_PER_1K  = 0.00015
+_PRICE_OUTPUT_PER_1K = 0.00060
+
+
+def _estimate_cost_usd(input_tokens: int, output_tokens: int) -> float:
+    """모델 단가표 기반 호출 비용 계산. langchain OpenAICallback 누락 시 폴백."""
+    return round(
+        (input_tokens  / 1000.0) * _PRICE_INPUT_PER_1K
+        + (output_tokens / 1000.0) * _PRICE_OUTPUT_PER_1K,
+        6,
+    )
 
 
 # ── 보조 함수 ─────────────────────────────────────────────────────────────────
@@ -248,20 +268,28 @@ async def generate_rag(state: GraphState) -> dict:
     """
     노드 3 — RAG 답변 생성
     FSS 검색 문서를 컨텍스트로 삼아 LCEL 체인으로 답변을 생성합니다.
+    get_openai_callback 으로 토큰/비용을 함께 집계합니다.
     """
+    input_tokens, output_tokens, cost_usd = 0, 0, 0.0
     try:
         from langchain_core.prompts import ChatPromptTemplate
         from langchain_core.output_parsers import StrOutputParser
+        from langchain_community.callbacks.manager import get_openai_callback
         context = _format_docs(state["source_docs"])
         prompt  = ChatPromptTemplate.from_messages([
             ("system", _SYSTEM_PROMPT),
             ("human",  "{question}"),
         ])
-        chain  = prompt | _get_llm() | StrOutputParser()
-        answer = await chain.ainvoke({
-            "context":  context,
-            "question": state["question"],
-        })
+        chain = prompt | _get_llm() | StrOutputParser()
+        with get_openai_callback() as cb:
+            answer = await chain.ainvoke({
+                "context":  context,
+                "question": state["question"],
+            })
+        input_tokens  = int(cb.prompt_tokens)
+        output_tokens = int(cb.completion_tokens)
+        # cb.total_cost 는 일부 모델에서 0.0 으로 보고됨 → 단가표 폴백
+        cost_usd = float(cb.total_cost) or _estimate_cost_usd(input_tokens, output_tokens)
     except Exception as exc:
         print(f"[chatbot_graph] generate_rag 오류: {exc}")
         answer  = _emergency_answer()
@@ -279,10 +307,13 @@ async def generate_rag(state: GraphState) -> dict:
     )
 
     return {
-        "context":    context,
-        "answer":     answer,
-        "sources":    sources,
-        "source_url": source_url,
+        "context":       context,
+        "answer":        answer,
+        "sources":       sources,
+        "source_url":    source_url,
+        "input_tokens":  input_tokens,
+        "output_tokens": output_tokens,
+        "cost_usd":      cost_usd,
     }
 
 
@@ -290,44 +321,72 @@ async def generate_fallback(state: GraphState) -> dict:
     """
     노드 4 — Fallback 답변 생성
     참조 자료 없이 일반 금융 지식 기반으로 LCEL 체인 답변을 생성합니다.
+    get_openai_callback 으로 토큰/비용을 함께 집계합니다.
     """
+    input_tokens, output_tokens, cost_usd = 0, 0, 0.0
     try:
         from langchain_core.prompts import ChatPromptTemplate
         from langchain_core.output_parsers import StrOutputParser
+        from langchain_community.callbacks.manager import get_openai_callback
         prompt = ChatPromptTemplate.from_messages([
             ("system", _FALLBACK_SYSTEM_PROMPT),
             ("human",  "{question}"),
         ])
-        chain  = prompt | _get_llm() | StrOutputParser()
-        answer = await chain.ainvoke({"question": state["question"]})
+        chain = prompt | _get_llm() | StrOutputParser()
+        with get_openai_callback() as cb:
+            answer = await chain.ainvoke({"question": state["question"]})
+        input_tokens  = int(cb.prompt_tokens)
+        output_tokens = int(cb.completion_tokens)
+        cost_usd = float(cb.total_cost) or _estimate_cost_usd(input_tokens, output_tokens)
     except Exception as exc:
         print(f"[chatbot_graph] generate_fallback 오류: {exc}")
         answer = _emergency_answer()
 
     return {
-        "context":     "",
-        "answer":      answer,
-        "source_docs": [],
-        "sources":     [],
-        "source_url":  None,
+        "context":       "",
+        "answer":        answer,
+        "source_docs":   [],
+        "sources":       [],
+        "source_url":    None,
+        "input_tokens":  input_tokens,
+        "output_tokens": output_tokens,
+        "cost_usd":      cost_usd,
     }
 
 
 async def save_history(state: GraphState) -> dict:
     """
     노드 5 — 이력 저장
-    chat_history 테이블에 상담 이력을 저장합니다.
+    chat_history 테이블에 상담 이력 + 토큰/비용을 저장하고,
+    daily_cost_log 에 누적합니다. (Circuit Breaker 의 입력값)
     오류가 발생해도 로그만 출력하고 그래프를 정상 종료합니다.
     """
+    input_tokens  = int(state.get("input_tokens", 0)  or 0)
+    output_tokens = int(state.get("output_tokens", 0) or 0)
+    cost_usd      = float(state.get("cost_usd", 0.0)  or 0.0)
+
     try:
         supabase_admin.table("chat_history").insert({
-            "user_id":    state["user_id"],
-            "question":   state["question"],
-            "answer":     state["answer"],
-            "session_id": state["session_id"],
+            "user_id":       state["user_id"],
+            "question":      state["question"],
+            "answer":        state["answer"],
+            "session_id":    state["session_id"],
+            "input_tokens":  input_tokens,
+            "output_tokens": output_tokens,
+            "cost_usd":      cost_usd,
         }).execute()
     except Exception as exc:
         print(f"[chatbot_graph] chat_history 저장 오류: {exc}")
+
+    # 시스템 전체 일일 비용 누적 (Circuit Breaker 용)
+    if cost_usd > 0:
+        try:
+            supabase_admin.rpc(
+                "accrue_daily_cost",
+                {"p_cost_usd": cost_usd, "p_tokens": input_tokens + output_tokens},
+            ).execute()
+        except Exception as exc:
+            print(f"[chatbot_graph] daily_cost_log 누적 오류: {exc}")
 
     return {"answered_at": datetime.now(tz=timezone.utc)}
 
@@ -414,6 +473,9 @@ async def ask_graph(
         "sources":     [],
         "source_url":  None,
         "answered_at": datetime.now(tz=timezone.utc),
+        "input_tokens":  0,
+        "output_tokens": 0,
+        "cost_usd":      0.0,
     }
 
     try:

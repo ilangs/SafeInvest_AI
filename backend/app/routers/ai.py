@@ -11,6 +11,7 @@ import gc
 from fastapi import APIRouter, Depends
 from app.dependencies import get_current_user
 from app.core.security import TokenData
+from app.core.rate_limit import check_chat_quota, check_system_cost_breaker
 from app.models.schemas import ChatRequest, ChatResponse
 # from app.services import rag_chain
 from app.services import chatbot_graph
@@ -26,6 +27,8 @@ router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 async def chat(
     body: ChatRequest,
     current_user: TokenData = Depends(get_current_user),
+    _breaker: dict = Depends(check_system_cost_breaker),
+    _quota:   dict = Depends(check_chat_quota),
 ):
     """
     사용자 질문을 RAG 체인으로 처리하고 건전 투자 가이드를 반환합니다.

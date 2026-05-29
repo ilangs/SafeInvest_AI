@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 from app.dependencies import get_current_user
 from app.core.security import TokenData
+from app.core.rate_limit import check_order_quota
 from app.models.schemas import OrderRequest, OrderResponse
 from app.services import kis_client
 
@@ -39,11 +40,13 @@ router = APIRouter(prefix="/api/v1/order", tags=["order"])
 async def place_order(
     body: OrderRequest,
     current_user: TokenData = Depends(get_current_user),
+    _quota: dict = Depends(check_order_quota),
 ):
     """
     모의/실거래 주문을 KIS API 로 전송합니다.
     - body.is_mock=True  : 모의투자 환경
     - body.is_mock=False : 실거래
+    - body.idempotency_key : 클라이언트 발급 UUID (더블클릭/재시도 중복 차단)
     """
     data = await kis_client.place_order(
         user_id=current_user.user_id,
@@ -52,6 +55,7 @@ async def place_order(
         quantity=body.quantity,
         price=body.price,
         is_mock=body.is_mock,
+        idempotency_key=body.idempotency_key,
     )
     return OrderResponse(
         **data,

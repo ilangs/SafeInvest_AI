@@ -289,6 +289,52 @@ except ImportError:
     _LOCAL_ORDER_CACHE: dict[tuple, list] = {}
 
 
+# ══════════════════════════════════════════════════════════════════
+# Fresh response cache — KIS API 호출 한도 보호용 단기 캐시 (TTL 5초)
+# ──────────────────────────────────────────────────────────────────
+# 위쪽 _QUOTE_CACHE 등은 "KIS 실패 시 fallback" 용 (300s) 이므로
+# 호출 직전 짧은 TTL hit 로 빠져나가는 별도 캐시가 필요하다.
+#
+# 효과 : 사용자 20명이 동시 폴링해도 동일 키 호출은 5초당 1번만 KIS 로 나감.
+#        KIS 모의 1건/초 한도(20명×12/분 → 4/초) 폭주 차단.
+#
+# 키 구조 :
+#   quote     : ("quote",     symbol)
+#   orderbook : ("orderbook", symbol)
+#   info      : ("info",      symbol)
+#   balance   : ("balance",   user_id, is_mock)
+#   holdings  : ("holdings",  user_id, is_mock)
+#
+# 사용자별(잔고/보유) 캐시는 place_order 성공 시 즉시 무효화한다
+# (체결 직후 화면 새로고침이 옛 값을 보여주지 않도록).
+# ══════════════════════════════════════════════════════════════════
+
+_FRESH_TTL_SEC = 5.0
+_FRESH_CACHE: dict[tuple, tuple[object, float]] = {}
+
+
+def _fresh_get(key: tuple):
+    """TTL 미만이면 캐시된 값을, 만료/미존재면 None 반환."""
+    hit = _FRESH_CACHE.get(key)
+    if hit is None:
+        return None
+    value, expires_at = hit
+    if expires_at < time.time():
+        _FRESH_CACHE.pop(key, None)
+        return None
+    return value
+
+
+def _fresh_put(key: tuple, value) -> None:
+    _FRESH_CACHE[key] = (value, time.time() + _FRESH_TTL_SEC)
+
+
+def _fresh_invalidate_user(user_id: str, is_mock: bool) -> None:
+    """주문 직후 잔고/보유종목 캐시 즉시 무효화."""
+    for kind in ("balance", "holdings"):
+        _FRESH_CACHE.pop((kind, user_id, is_mock), None)
+
+
 def _today_kst() -> str:
     return datetime.now(tz=timezone(timedelta(hours=9))).strftime("%Y%m%d")
 
@@ -354,6 +400,7 @@ def _record_local_order(
     user_id: str, is_mock: bool, symbol: str,
     order_type: str, quantity: int, price: int | None, order_id: str,
     status: str = "접수",
+    idempotency_key: str | None = None,
 ):
     """
     주문 성공 시 Supabase + 메모리 캐시에 기록.
@@ -392,6 +439,8 @@ def _record_local_order(
         "order_date":   today,
         "order_time":   now,
     }
+    if idempotency_key:
+        payload["idempotency_key"] = idempotency_key
     from app.core.supabase import supabase_admin
     saved = False
     for attempt in range(1, 4):
@@ -539,6 +588,12 @@ def _fallback_quote(symbol: str) -> dict:
 
 async def get_quote(symbol: str, user_id: str, is_mock: bool = True) -> dict:
     """현재가 조회. KIS 실패 시 직전 성공 캐시 → Supabase 최근 종가 순으로 fallback."""
+    # ★ Fresh cache (TTL 5s) — 동일 종목 동시 폴링 시 KIS 호출 횟수 감소
+    _key = ("quote", symbol)
+    _hit = _fresh_get(_key)
+    if _hit is not None:
+        return _hit
+
     try:
         creds = await get_user_token(user_id, is_mock)
     except KISNotConnectedError:
@@ -567,6 +622,7 @@ async def get_quote(symbol: str, user_id: str, is_mock: bool = True) -> dict:
             "volume":        int(output.get("acml_vol", 0)     or 0),
         }
         _QUOTE_CACHE[symbol] = result
+        _fresh_put(_key, result)
         return result
     except Exception:
         return _fallback_quote(symbol)
@@ -596,6 +652,11 @@ def _fallback_stock_info(symbol: str) -> dict:
 
 async def get_stock_info(symbol: str, user_id: str, is_mock: bool = True) -> dict:
     """투자정보 위젯용 확장 시세 조회."""
+    _key = ("info", symbol)
+    _hit = _fresh_get(_key)
+    if _hit is not None:
+        return _hit
+
     try:
         creds = await get_user_token(user_id, is_mock)
     except KISNotConnectedError:
@@ -634,6 +695,7 @@ async def get_stock_info(symbol: str, user_id: str, is_mock: bool = True) -> dic
             "is_mock":         False,
         }
         _INFO_CACHE[symbol] = result
+        _fresh_put(_key, result)
         return result
     except Exception:
         return _fallback_stock_info(symbol)
@@ -676,6 +738,11 @@ def _fallback_orderbook(symbol: str) -> dict:
 
 async def get_orderbook(symbol: str, user_id: str, is_mock: bool = True) -> dict:
     """호가창 조회 (10호가 + 상한가/하한가). KIS 실패 시 deterministic fallback."""
+    _key = ("orderbook", symbol)
+    _hit = _fresh_get(_key)
+    if _hit is not None:
+        return _hit
+
     try:
         creds = await get_user_token(user_id, is_mock)
     except KISNotConnectedError:
@@ -708,6 +775,7 @@ async def get_orderbook(symbol: str, user_id: str, is_mock: bool = True) -> dict
             "is_mock":     False,
         }
         _ORDERBOOK_CACHE[symbol] = result
+        _fresh_put(_key, result)
         return result
     except Exception:
         return _fallback_orderbook(symbol)
@@ -873,6 +941,12 @@ def _fallback_balance(user_id: str, is_mock: bool, account_no_masked: str | None
 
 async def get_balance(user_id: str, is_mock: bool = False) -> dict:
     """잔고 조회. 실계좌 우선 → 모의계좌. KIS 실패 시 직전 캐시 또는 0 반환."""
+    # ★ Fresh cache (TTL 5s) — 주문 직후엔 _fresh_invalidate_user 가 무효화
+    _key = ("balance", user_id, is_mock)
+    _hit = _fresh_get(_key)
+    if _hit is not None:
+        return _hit
+
     actual_is_mock = is_mock
     try:
         creds = await get_user_token(user_id, is_mock)
@@ -930,6 +1004,7 @@ async def get_balance(user_id: str, is_mock: bool = False) -> dict:
             "account_no_masked": creds["account_no_masked"],
         }
         _BALANCE_CACHE[(user_id, actual_is_mock)] = result
+        _fresh_put(_key, result)
         return result
     except Exception:
         return _fallback_balance(user_id, actual_is_mock, creds.get("account_no_masked"))
@@ -1002,6 +1077,12 @@ def _merge_holdings_with_local(holdings: list, user_id: str, is_mock: bool) -> l
 
 async def get_holdings(user_id: str, is_mock: bool = False) -> list:
     """보유종목 조회. 실계좌 우선 → 모의계좌. KIS 실패 시 직전 캐시 또는 빈 배열."""
+    # ★ Fresh cache (TTL 5s) — 주문 직후엔 _fresh_invalidate_user 가 무효화
+    _key = ("holdings", user_id, is_mock)
+    _hit = _fresh_get(_key)
+    if _hit is not None:
+        return _hit
+
     actual_is_mock = is_mock
     try:
         creds = await get_user_token(user_id, is_mock)
@@ -1051,6 +1132,7 @@ async def get_holdings(user_id: str, is_mock: bool = False) -> list:
                 })
         merged = _merge_holdings_with_local(holdings, user_id, actual_is_mock)
         _HOLDINGS_CACHE[(user_id, actual_is_mock)] = merged
+        _fresh_put(_key, merged)
         return merged
     except Exception:
         fallback = _fallback_holdings(user_id, actual_is_mock)
@@ -1422,6 +1504,7 @@ async def place_order(
     quantity: int,
     price: int | None = None,
     is_mock: bool = True,
+    idempotency_key: str | None = None,
 ) -> dict:
     """주문 실행."""
     # ★ 실거래 차단 — 현재 모의투자만 지원, 실거래는 차후 서비스 예정
@@ -1482,7 +1565,12 @@ async def place_order(
         #   주문 식별자가 아니며, 체결 동기화 시 inquire-daily-ccld 의 odno 와 매칭되지 않는다.)
         order_id = output.get("ODNO", "") or f"KIS-{symbol}-{datetime.now().strftime('%H%M%S')}"
         # 로컬 주문 로그에 기록 — KIS inquire-daily-ccld 지연/누락 보완
-        _record_local_order(user_id, is_mock, symbol, order_type, quantity, price, order_id)
+        _record_local_order(
+            user_id, is_mock, symbol, order_type, quantity, price, order_id,
+            idempotency_key=idempotency_key,
+        )
+        # ★ 주문 직후 잔고·보유종목 fresh 캐시 즉시 무효화 — 화면 갱신 시 옛 값 노출 방지
+        _fresh_invalidate_user(user_id, is_mock)
         return {
             "order_id":   order_id,
             "symbol":     symbol,
