@@ -17,10 +17,25 @@ export default function TabFinancial({ financials }) {
     )
   }
 
-  const years = annual.map(r => r.fiscal_year)
-  const revenue = annual.map(r => (r.revenue ?? 0) / 1e8)
-  const opProfit = annual.map(r => (r.operating_profit ?? 0) / 1e8)
-  const netProfit = annual.map(r => (r.net_income ?? 0) / 1e8)
+  const years = annual.map(r => String(r.fiscal_year))
+
+  // 최대 금액이 1조 이상이면 조원, 미만이면 억원 단위로 그린다
+  const maxAmount = Math.max(
+    ...annual.map(r =>
+      Math.max(
+        Math.abs(r.revenue ?? 0),
+        Math.abs(r.operating_profit ?? 0),
+        Math.abs(r.net_income ?? 0),
+      )
+    )
+  )
+  const inTrillion = maxAmount >= 1e12
+  const unitDiv = inTrillion ? 1e12 : 1e8
+  const unitLabel = inTrillion ? '조원' : '억원'
+
+  const revenue = annual.map(r => (r.revenue ?? 0) / unitDiv)
+  const opProfit = annual.map(r => (r.operating_profit ?? 0) / unitDiv)
+  const netProfit = annual.map(r => (r.net_income ?? 0) / unitDiv)
 
   const baseLayout = (height) => ({
     paper_bgcolor: 'rgba(0,0,0,0)',
@@ -67,7 +82,7 @@ export default function TabFinancial({ financials }) {
       x: years,
       y: revenue,
       width: 0.5,
-      name: '매출(억원)',
+      name: `매출(${unitLabel})`,
       marker: { color: 'rgba(47, 125, 79, 0.55)' },
     },
     {
@@ -75,7 +90,7 @@ export default function TabFinancial({ financials }) {
       mode: 'lines+markers',
       x: years,
       y: opProfit,
-      name: '영업이익(억원)',
+      name: `영업이익(${unitLabel})`,
       line: { color: '#e38b2c', width: 2 },
       marker: { size: 8 },
     },
@@ -84,13 +99,16 @@ export default function TabFinancial({ financials }) {
       mode: 'lines+markers',
       x: years,
       y: netProfit,
-      name: '순이익(억원)',
+      name: `순이익(${unitLabel})`,
       line: { color: '#6957ef', width: 1.8 },
       marker: { size: 8 },
     },
   ]
 
   const finLayout = baseLayout(window.innerWidth <= 480 ? 420 : 560)
+  finLayout.xaxis.type = 'category'        // 연도가 숫자로 해석돼 2,022.5 같은 눈금이 생기는 것 방지
+  finLayout.yaxis.tickformat = ',d'        // SI 축약(3M 등) 대신 천 단위 콤마 표기
+  finLayout.margin.l = inTrillion ? 36 : 52
 
   if (window.innerWidth <= 480) {
     finLayout.margin.t = 0
