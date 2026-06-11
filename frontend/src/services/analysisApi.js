@@ -43,7 +43,7 @@ export function fmtMoney(v) {
   if (v == null || isNaN(v)) return '-'
   const sign = v < 0 ? '-' : ''
   const n = Math.abs(v)
-  if (n >= 1e13) return `${sign}${(n/1e13).toFixed(1)}조원`
+  if (n >= 1e12) return `${sign}${(n/1e12).toFixed(1)}조원`
   if (n >= 1e8)  return `${sign}${(n/1e8).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')}억원`
   return `${sign}${n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')}원`
 }
